@@ -1,0 +1,7 @@
+[package]
+name = "remani"
+version = "0.1.0"
+authors = ["Matthew Tran <0e4ef622@gmail.com>"]
+
+[dependencies]
+piston = "0.35.0"
