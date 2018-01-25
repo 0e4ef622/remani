@@ -4,15 +4,15 @@ extern crate graphics;
 extern crate opengl_graphics;
 
 
-mod remani_window;
+mod view;
 
-use remani_window::RemaniWindow;
+use view::View;
 
 fn main() {
 
     use piston::window::WindowSettings;
-    use piston::event_loop::{Events,  EventSettings};
-    use piston::input::RenderEvent;
+    use piston::event_loop::{ Events,  EventSettings };
+    use piston::input::{ RenderEvent, UpdateEvent, PressEvent };
     use glutin_window::GlutinWindow as Window;
     use opengl_graphics::{ OpenGL, GlGraphics };
 
@@ -22,14 +22,23 @@ fn main() {
                              .opengl(opengl)
                              .srgb(false)
                              .build()
-                             .unwrap();
+                             .expect("Could not create window");
 
-    let mut remani_window = RemaniWindow { gl: GlGraphics::new(opengl) };
+    let mut view = View { gl: GlGraphics::new(opengl) };
 
     let mut events = Events::new(EventSettings::new());
     while let Some(e) = events.next(&mut window) {
+
         if let Some(r) = e.render_args() {
-            remani_window.render(&r);
+            view.render(&r);
+        }
+
+        if let Some(u) = e.update_args() {
+            view.update(&u);
+        }
+
+        if let Some(i) = e.press_args() {
+            view.press(&i);
         }
 
     }
