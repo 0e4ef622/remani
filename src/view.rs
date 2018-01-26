@@ -23,7 +23,7 @@ impl View {
             gl: gl,
             texture: Texture::from_path(path, &TextureSettings::new()).expect("Failed to load image"),
             image: Image::new().rect(graphics::rectangle::square(50.0, 50.0, 100.0)),
-            draw_state: DrawState { scissor: None, stencil: None, blend: None },
+            draw_state: DrawState::default(),
         }
     }
 
