@@ -3,7 +3,6 @@ extern crate glutin_window;
 extern crate graphics;
 extern crate opengl_graphics;
 
-
 mod view;
 
 use view::View;
@@ -15,6 +14,7 @@ fn main() {
     use piston::input::{ RenderEvent, UpdateEvent, PressEvent };
     use glutin_window::GlutinWindow as Window;
     use opengl_graphics::{ OpenGL, GlGraphics };
+    use std::path::Path;
 
     let opengl = OpenGL::V3_2;
 
@@ -24,7 +24,8 @@ fn main() {
                              .build()
                              .expect("Could not create window");
 
-    let mut view = View { gl: GlGraphics::new(opengl) };
+    let mut view = View::new(GlGraphics::new(opengl),
+                             Path::new("./test.png"));
 
     let mut events = Events::new(EventSettings::new());
     while let Some(e) = events.next(&mut window) {
