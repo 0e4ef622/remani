@@ -52,7 +52,7 @@ impl From<io::Error> for ParseError {
 impl fmt::Display for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            ParseError::Io(ref e) => write!(f, "IO error: {}", e),
+            ParseError::Io(ref e) => fmt::Display::fmt(e, f),
             ParseError::Parse => write!(f, "Parse error"),
         }
     }
@@ -74,6 +74,7 @@ impl error::Error for ParseError {
 }
 
 /// Holds chart data, such as notes, BPM, SV changes, and what not.
+#[derive(Default)]
 pub struct Chart {
     notes: Vec<Note>,
     timing_points: Vec<TimingPoint>,
@@ -85,15 +86,13 @@ pub struct Chart {
 impl Chart {
 
     /// Parse the chart with the .osu parser
-    pub fn from_osu<T: io::BufRead>(mut input: T) -> Result<Chart, ParseError> {
-        let mut line = String::new();
-        input.read_line(&mut line)?;
-        println!("{}", line.trim());
-        Ok(Chart {
-            notes: vec![],
-            timing_points: vec![],
-            length: 0.0,
-        })
+    pub fn from_osu<T: io::BufRead>(input: T) -> Result<Chart, ParseError> {
+
+        for line in input.lines() {
+            println!("{}", line?);
+        }
+
+        Ok(Chart::default())
     }
 
     pub fn from_osu_path<T: AsRef<Path>>(path: T) -> Result<Chart, ParseError> {
