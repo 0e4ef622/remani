@@ -1,3 +1,5 @@
+//! A module that handles window events
+
 extern crate graphics;
 extern crate opengl_graphics;
 extern crate texture;
@@ -9,6 +11,7 @@ use graphics::image::Image;
 use graphics::draw_state::DrawState;
 use std::path::Path;
 
+/// Holds values and resources needed by the window to do drawing stuff
 pub struct View {
     pub gl: GlGraphics,
     texture: Texture,
@@ -18,15 +21,22 @@ pub struct View {
 
 impl View {
 
+    /// Create a view with some hardcoded defaults and stuffs
     pub fn new(gl: GlGraphics, path: &Path) -> Self {
-        View {
+        let gl = gl;
+        let texture = Texture::from_path(path, &TextureSettings::new()).expect("Failed to load image");
+        let image = Image::new().rect(graphics::rectangle::square(50.0, 50.0, 100.0));
+        let draw_state = DrawState::default();
+
+        Self {
             gl: gl,
-            texture: Texture::from_path(path, &TextureSettings::new()).expect("Failed to load image"),
-            image: Image::new().rect(graphics::rectangle::square(50.0, 50.0, 100.0)),
-            draw_state: DrawState::default(),
+            texture: texture,
+            image: image,
+            draw_state: draw_state,
         }
     }
 
+    /// Called when a render event occurs
     pub fn render(&mut self, args: &RenderArgs) {
         let image = &self.image;
         let texture = &self.texture;
@@ -37,10 +47,12 @@ impl View {
         });
     }
 
+    /// Called when an update event occurs
     pub fn update(&mut self, args: &UpdateArgs) {
         // stuff
     }
 
+    /// Called when a press event occurs
     pub fn press(&mut self, args: &Button) {
         match args {
             &Button::Keyboard(k) => println!("Keyboard event {:?}", k),
