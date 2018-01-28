@@ -3,8 +3,13 @@
 use std::io;
 use std::error;
 use std::fmt;
+use std::ffi;
 use std::fs::File;
 use std::path::Path;
+
+mod osu_parser;
+
+use self::osu_parser::OsuParser;
 
 /// A regular note in a chart.
 pub struct SimpleNote {
@@ -41,6 +46,7 @@ pub enum ParseError {
     Io(io::Error),
     /// Parsing error
     Parse,
+    UnknownFormat,
 }
 
 impl From<io::Error> for ParseError {
@@ -54,6 +60,7 @@ impl fmt::Display for ParseError {
         match *self {
             ParseError::Io(ref e) => fmt::Display::fmt(e, f),
             ParseError::Parse => write!(f, "Parse error"),
+            ParseError::UnknownFormat => write!(f, "Unknown chart format"),
         }
     }
 }
@@ -62,13 +69,14 @@ impl error::Error for ParseError {
     fn description(&self) -> &str {
         match *self {
             ParseError::Io(ref e) => e.description(),
-            ParseError::Parse => "There was a problem parsing the chart",
+            ParseError::Parse => "Parse error",
+            ParseError::UnknownFormat => "Unknown chart format",
         }
     }
     fn cause(&self) -> Option<&error::Error> {
         match *self {
             ParseError::Io(ref e) => Some(e),
-            ParseError::Parse => Some(&ParseError::Parse),
+            _ => Some(self),
         }
     }
 }
@@ -76,30 +84,40 @@ impl error::Error for ParseError {
 /// Holds chart data, such as notes, BPM, SV changes, and what not.
 #[derive(Default)]
 pub struct Chart {
-    notes: Vec<Note>,
-    timing_points: Vec<TimingPoint>,
+    pub notes: Vec<Note>,
+    pub timing_points: Vec<TimingPoint>,
 
     /// Length of the whole song, in seconds
-    length: f64,
+    pub length: f64,
 }
 
 impl Chart {
 
-    /// Parse the chart with the .osu parser
-    pub fn from_osu<T: io::BufRead>(input: T) -> Result<Chart, ParseError> {
+    /// Parse from a file specified by the path.
+    ///
+    /// The function will choose a parser based on the file extension.
+    pub fn from_path<P: AsRef<Path>>(path: P) -> Result<Chart, ParseError> {
 
-        for line in input.lines() {
-            println!("{}", line?);
+        let file = File::open(&path)?;
+
+        match path.as_ref().extension().and_then(ffi::OsStr::to_str) {
+
+            Some("osu") => {
+                println!("Using osu parser");
+                let parser = OsuParser::new(file);
+                parser.parse()
+            },
+
+            _ => {
+                Err(ParseError::UnknownFormat)
+            }
         }
-
-        Ok(Chart::default())
     }
-
-    pub fn from_osu_path<T: AsRef<Path>>(path: T) -> Result<Chart, ParseError> {
-        let file = File::open(path)?;
-        Chart::from_osu(io::BufReader::new(file))
-    }
-
 }
 
+/// A chart parser. Should be implemented by chart builders/parsers.
+trait ChartParser {
 
+    /// Parse the file
+    fn parse(self) -> Result<Chart, ParseError>;
+}
