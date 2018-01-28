@@ -4,8 +4,10 @@ extern crate graphics;
 extern crate opengl_graphics;
 
 mod view;
+mod chart;
 
 use view::View;
+use chart::Chart;
 
 fn main() {
 
@@ -26,6 +28,12 @@ fn main() {
 
     let mut view = View::new(GlGraphics::new(opengl),
                              Path::new("./test.png"));
+
+    // test
+    let _ = match Chart::from_path("test.osu") {
+        Ok(x) => Some(x),
+        Err(e) => { println!("{}", e); None },
+    };
 
     let mut events = Events::new(EventSettings::new());
     while let Some(e) = events.next(&mut window) {
