@@ -13,7 +13,7 @@ use self::osu_parser::OsuParser;
 
 /// A regular note in a chart.
 pub struct SimpleNote {
-    /// Where in the note it is, in seconds.
+    /// Where the note is, in seconds.
     pub time: f64
 }
 
