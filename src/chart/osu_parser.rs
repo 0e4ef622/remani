@@ -2,7 +2,6 @@
 
 use std::io;
 use std::io::BufRead;
-use std::error;
 
 use chart::{ Chart, ChartParser, ParseError };
 

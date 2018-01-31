@@ -4,7 +4,6 @@ use std::io;
 use std::error;
 use std::fmt;
 use std::ffi;
-use std::num;
 use std::fs::File;
 use std::path::Path;
 
