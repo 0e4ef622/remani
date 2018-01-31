@@ -79,9 +79,10 @@ impl error::Error for ParseError {
         }
     }
     fn cause(&self) -> Option<&error::Error> {
+        use std::ops::Deref;
         match *self {
             ParseError::Io(ref e) => Some(e),
-            ParseError::Parse(_, Some(e)) => Some(e),
+            ParseError::Parse(_, Some(ref e)) => Some(e.deref()),
             _ => Some(self),
         }
     }
