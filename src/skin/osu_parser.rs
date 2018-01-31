@@ -1,9 +1,10 @@
 //! Osu skin directory parser module
 
 use std::io;
+use std::io::BufRead;
 use std::path;
 
-use chart::{ Chart, ChartParser, ParseError };
+use skin::{ Skin, SkinParser, ParseError };
 
 /// Loads osu skin images from directory and returns a `Skin`
 pub struct OsuParser<P: io::path::Path> {
@@ -11,7 +12,7 @@ pub struct OsuParser<P: io::path::Path> {
     current_section: String,
 }
 
-impl<R: path::Path> OsuParser<R> {
+impl<R: path::Path> OsuParser<P> {
 
     pub fn new(dir: P) -> Self {
         Self {
@@ -21,19 +22,22 @@ impl<R: path::Path> OsuParser<R> {
     }
 }
 
-impl<P: path::Path> SkinParser for OsuParser<R> {
+impl<P: path::Path> SkinParser for OsuParser<P> {
 
-    // TODO: read configuration file
     fn parse(self) -> Result<Skin, ParseError> {
-        for line in self.reader.lines() {
-            let line = line?;
-            let line = line.trim();
-            match line {
-                "[General]" => println!("Found General section"),
-                _ => (),
+        // TODO: read configuration file
+        let configPath = dir.join(Path::new("config.ini"));
+        if (configPath.exists()) {
+            let reader = BufReader::new(File::open(configPath));
+            for line in reader.lines() {
+                let line = line?;
+                let line = line.trim();
+                match line {
+                    "[General]" => println!("Found General section"),
+                    _ => (),
+                }
             }
         }
-
-        Ok(Chart::default())
+        Ok(Skin::default())
     }
 }
