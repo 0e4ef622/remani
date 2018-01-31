@@ -24,7 +24,7 @@ impl<R: io::Read> OsuParser<R> {
 
 impl<R: io::Read> ChartParser for OsuParser<R> {
 
-    fn parse(mut self) -> Result<Chart, Box<error::Error>> {
+    fn parse(mut self) -> Result<Chart, ParseError> {
 
         let mut buf: String = String::new();
 
@@ -33,10 +33,13 @@ impl<R: io::Read> ChartParser for OsuParser<R> {
         let line = buf.trim();
 
         if !line.starts_with("osu file format v") {
-            return Err(Box::new(ParseError::InvalidFile));
+            return Err(ParseError::InvalidFile);
         }
 
-        let version: i32 = line[17..].parse()?;
+        let version: i32 = match line[17..].parse() {
+            Ok(n) => n,
+            Err(e) => return Err(ParseError::Parse(String::from("Error parsing file version"), Some(Box::new(e)))),
+        };
 
         println!("Version {}", version);
 

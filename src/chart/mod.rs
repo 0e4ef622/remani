@@ -4,6 +4,7 @@ use std::io;
 use std::error;
 use std::fmt;
 use std::ffi;
+use std::num;
 use std::fs::File;
 use std::path::Path;
 
@@ -42,15 +43,26 @@ pub struct TimingPoint {
 /// The error type from parsing
 #[derive(Debug)]
 pub enum ParseError {
-    Parse(String),
+    /// IO error
+    Io(io::Error),
+    /// Parsing error
+    Parse(String, Option<Box<error::Error>>),
     UnknownFormat,
     InvalidFile,
+}
+
+impl From<io::Error> for ParseError {
+    fn from(e: io::Error) -> ParseError {
+        ParseError::Io(e)
+    }
 }
 
 impl fmt::Display for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            ParseError::Parse(ref s) => write!(f, "Parse error: {}", s),
+            ParseError::Io(ref e) => e.fmt(f),
+            ParseError::Parse(ref s, Some(ref e)) => write!(f, "{}: {}", s, e.description()),
+            ParseError::Parse(ref s, None) => write!(f, "{}", s),
             ParseError::UnknownFormat => write!(f, "Unknown chart format"),
             ParseError::InvalidFile => write!(f, "Invalid chart"),
         }
@@ -60,13 +72,18 @@ impl fmt::Display for ParseError {
 impl error::Error for ParseError {
     fn description(&self) -> &str {
         match *self {
-            ParseError::Parse(_) => "Parse error",
+            ParseError::Io(ref e) => e.description(),
+            ParseError::Parse(_, _) => "Parse error",
             ParseError::UnknownFormat => "Unknown chart format",
             ParseError::InvalidFile => "Invalid chart",
         }
     }
     fn cause(&self) -> Option<&error::Error> {
-        Some(self)
+        match *self {
+            ParseError::Io(ref e) => Some(e),
+            ParseError::Parse(_, Some(e)) => Some(e),
+            _ => Some(self),
+        }
     }
 }
 
@@ -85,7 +102,7 @@ impl Chart {
     /// Parse from a file specified by the path.
     ///
     /// The function will choose a parser based on the file extension.
-    pub fn from_path<P: AsRef<Path>>(path: P) -> Result<Chart, Box<error::Error>> {
+    pub fn from_path<P: AsRef<Path>>(path: P) -> Result<Chart, ParseError> {
 
         let file = File::open(&path)?;
 
@@ -98,7 +115,7 @@ impl Chart {
             },
 
             _ => {
-                Err(Box::new(ParseError::UnknownFormat))
+                Err(ParseError::UnknownFormat)
             }
         }
     }
@@ -108,5 +125,5 @@ impl Chart {
 trait ChartParser {
 
     /// Parse the file
-    fn parse(self) -> Result<Chart, Box<error::Error>>;
+    fn parse(self) -> Result<Chart, ParseError>;
 }
