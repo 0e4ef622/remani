@@ -16,7 +16,6 @@ fn main() {
     use piston::input::{ RenderEvent, UpdateEvent, PressEvent };
     use glutin_window::GlutinWindow as Window;
     use opengl_graphics::{ OpenGL, GlGraphics };
-    use std::path::Path;
 
     let opengl = OpenGL::V3_2;
 
@@ -26,8 +25,7 @@ fn main() {
                              .build()
                              .expect("Could not create window");
 
-    let mut view = View::new(GlGraphics::new(opengl),
-                             Path::new("./test.png"));
+    let mut view = View::new(GlGraphics::new(opengl), "./test.png");
 
     // test
     let _ = match Chart::from_path("test.osu") {
