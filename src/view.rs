@@ -54,9 +54,9 @@ impl View {
 
     /// Called when a press event occurs
     pub fn press(&mut self, args: &Button) {
-        match args {
-            &Button::Keyboard(k) => println!("Keyboard event {:?}", k),
-            &Button::Mouse(k) => println!("Mouse event {:?}", k),
+        match *args {
+            Button::Keyboard(k) => println!("Keyboard event {:?}", k),
+            Button::Mouse(k) => println!("Mouse event {:?}", k),
             _ => panic!("uhhhh"),
         }
     }
