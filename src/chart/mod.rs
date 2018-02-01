@@ -43,24 +43,18 @@ pub struct TimingPoint {
 #[derive(Debug)]
 pub enum ParseError {
     /// IO error
-    Io(io::Error),
+    Io(String, io::Error),
     /// Parsing error
     Parse(String, Option<Box<error::Error>>),
     UnknownFormat,
     InvalidFile,
 }
 
-impl From<io::Error> for ParseError {
-    fn from(e: io::Error) -> ParseError {
-        ParseError::Io(e)
-    }
-}
-
 impl fmt::Display for ParseError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            ParseError::Io(ref e) => e.fmt(f),
-            ParseError::Parse(ref s, Some(ref e)) => write!(f, "{}: {}", s, e.description()),
+            ParseError::Io(ref s, ref e) => write!(f, "{}: {}", s, e),
+            ParseError::Parse(ref s, Some(ref e)) => write!(f, "{}: {}", s, e),
             ParseError::Parse(ref s, None) => write!(f, "{}", s),
             ParseError::UnknownFormat => write!(f, "Unknown chart format"),
             ParseError::InvalidFile => write!(f, "Invalid chart"),
@@ -71,7 +65,7 @@ impl fmt::Display for ParseError {
 impl error::Error for ParseError {
     fn description(&self) -> &str {
         match *self {
-            ParseError::Io(ref e) => e.description(),
+            ParseError::Io(_, _) => "IO error",
             ParseError::Parse(_, _) => "Parse error",
             ParseError::UnknownFormat => "Unknown chart format",
             ParseError::InvalidFile => "Invalid chart",
@@ -80,7 +74,7 @@ impl error::Error for ParseError {
     fn cause(&self) -> Option<&error::Error> {
         use std::ops::Deref;
         match *self {
-            ParseError::Io(ref e) => Some(e),
+            ParseError::Io(_, ref e) => Some(e),
             ParseError::Parse(_, Some(ref e)) => Some(e.deref()),
             _ => Some(self),
         }
@@ -104,7 +98,11 @@ impl Chart {
     /// The function will choose a parser based on the file extension.
     pub fn from_path<P: AsRef<Path>>(path: P) -> Result<Chart, ParseError> {
 
-        let file = File::open(&path)?;
+        let file = match File::open(&path) {
+            Ok(f) => f,
+            Err(e) => return Err(ParseError::Io(
+                    format!("Error opening {}", path.as_ref().display()), e)),
+        };
 
         match path.as_ref().extension().and_then(ffi::OsStr::to_str) {
 
