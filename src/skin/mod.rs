@@ -1,12 +1,11 @@
 //! A module for reading skins.
 
-extern crate graphics;
+extern crate opengl_graphics;
 
-use graphics::image::Image;
+use opengl_graphics::Texture;
 
 use std::io;
 use std::error;
-use std::convert;
 use std::fmt;
 use std::path;
 
@@ -65,7 +64,7 @@ impl error::Error for ParseError {
 /// Holds skin data, such as note images and what not.
 #[derive(Default)]
 pub struct Skin {
-    pub mania_hit: Vec<Image>,
+    pub mania_hit: Vec<Texture>,
 }
 
 impl Skin {
