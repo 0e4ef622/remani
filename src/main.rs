@@ -5,9 +5,11 @@ extern crate opengl_graphics;
 
 mod view;
 mod chart;
+mod skin;
 
 use view::View;
 use chart::Chart;
+use skin::Skin;
 
 fn main() {
 
@@ -29,6 +31,12 @@ fn main() {
 
     // test
     let _ = match Chart::from_path("test.osu") {
+        Ok(x) => Some(x),
+        Err(e) => { println!("{}", e); None },
+    };
+
+    // test
+    let _ = match Skin::from_path("test") {
         Ok(x) => Some(x),
         Err(e) => { println!("{}", e); None },
     };

@@ -9,15 +9,14 @@ use skin::{ Skin, SkinParser, ParseError };
 /// Loads osu skin images from directory and returns a `Skin`
 pub struct OsuParser<P: io::path::Path> {
     dir: io::path::Path<P>,
-    current_section: String,
 }
 
-impl<R: path::Path> OsuParser<P> {
+impl<P: path::Path> OsuParser<P> {
 
+    /// Create a new parser
     pub fn new(dir: P) -> Self {
         Self {
             dir: P,
-            current_section: String::new(),
         }
     }
 }
@@ -27,6 +26,7 @@ impl<P: path::Path> SkinParser for OsuParser<P> {
     fn parse(self) -> Result<Skin, ParseError> {
         // TODO: read configuration file
         let configPath = dir.join(Path::new("config.ini"));
+        let skin = Skin::default;
         if (configPath.exists()) {
             let reader = BufReader::new(File::open(configPath));
             for line in reader.lines() {
@@ -38,6 +38,6 @@ impl<P: path::Path> SkinParser for OsuParser<P> {
                 }
             }
         }
-        Ok(Skin::default())
+        Ok(skin)
     }
 }
