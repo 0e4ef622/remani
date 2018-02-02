@@ -64,7 +64,33 @@ impl error::Error for ParseError {
 /// Holds skin data, such as note images and what not.
 #[derive(Default)]
 pub struct Skin {
-    pub mania_hit: Vec<Texture>,
+    pub miss: Vec<Texture>,
+    pub hit50: Vec<Texture>,
+    pub hit100: Vec<Texture>,
+    pub hit300: Vec<Texture>,
+    pub hit300g: Vec<Texture>,
+
+    pub key1: Vec<Texture>,
+    pub key2: Vec<Texture>,
+    pub key3: Vec<Texture>,
+    pub key4: Vec<Texture>,
+
+    pub key1D: Vec<Texture>,
+    pub key2D: Vec<Texture>,
+    pub key3D: Vec<Texture>,
+    pub key4D: Vec<Texture>,
+
+    pub note1: Vec<Texture>,
+    pub note2: Vec<Texture>,
+    pub note3: Vec<Texture>,
+
+    pub note1H: Vec<Texture>,
+    pub note2H: Vec<Texture>,
+    pub note3H: Vec<Texture>,
+
+    pub note1L: Vec<Texture>,
+    pub note2L: Vec<Texture>,
+    pub note3L: Vec<Texture>,
 }
 
 impl Skin {

@@ -27,19 +27,15 @@ fn main() {
                              .build()
                              .expect("Could not create window");
 
-    let mut view = View::new(GlGraphics::new(opengl), "./test.png");
-
     // test
     let _ = match Chart::from_path("test.osu") {
         Ok(x) => Some(x),
         Err(e) => { println!("{}", e); None },
     };
 
-    // test
-    let _ = match Skin::from_path("test") {
-        Ok(x) => Some(x),
-        Err(e) => { println!("{}", e); None },
-    };
+    let the_skin = Skin::from_path("test").unwrap();
+
+    let mut view = View::new(GlGraphics::new(opengl), "./test.png", the_skin);
 
     let mut events = Events::new(EventSettings::new());
     while let Some(e) = events.next(&mut window) {
