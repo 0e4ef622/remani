@@ -27,6 +27,10 @@ fn main() {
                              .build()
                              .expect("Could not create window");
 
+    let dpifactor = window.window.hidpi_factor();
+    println!("hidpi_factor: {}", dpifactor);
+    window.window.set_inner_size((1024.0 / dpifactor) as u32, (768.0 / dpifactor) as u32);
+
     // test
     let _ = match Chart::from_path("test.osu") {
         Ok(x) => Some(x),

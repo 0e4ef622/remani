@@ -43,6 +43,7 @@ impl View {
         let image = &self.image;
         let skin = &self.skin;
         let draw_state = &self.draw_state;
+        println!("draw size: {:?}, window size: {:?}", args.viewport().draw_size, args.viewport().window_size);
         self.gl.draw(args.viewport(), |c, gl| {
             graphics::clear([1.0; 4], gl);
             image.draw(&skin.miss[0], draw_state, c.transform, gl);
