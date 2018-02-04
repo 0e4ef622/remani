@@ -6,6 +6,7 @@ extern crate opengl_graphics;
 mod view;
 mod chart;
 mod skin;
+mod config;
 
 use view::View;
 use chart::Chart;
@@ -37,9 +38,11 @@ fn main() {
         Err(e) => { println!("{}", e); None },
     };
 
-    let the_skin = Skin::from_path("test").unwrap();
+    let config = config::get_config();
 
-    let mut view = View::new(GlGraphics::new(opengl), "./test.png", the_skin);
+    let the_skin = Skin::from_path(config.skin_path).unwrap();
+
+    let mut view = View::new(GlGraphics::new(opengl), the_skin);
 
     let mut events = Events::new(EventSettings::new());
     while let Some(e) = events.next(&mut window) {

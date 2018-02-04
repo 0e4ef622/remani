@@ -24,9 +24,8 @@ pub struct View {
 impl View {
 
     /// Create a view with some hardcoded defaults and stuffs
-    pub fn new<P: AsRef<Path>>(gl: GlGraphics, path: P, skin: Skin) -> Self {
+    pub fn new(gl: GlGraphics, skin: Skin) -> Self {
         let gl = gl;
-        // let texture = Texture::from_path(path, &TextureSettings::new()).expect("Failed to load image");
         let image = Image::new().rect(graphics::rectangle::square(50.0, 50.0, 100.0));
         let draw_state = DrawState::default();
 
