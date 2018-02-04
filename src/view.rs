@@ -5,12 +5,10 @@ extern crate opengl_graphics;
 extern crate texture;
 
 use piston::input::{ RenderArgs, UpdateArgs, Button };
-use opengl_graphics::{ GlGraphics, Texture };
-use self::texture::TextureSettings;
+use opengl_graphics::GlGraphics;
 use graphics::image::Image;
 use graphics::draw_state::DrawState;
 use skin::Skin;
-use std::path::Path;
 use graphics::Transformed;
 
 /// Holds values and resources needed by the window to do drawing stuff

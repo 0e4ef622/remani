@@ -1,7 +1,5 @@
 extern crate piston;
 
-use skin;
-
 use piston::input;
 use std::path;
 
