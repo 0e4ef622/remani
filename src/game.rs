@@ -1,3 +1,5 @@
+//! Holds the main game logic
+
 extern crate piston;
 extern crate glutin_window;
 extern crate graphics;
@@ -8,6 +10,7 @@ use chart::Chart;
 use skin::Skin;
 use config::Config;
 
+/// Start everything
 pub fn start(config: Config) {
 
     use piston::window::WindowSettings;
