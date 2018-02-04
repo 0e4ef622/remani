@@ -10,6 +10,7 @@ use graphics::image::Image;
 use graphics::draw_state::DrawState;
 use skin::Skin;
 use graphics::Transformed;
+use std::ops::Deref;
 
 /// Holds values and resources needed by the window to do drawing stuff
 pub struct View {
@@ -49,25 +50,25 @@ impl View {
             image.draw(&skin.hit300[0], draw_state, c.transform.trans(300., 0.), gl);
             image.draw(&skin.hit300g[0], draw_state, c.transform.trans(400., 0.), gl);
 
-            image.draw(&skin.key1[0], draw_state, c.transform.trans(0., 100.), gl);
-            image.draw(&skin.key2[0], draw_state, c.transform.trans(100., 100.), gl);
-            image.draw(&skin.key3[0], draw_state, c.transform.trans(200., 100.), gl);
+            image.draw(skin.keys[0][0].deref(), draw_state, c.transform.trans(0., 100.), gl);
+            image.draw(skin.keys[1][0].deref(), draw_state, c.transform.trans(100., 100.), gl);
+            image.draw(skin.keys[3][0].deref(), draw_state, c.transform.trans(200., 100.), gl);
 
-            image.draw(&skin.key1D[0], draw_state, c.transform.trans(0., 200.), gl);
-            image.draw(&skin.key2D[0], draw_state, c.transform.trans(100., 200.), gl);
-            image.draw(&skin.key3D[0], draw_state, c.transform.trans(200., 200.), gl);
+            image.draw(skin.keys_d[0][0].deref(), draw_state, c.transform.trans(0., 200.), gl);
+            image.draw(skin.keys_d[1][0].deref(), draw_state, c.transform.trans(100., 200.), gl);
+            image.draw(skin.keys_d[3][0].deref(), draw_state, c.transform.trans(200., 200.), gl);
 
-            image.draw(&skin.note1[0], draw_state, c.transform.trans(0., 300.), gl);
-            image.draw(&skin.note2[0], draw_state, c.transform.trans(100., 300.), gl);
-            image.draw(&skin.note3[0], draw_state, c.transform.trans(200., 300.), gl);
+            image.draw(skin.notes[0][0].deref(), draw_state, c.transform.trans(0., 300.), gl);
+            image.draw(skin.notes[1][0].deref(), draw_state, c.transform.trans(100., 300.), gl);
+            image.draw(skin.notes[3][0].deref(), draw_state, c.transform.trans(200., 300.), gl);
 
-            image.draw(&skin.note1H[0], draw_state, c.transform.trans(0., 400.), gl);
-            image.draw(&skin.note2H[0], draw_state, c.transform.trans(100., 400.), gl);
-            image.draw(&skin.note3H[0], draw_state, c.transform.trans(200., 400.), gl);
+            image.draw(skin.long_notes_head[0][0].deref(), draw_state, c.transform.trans(0., 400.), gl);
+            image.draw(skin.long_notes_head[1][0].deref(), draw_state, c.transform.trans(100., 400.), gl);
+            image.draw(skin.long_notes_head[3][0].deref(), draw_state, c.transform.trans(200., 400.), gl);
 
-            image.draw(&skin.note3L[0], draw_state, c.transform.trans(0., 500.), gl);
-            image.draw(&skin.note3L[0], draw_state, c.transform.trans(100., 500.), gl);
-            image.draw(&skin.note3L[0], draw_state, c.transform.trans(200., 500.), gl);
+            image.draw(skin.long_notes_body[0][0].deref(), draw_state, c.transform.trans(0., 500.), gl);
+            image.draw(skin.long_notes_body[1][0].deref(), draw_state, c.transform.trans(100., 500.), gl);
+            image.draw(skin.long_notes_body[3][0].deref(), draw_state, c.transform.trans(200., 500.), gl);
         });
     }
 

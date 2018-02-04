@@ -8,6 +8,7 @@ use std::io;
 use std::error;
 use std::fmt;
 use std::path;
+use std::rc::Rc;
 
 mod osu_parser;
 
@@ -70,27 +71,21 @@ pub struct Skin {
     pub hit300: Vec<Texture>,
     pub hit300g: Vec<Texture>,
 
-    pub key1: Vec<Texture>,
-    pub key2: Vec<Texture>,
-    pub key3: Vec<Texture>,
-    pub key4: Vec<Texture>,
+    /// The images virtual keys under the judgement line.
+    pub keys: [Vec<Rc<Texture>>; 7],
 
-    pub key1D: Vec<Texture>,
-    pub key2D: Vec<Texture>,
-    pub key3D: Vec<Texture>,
-    pub key4D: Vec<Texture>,
+    /// The images of the virtual keys under the judgement line when the
+    /// corresponding key on the keyboard is pressed.
+    pub keys_d: [Vec<Rc<Texture>>; 7],
 
-    pub note1: Vec<Texture>,
-    pub note2: Vec<Texture>,
-    pub note3: Vec<Texture>,
+    /// The notes' images.
+    pub notes: [Vec<Rc<Texture>>; 7],
 
-    pub note1H: Vec<Texture>,
-    pub note2H: Vec<Texture>,
-    pub note3H: Vec<Texture>,
+    /// The long notes' ends' images.
+    pub long_notes_head: [Vec<Rc<Texture>>; 7],
 
-    pub note1L: Vec<Texture>,
-    pub note2L: Vec<Texture>,
-    pub note3L: Vec<Texture>,
+    /// The long notes' bodies' images.
+    pub long_notes_body: [Vec<Rc<Texture>>; 7],
 }
 
 impl Skin {
