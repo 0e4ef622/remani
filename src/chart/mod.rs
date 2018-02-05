@@ -5,7 +5,7 @@ use std::error;
 use std::fmt;
 use std::ffi;
 use std::fs::File;
-use std::path::Path;
+use std::path::{ Path, PathBuf };
 
 mod osu_parser;
 
@@ -92,6 +92,9 @@ pub struct Chart {
 
     /// Length of the whole song, in seconds
     pub length: f64,
+
+    /// Path to the music audio file, relative to the chart's directory
+    pub music_path: PathBuf
 }
 
 impl Chart {
