@@ -62,16 +62,71 @@ impl<R: io::Read> OsuParser<R> {
         loop {
             let line = match self.read_line() {
                 Ok(s) => s,
-                Err(ParseError::EOF) => return Err(ParseError::Parse(
+                Err(e) => return Err(ParseError::Parse(
                         String::from("Error finding next section"),
-                        Some(Box::new(ParseError::EOF)))),
-                e => return e
+                        Some(Box::new(e)))),
             };
             let line = line.trim();
             if &line[0..1] == "[" {
                 return Ok(String::from(&line[1..line.len()-1]));
             }
         }
+    }
+
+    /// Parses a key/value pair separated and returns them in a tuple
+    fn key_value(&mut self) -> Result<(String, String), ParseError> {
+
+        let invalid_char = |c| Err(ParseError::Parse(
+                                   String::from("Error parsing key/value pair"),
+                                   Some(Box::new(ParseError::InvalidChar(c)))));
+
+        let mut key = String::new();
+        let mut value = String::new();
+
+        let mut found_colon = false;
+        let mut expected_space = false;
+
+        match self.read_line() {
+            Ok(s) => {
+                let line = s.trim();
+                for c in line.chars() {
+                    match c {
+
+                        ':' => {
+                            if found_colon { value.push(':'); }
+                            else {
+                                found_colon = true;
+                                expected_space = true;
+                            }
+                        },
+
+                        ' ' => {
+                            if found_colon {
+                                if !expected_space { value.push(' '); }
+                            } else {
+                                return invalid_char(c);
+                            }
+                        },
+
+
+                        c => {
+                            if found_colon { value.push(c); }
+                            else {
+                                match c {
+                                    'a' ... 'z' | 'A' ... 'Z' => key.push(c),
+                                    c => return invalid_char(c),
+                                }
+                            }
+                        },
+                    }
+                }
+            },
+            Err(e) => return Err(ParseError::Parse(
+                    String::from("Error reading key value pair"),
+                    Some(Box::new(e)))),
+        }
+        if found_colon { Ok((key, value)) }
+        else { Err(ParseError::Parse(String::from("Malformed key/value pair"), None)) }
     }
 }
 
@@ -81,9 +136,11 @@ impl<R: io::Read> ChartParser for OsuParser<R> {
 
         let version = self.verify()?;
         let section = self.next_section()?;
+        let (key, value) = self.key_value()?;
 
         println!("Version {}", version);
         println!("Section [{}]", section);
+        println!("{} = {}", key, value);
 
         Ok(Chart::default())
     }
