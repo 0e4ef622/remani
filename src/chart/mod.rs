@@ -48,6 +48,7 @@ pub enum ParseError {
     Parse(String, Option<Box<error::Error>>),
     UnknownFormat,
     InvalidFile,
+    EOF,
 }
 
 impl fmt::Display for ParseError {
@@ -58,6 +59,7 @@ impl fmt::Display for ParseError {
             ParseError::Parse(ref s, None) => write!(f, "{}", s),
             ParseError::UnknownFormat => write!(f, "Unknown chart format"),
             ParseError::InvalidFile => write!(f, "Invalid chart"),
+            ParseError::EOF => write!(f, "Unexpected EOF"),
         }
     }
 }
@@ -69,6 +71,7 @@ impl error::Error for ParseError {
             ParseError::Parse(_, _) => "Parse error",
             ParseError::UnknownFormat => "Unknown chart format",
             ParseError::InvalidFile => "Invalid chart",
+            ParseError::EOF => "Unexpected EOF",
         }
     }
     fn cause(&self) -> Option<&error::Error> {
