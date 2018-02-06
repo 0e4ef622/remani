@@ -3,7 +3,7 @@
 use std::io;
 use std::io::BufRead;
 
-use chart::{ Chart, ChartParser, ParseError };
+use chart::{ Chart, IncompleteChart, ChartParser, ParseError };
 
 /// Verifies that the file headers are correct and returns the file format
 /// version
@@ -26,19 +26,29 @@ fn parse_section(line: &str) -> &str {
     &line[1..line.len()-1]
 }
 
-/// Parses a key/value pair separated and returns them in a tuple
-fn parse_key_value(line: &str) -> Result<(&str, &str), ParseError> {
-    let (a, b) = line.split_at(match line.find(':') {
+fn parse_general(line: &str, chart: &mut IncompleteChart) -> Result<(), ParseError> {
+    let (k, v) = line.split_at(match line.find(':') {
         Some(n) => n,
         None => return Err(ParseError::Parse(String::from("Malformed key/value pair"), None)),
     });
-    Ok((a.trim(), b[1..].trim()))
+    let v = &v[2..];
+    println!("[{}] {} = {}", "General", k, v);
+    match k {
+        "AudioFilename" => chart.music_path = Some(v.into()),
+        "Mode" => if v != "3" {
+            return Err(ParseError::Parse(
+                    String::from("Osu chart is wrong gamemode"), None));
+        },
+        _ => (),
+    }
+    Ok(())
 }
 
 /// Parses .osu charts and returns a `Chart`
 #[derive(Default)]
 pub struct OsuParser {
     current_section: Option<String>,
+    chart: IncompleteChart,
 }
 
 impl OsuParser {
@@ -52,10 +62,7 @@ impl OsuParser {
             _ => match self.current_section {
 
                 Some(ref s) => match s.as_str() {
-                    "General" => {
-                        let (k, v) = parse_key_value(line)?;
-                        println!("[{}] {} = {}", s, k, v);
-                    },
+                    "General" => parse_general(line, &mut self.chart)?,
                     _ => (),
                 },
                 None => return Err(ParseError::InvalidFile),
@@ -66,7 +73,6 @@ impl OsuParser {
 }
 
 impl ChartParser for OsuParser {
-
     fn parse<R: io::BufRead>(mut self, reader: R) -> Result<Chart, ParseError> {
 
         let read_error = |e| Err(ParseError::Io(String::from("Error reading chart"), e));
@@ -88,6 +94,15 @@ impl ChartParser for OsuParser {
             }
         }
 
-        Ok(Chart::default())
+        Ok(Chart {
+
+            music_path: match self.chart.music_path {
+                Some(s) => s,
+                None => return Err(
+                    ParseError::Parse(String::from("Could not find audio file"), None)),
+            },
+
+            ..Default::default()
+        })
     }
 }

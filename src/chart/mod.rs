@@ -93,11 +93,21 @@ pub struct Chart {
     pub notes: Vec<Note>,
     pub timing_points: Vec<TimingPoint>,
 
-    /// Length of the whole song, in seconds
-    pub length: f64,
-
     /// Path to the music audio file, relative to the chart's directory
     pub music_path: PathBuf
+}
+
+/// Same as `Chart`, but everything is an `Option`
+#[derive(Default)]
+struct IncompleteChart {
+    notes: Option<Vec<Note>>,
+    timing_points: Option<Vec<TimingPoint>>,
+
+    /// Length of the whole song, in seconds
+    length: Option<f64>,
+
+    /// Path to the music audio file, relative to the chart's directory
+    music_path: Option<PathBuf>,
 }
 
 impl Chart {
