@@ -46,10 +46,10 @@ pub enum ParseError {
     Io(String, io::Error),
     /// Parsing error
     Parse(String, Option<Box<error::Error>>),
+    InvalidChar(char),
     UnknownFormat,
     InvalidFile,
     EOF,
-    InvalidChar(char),
 }
 
 impl fmt::Display for ParseError {
@@ -58,10 +58,10 @@ impl fmt::Display for ParseError {
             ParseError::Io(ref s, ref e) => write!(f, "{}: {}", s, e),
             ParseError::Parse(ref s, Some(ref e)) => write!(f, "{}: {}", s, e),
             ParseError::Parse(ref s, None) => write!(f, "{}", s),
+            ParseError::InvalidChar(c) => write!(f, "Invalid character `{}'", c),
             ParseError::UnknownFormat => write!(f, "Unknown chart format"),
             ParseError::InvalidFile => write!(f, "Invalid chart"),
             ParseError::EOF => write!(f, "Unexpected EOF"),
-            ParseError::InvalidChar(c) => write!(f, "Invalid character `{}'", c),
         }
     }
 }
@@ -71,10 +71,10 @@ impl error::Error for ParseError {
         match *self {
             ParseError::Io(_, _) => "IO error",
             ParseError::Parse(_, _) => "Parse error",
+            ParseError::InvalidChar(_) => "Invalid character",
             ParseError::UnknownFormat => "Unknown chart format",
             ParseError::InvalidFile => "Invalid chart",
             ParseError::EOF => "Unexpected EOF",
-            ParseError::InvalidChar(_) => "Invalid character"
         }
     }
     fn cause(&self) -> Option<&error::Error> {
@@ -117,8 +117,8 @@ impl Chart {
 
             Some("osu") => {
                 println!("Using osu parser");
-                let parser = OsuParser::new(file);
-                parser.parse()
+                let parser = OsuParser::default();
+                parser.parse(io::BufReader::new(file))
             },
 
             _ => {
@@ -132,5 +132,5 @@ impl Chart {
 trait ChartParser {
 
     /// Parse the file
-    fn parse(self) -> Result<Chart, ParseError>;
+    fn parse<R: io::BufRead>(self, reader: R) -> Result<Chart, ParseError>;
 }

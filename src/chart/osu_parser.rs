@@ -5,142 +5,88 @@ use std::io::BufRead;
 
 use chart::{ Chart, ChartParser, ParseError };
 
+/// Verifies that the file headers are correct and returns the file format
+/// version
+fn verify(line: &str) -> Result<i32, ParseError> {
+
+    if !line.starts_with("osu file format v") {
+        return Err(ParseError::InvalidFile);
+    }
+
+    match line[17..].parse::<i32>() {
+        Ok(n) => Ok(n),
+        Err(e) => Err(
+            ParseError::Parse(String::from("Error parsing file version"),
+                              Some(Box::new(e)))),
+    }
+}
+
+/// Returns string slice containing the section name
+fn parse_section(line: &str) -> &str {
+    &line[1..line.len()-1]
+}
+
+/// Parses a key/value pair separated and returns them in a tuple
+fn parse_key_value(line: &str) -> Result<(&str, &str), ParseError> {
+    let (a, b) = line.split_at(match line.find(':') {
+        Some(n) => n,
+        None => return Err(ParseError::Parse(String::from("Malformed key/value pair"), None)),
+    });
+    Ok((a.trim(), b[1..].trim()))
+}
+
 /// Parses .osu charts and returns a `Chart`
-pub struct OsuParser<R: io::Read> {
-    reader: io::BufReader<R>,
+#[derive(Default)]
+pub struct OsuParser {
+    current_section: Option<String>,
 }
 
-impl<R: io::Read> OsuParser<R> {
+impl OsuParser {
 
-    /// Create a new parser
-    pub fn new(reader: R) -> Self {
-        Self {
-            reader: io::BufReader::new(reader),
-        }
-    }
+    fn parse_line(&mut self, line: &str) -> Result<(), ParseError> {
+        if line.len() == 0 { return Ok(()); }
+        match &line[0..1] {
 
-    /// Calls `read_line` on `reader` with `current_line` as the string buffer
-    pub fn read_line(&mut self) -> Result<String, ParseError> {
-        loop {
-            let mut line = String::new();
-            match self.reader.read_line(&mut line) {
-                Err(e) => return Err(
-                    ParseError::Io(String::from("Error reading chart"), e)),
-                _ => (),
-            }
-            if line.len() == 0 {
-                return Err(ParseError::EOF);
-            }
-            let trim = line.trim();
-            if trim.len() > 0 {
-                return Ok(String::from(line.trim()));
-            }
-        }
-    }
+            "[" => self.current_section = Some(parse_section(line).to_owned()),
 
-    /// Runs first, verifies that the file headers are correct
-    fn verify(&mut self) -> Result<i32, ParseError> {
+            _ => match self.current_section {
 
-        let line = self.read_line()?;
-
-        let line = line.trim();
-
-        if !line.starts_with("osu file format v") {
-            return Err(ParseError::InvalidFile);
-        }
-
-        match line[17..].parse::<i32>() {
-            Ok(n) => Ok(n),
-            Err(e) => Err(
-                ParseError::Parse(String::from("Error parsing file version"),
-                                  Some(Box::new(e)))),
-        }
-    }
-
-    /// Finds and returns the next section
-    fn next_section(&mut self) -> Result<String, ParseError> {
-        loop {
-            let line = match self.read_line() {
-                Ok(s) => s,
-                Err(e) => return Err(ParseError::Parse(
-                        String::from("Error finding next section"),
-                        Some(Box::new(e)))),
-            };
-            let line = line.trim();
-            if &line[0..1] == "[" {
-                return Ok(String::from(&line[1..line.len()-1]));
-            }
-        }
-    }
-
-    /// Parses a key/value pair separated and returns them in a tuple
-    fn key_value(&mut self) -> Result<(String, String), ParseError> {
-
-        let invalid_char = |c| Err(ParseError::Parse(
-                                   String::from("Error parsing key/value pair"),
-                                   Some(Box::new(ParseError::InvalidChar(c)))));
-
-        let mut key = String::new();
-        let mut value = String::new();
-
-        let mut found_colon = false;
-        let mut expected_space = false;
-
-        match self.read_line() {
-            Ok(s) => {
-                let line = s.trim();
-                for c in line.chars() {
-                    match c {
-
-                        ':' => {
-                            if found_colon { value.push(':'); }
-                            else {
-                                found_colon = true;
-                                expected_space = true;
-                            }
-                        },
-
-                        ' ' => {
-                            if found_colon {
-                                if !expected_space { value.push(' '); }
-                            } else {
-                                return invalid_char(c);
-                            }
-                        },
-
-
-                        c => {
-                            if found_colon { value.push(c); }
-                            else {
-                                match c {
-                                    'a' ... 'z' | 'A' ... 'Z' => key.push(c),
-                                    c => return invalid_char(c),
-                                }
-                            }
-                        },
-                    }
-                }
+                Some(ref s) => match s.as_str() {
+                    "General" => {
+                        let (k, v) = parse_key_value(line)?;
+                        println!("[{}] {} = {}", s, k, v);
+                    },
+                    _ => (),
+                },
+                None => return Err(ParseError::InvalidFile),
             },
-            Err(e) => return Err(ParseError::Parse(
-                    String::from("Error reading key value pair"),
-                    Some(Box::new(e)))),
         }
-        if found_colon { Ok((key, value)) }
-        else { Err(ParseError::Parse(String::from("Malformed key/value pair"), None)) }
+        Ok(())
     }
 }
 
-impl<R: io::Read> ChartParser for OsuParser<R> {
+impl ChartParser for OsuParser {
 
-    fn parse(mut self) -> Result<Chart, ParseError> {
+    fn parse<R: io::BufRead>(mut self, reader: R) -> Result<Chart, ParseError> {
 
-        let version = self.verify()?;
-        let section = self.next_section()?;
-        let (key, value) = self.key_value()?;
+        let read_error = |e| Err(ParseError::Io(String::from("Error reading chart"), e));
 
-        println!("Version {}", version);
-        println!("Section [{}]", section);
-        println!("{} = {}", key, value);
+        let mut lines = reader.lines();
+        let line = match lines.next() {
+            Some(r) => match r {
+                Ok(s) => s,
+                Err(e) => return read_error(e),
+            },
+            None => return Err(ParseError::InvalidFile),
+        };
+        println!("Version {}", verify(line.trim())?);
+
+        for line in lines {
+            match line {
+                Ok(line) => self.parse_line(line.trim())?,
+                Err(e) => return read_error(e),
+            }
+        }
 
         Ok(Chart::default())
     }
