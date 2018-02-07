@@ -29,12 +29,15 @@ fn parse_section(line: &str) -> &str {
 
 /// Parse a line from the General section
 fn parse_general(line: &str, chart: &mut IncompleteChart) -> Result<(), ParseError> {
+
     let (k, v) = line.split_at(match line.find(':') {
         Some(n) => n,
         None => return Err(ParseError::Parse(String::from("Malformed key/value pair"), None)),
     });
     let v = &v[2..];
+
     println!("[{}] {} = {}", "General", k, v);
+
     match k {
         "AudioFilename" => chart.music_path = Some(v.into()),
         "Mode" => if v != "3" {
@@ -110,6 +113,7 @@ fn parse_timing_points(line: &str, chart: &mut IncompleteChart, last_tp_index: O
     }
 
     if absolute {
+
         println!("Got bpm change with offset = {} and bpm = {}", offset.unwrap(), bpm.unwrap());
 
         let timing_point = TimingPoint::BPM(BPM { offset: offset.unwrap(), bpm: bpm.unwrap() });
