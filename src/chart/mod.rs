@@ -33,11 +33,25 @@ pub enum Note {
     Simple(SimpleNote),
 }
 
-/// Represents a change in the timing of the song.
-pub struct TimingPoint {
-    /// The offset from the start of the song, in seconds
+/// Represents a change in the BPM of the song.
+pub struct BPM {
+    /// The offset from the start of the song, in seconds.
     pub offset: f64,
     pub bpm: f64,
+}
+
+/// Represents a change in the SV of the song.
+pub struct SV {
+    /// The offset from the start of the song, in seconds.
+    pub offset: f64,
+
+    /// The SV multiplier.
+    pub sv: f64,
+}
+
+pub enum TimingPoint {
+    BPM(BPM),
+    SV(SV),
 }
 
 /// The error type from parsing

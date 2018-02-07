@@ -4,7 +4,7 @@ use std::io;
 use std::io::BufRead;
 
 use chart::{ Chart, IncompleteChart, ChartParser, ParseError };
-use chart::{ SimpleNote, LongNote, Note, TimingPoint };
+use chart::{ SimpleNote, LongNote, Note, TimingPoint, BPM, SV };
 
 /// Verifies that the file headers are correct and returns the file format
 /// version
@@ -75,6 +75,7 @@ fn parse_timing_points(line: &str, chart: &mut IncompleteChart, last_tp_index: O
 
     let mut offset: Option<f64> = None;
     let mut bpm: Option<f64> = None;
+    let mut sv: Option<f64> = None;
 
     let mut absolute = true;
 
@@ -91,16 +92,14 @@ fn parse_timing_points(line: &str, chart: &mut IncompleteChart, last_tp_index: O
         match index {
             0 => offset = Some(n / 1000.0),
             1 => if n.is_sign_positive() {
-                bpm = Some(60000.0 / n);
-            } else {
-                let last_tp = match last_tp_index {
-                    Some(e) => &chart.timing_points[e],
-                    None => return Err(ParseError::Parse(err_string.to_owned(),
-                            Some(Box::new(ParseError::Parse(String::from("Missing root timing point"), None))))),
-                };
 
-                bpm = Some(last_tp.bpm * -n / 100.0);
+                bpm = Some(60000.0 / n);
+
+            } else {
+
+                sv = Some(100.0 / -n);
                 absolute = false;
+
             },
             _ => (),
         }
@@ -109,14 +108,19 @@ fn parse_timing_points(line: &str, chart: &mut IncompleteChart, last_tp_index: O
         return Err(ParseError::Parse(err_string.to_owned(),
                                      Some(Box::new(ParseError::EOL))));
     }
-    println!("Got timing point with offset = {} and bpm = {}", offset.unwrap(), bpm.unwrap());
-
-    let timing_point = TimingPoint { offset: offset.unwrap(), bpm: bpm.unwrap() };
-    chart.timing_points.push(timing_point);
 
     if absolute {
+        println!("Got bpm change with offset = {} and bpm = {}", offset.unwrap(), bpm.unwrap());
+
+        let timing_point = TimingPoint::BPM(BPM { offset: offset.unwrap(), bpm: bpm.unwrap() });
+        chart.timing_points.push(timing_point);
+
         Ok(chart.timing_points.len() - 1)
     } else {
+
+        println!("Got sv change with offset = {} and sv = {}", offset.unwrap(), sv.unwrap());
+
+        let timing_point = TimingPoint::SV(SV { offset: offset.unwrap(), sv: sv.unwrap() });
         Ok(last_tp_index.unwrap())
     }
 }
