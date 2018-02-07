@@ -16,7 +16,7 @@ pub fn start(config: Config) {
 
     use piston::window::WindowSettings;
     use piston::event_loop::{ Events,  EventSettings };
-    use piston::input::{ RenderEvent, UpdateEvent, PressEvent };
+    use piston::input::{ RenderEvent, UpdateEvent, PressEvent, ReleaseEvent };
     use glutin_window::GlutinWindow as Window;
     use opengl_graphics::{ OpenGL, GlGraphics };
 
@@ -55,6 +55,10 @@ pub fn start(config: Config) {
 
         if let Some(i) = e.press_args() {
             model.press(&i);
+        }
+
+        if let Some(i) = e.release_args() {
+            model.release(&i);
         }
 
     }
