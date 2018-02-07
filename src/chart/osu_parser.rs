@@ -146,6 +146,7 @@ impl OsuParser {
 
                 Some(ref s) => match s.as_str() {
                     "General" => parse_general(line, &mut self.chart)?,
+                    "Metadata" => parse_metadata(line, &mut self.chart)?,
                     "TimingPoints" => self.last_tp_index = Some(parse_timing_points(line, &mut self.chart, self.last_tp_index)?),
                     _ => (),
                 },
