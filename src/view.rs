@@ -1,14 +1,15 @@
-//! A module that handles window events
+//! A module that handles window render events
 
 extern crate graphics;
 extern crate opengl_graphics;
 extern crate texture;
 
-use piston::input::{ RenderArgs, UpdateArgs, Button };
+use piston::input::{ RenderArgs, Button };
 use opengl_graphics::GlGraphics;
 use graphics::image::Image;
 use graphics::draw_state::DrawState;
 use skin::Skin;
+use model::Model;
 use graphics::Transformed;
 use std::ops::Deref;
 
@@ -37,7 +38,7 @@ impl View {
     }
 
     /// Called when a render event occurs
-    pub fn render(&mut self, args: &RenderArgs) {
+    pub fn render(&mut self, args: &RenderArgs, model: &Model) {
         let image = &self.image;
         let skin = &self.skin;
         let draw_state = &self.draw_state;
@@ -70,20 +71,6 @@ impl View {
             image.draw(skin.long_notes_body[1][0].deref(), draw_state, c.transform.trans(100., 500.), gl);
             image.draw(skin.long_notes_body[3][0].deref(), draw_state, c.transform.trans(200., 500.), gl);
         });
-    }
-
-    /// Called when an update event occurs
-    pub fn update(&mut self, args: &UpdateArgs) {
-        // stuff
-    }
-
-    /// Called when a press event occurs
-    pub fn press(&mut self, args: &Button) {
-        match *args {
-            Button::Keyboard(k) => println!("Keyboard event {:?}", k),
-            Button::Mouse(k) => println!("Mouse event {:?}", k),
-            _ => panic!("uhhhh"),
-        }
     }
 
 }

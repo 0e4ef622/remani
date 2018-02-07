@@ -5,6 +5,7 @@ extern crate glutin_window;
 extern crate graphics;
 extern crate opengl_graphics;
 
+use model::Model;
 use view::View;
 use chart::Chart;
 use skin::Skin;
@@ -38,21 +39,22 @@ pub fn start(config: Config) {
 
     let the_skin = Skin::from_path(config.skin_path).unwrap();
 
+    let mut model = Model::new();
     let mut view = View::new(GlGraphics::new(opengl), the_skin);
 
     let mut events = Events::new(EventSettings::new());
     while let Some(e) = events.next(&mut window) {
 
         if let Some(r) = e.render_args() {
-            view.render(&r);
+            view.render(&r, &model);
         }
 
         if let Some(u) = e.update_args() {
-            view.update(&u);
+            model.update(&u);
         }
 
         if let Some(i) = e.press_args() {
-            view.press(&i);
+            model.press(&i);
         }
 
     }
