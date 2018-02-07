@@ -93,7 +93,7 @@ impl Skin {
     /// Parse from a directory specified by the path.
     ///
     /// For now, the osu parser is assumed.
-    pub fn from_path<P: AsRef<path::Path>>(path: P) -> Result<Skin, ParseError> {
+    pub fn from_path<P: AsRef<path::Path>>(path: &P) -> Result<Skin, ParseError> {
 
         let parser = OsuParser::new(path::PathBuf::new().join(&path));
         parser.parse()

@@ -37,7 +37,7 @@ pub fn start(config: Config) {
         Err(e) => { println!("{}", e); None },
     };
 
-    let the_skin = Skin::from_path(config.skin_path).unwrap();
+    let the_skin = Skin::from_path(&config.skin_path).unwrap();
 
     let mut model = Model::new();
     let mut view = View::new(GlGraphics::new(opengl), the_skin);
