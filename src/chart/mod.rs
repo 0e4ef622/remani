@@ -35,6 +35,7 @@ pub enum Note {
 
 /// Represents a change in the timing of the song.
 pub struct TimingPoint {
+    /// The offset from the start of the song, in seconds
     pub offset: f64,
     pub bpm: f64,
 }
@@ -50,6 +51,7 @@ pub enum ParseError {
     UnknownFormat,
     InvalidFile,
     EOF,
+    EOL,
 }
 
 impl fmt::Display for ParseError {
@@ -62,6 +64,7 @@ impl fmt::Display for ParseError {
             ParseError::UnknownFormat => write!(f, "Unknown chart format"),
             ParseError::InvalidFile => write!(f, "Invalid chart"),
             ParseError::EOF => write!(f, "Unexpected EOF"),
+            ParseError::EOL => write!(f, "Unexpected end of line"),
         }
     }
 }
@@ -75,6 +78,7 @@ impl error::Error for ParseError {
             ParseError::UnknownFormat => "Unknown chart format",
             ParseError::InvalidFile => "Invalid chart",
             ParseError::EOF => "Unexpected EOF",
+            ParseError::EOL => "Unexpected end of line",
         }
     }
     fn cause(&self) -> Option<&error::Error> {
@@ -93,20 +97,38 @@ pub struct Chart {
     pub notes: Vec<Note>,
     pub timing_points: Vec<TimingPoint>,
 
+    /// The creator of the chart
+    pub creator: Option<String>,
+
+    /// The song's artist in ASCII
+    pub artist: Option<String>,
+
+    /// The song's artist in Unicode
+    pub artist_unicode: Option<String>,
+
+    /// The name of the song in ASCII
+    pub song_name: Option<String>,
+
+    /// The name of the song in Unicode
+    pub song_name_unicode: Option<String>,
+
+    pub difficulty_name: String,
+
     /// Path to the music audio file, relative to the chart's directory
-    pub music_path: PathBuf
+    pub music_path: PathBuf,
 }
 
 /// Same as `Chart`, but everything is an `Option`
 #[derive(Default)]
 struct IncompleteChart {
-    notes: Option<Vec<Note>>,
-    timing_points: Option<Vec<TimingPoint>>,
-
-    /// Length of the whole song, in seconds
-    length: Option<f64>,
-
-    /// Path to the music audio file, relative to the chart's directory
+    notes: Vec<Note>,
+    timing_points: Vec<TimingPoint>,
+    creator: Option<String>,
+    artist: Option<String>,
+    artist_unicode: Option<String>,
+    song_name: Option<String>,
+    song_name_unicode: Option<String>,
+    difficulty_name: Option<String>,
     music_path: Option<PathBuf>,
 }
 

@@ -4,6 +4,7 @@ use std::io;
 use std::io::BufRead;
 
 use chart::{ Chart, IncompleteChart, ChartParser, ParseError };
+use chart::{ SimpleNote, LongNote, Note, TimingPoint };
 
 /// Verifies that the file headers are correct and returns the file format
 /// version
@@ -26,6 +27,7 @@ fn parse_section(line: &str) -> &str {
     &line[1..line.len()-1]
 }
 
+/// Parse a line from the General section
 fn parse_general(line: &str, chart: &mut IncompleteChart) -> Result<(), ParseError> {
     let (k, v) = line.split_at(match line.find(':') {
         Some(n) => n,
@@ -44,11 +46,68 @@ fn parse_general(line: &str, chart: &mut IncompleteChart) -> Result<(), ParseErr
     Ok(())
 }
 
+/// Parse a line from the TimingPoints section
+fn parse_timing_points(line: &str, chart: &mut IncompleteChart, last_tp_index: Option<usize>) -> Result<usize, ParseError> {
+
+    static err_string: &str = "Error parsing timing points";
+
+    let mut last_index = 0;
+
+    let mut offset: Option<f64> = None;
+    let mut bpm: Option<f64> = None;
+
+    let mut absolute = true;
+
+    for (index, field) in line.split(',').enumerate() {
+
+        // Keep track of how many fields there were
+        last_index = index;
+
+        let n = match field.parse::<f64>() {
+            Ok(n) => n,
+            Err(e) => return Err(ParseError::Parse(err_string.to_owned(), Some(Box::new(e)))),
+        };
+
+        match index {
+            0 => offset = Some(n / 1000.0),
+            1 => if n.is_sign_positive() {
+                bpm = Some(60000.0 / n);
+            } else {
+                let last_tp = match last_tp_index {
+                    Some(e) => &chart.timing_points[e],
+                    None => return Err(ParseError::Parse(err_string.to_owned(),
+                            Some(Box::new(ParseError::Parse(String::from("Missing root timing point"), None))))),
+                };
+
+                bpm = Some(last_tp.bpm * -n / 100.0);
+                absolute = false;
+            },
+            _ => (),
+        }
+    }
+    if last_index != 7 {
+        return Err(ParseError::Parse(err_string.to_owned(),
+                                     Some(Box::new(ParseError::EOL))));
+    }
+    println!("Got timing point with offset = {} and bpm = {}", offset.unwrap(), bpm.unwrap());
+
+    let timing_point = TimingPoint { offset: offset.unwrap(), bpm: bpm.unwrap() };
+    chart.timing_points.push(timing_point);
+
+    if absolute {
+        Ok(chart.timing_points.len() - 1)
+    } else {
+        Ok(last_tp_index.unwrap())
+    }
+}
+
 /// Parses .osu charts and returns a `Chart`
 #[derive(Default)]
 pub struct OsuParser {
     current_section: Option<String>,
     chart: IncompleteChart,
+    // tp = timing point
+    last_tp_index: Option<usize>,
 }
 
 impl OsuParser {
@@ -63,6 +122,7 @@ impl OsuParser {
 
                 Some(ref s) => match s.as_str() {
                     "General" => parse_general(line, &mut self.chart)?,
+                    "TimingPoints" => self.last_tp_index = Some(parse_timing_points(line, &mut self.chart, self.last_tp_index)?),
                     _ => (),
                 },
                 None => return Err(ParseError::InvalidFile),
