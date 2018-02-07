@@ -46,6 +46,26 @@ fn parse_general(line: &str, chart: &mut IncompleteChart) -> Result<(), ParseErr
     Ok(())
 }
 
+/// Parse a line from the Metadata section
+fn parse_metadata(line: &str, chart: &mut IncompleteChart) -> Result<(), ParseError> {
+    let (k, v) = line.split_at(match line.find(':') {
+        Some(n) => n,
+        None => return Err(ParseError::Parse(String::from("Malformed key/value pair"), None)),
+    });
+    let v = &v[1..];
+    println!("[{}] {} = {}", "Metadata", k, v);
+    match k {
+        "Title" => chart.song_name = Some(v.into()),
+        "TitleUnicode" => chart.song_name_unicode = Some(v.into()),
+        "Artist" => chart.artist = Some(v.into()),
+        "ArtistUnicode" => chart.artist_unicode = Some(v.into()),
+        "Creator" => chart.creator = Some(v.into()),
+        "Version" => chart.difficulty_name = Some(v.into()),
+        _ => (),
+    }
+    Ok(())
+}
+
 /// Parse a line from the TimingPoints section
 fn parse_timing_points(line: &str, chart: &mut IncompleteChart, last_tp_index: Option<usize>) -> Result<usize, ParseError> {
 
