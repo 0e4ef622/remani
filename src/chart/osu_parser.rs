@@ -36,8 +36,6 @@ fn parse_general(line: &str, chart: &mut IncompleteChart) -> Result<(), ParseErr
     });
     let v = &v[2..];
 
-    println!("[{}] {} = {}", "General", k, v);
-
     match k {
         "AudioFilename" => chart.music_path = Some(v.into()),
         "Mode" => if v != "3" {
@@ -56,7 +54,7 @@ fn parse_metadata(line: &str, chart: &mut IncompleteChart) -> Result<(), ParseEr
         None => return Err(ParseError::Parse(String::from("Malformed key/value pair"), None)),
     });
     let v = &v[1..];
-    println!("[{}] {} = {}", "Metadata", k, v);
+
     match k {
         "Title" => chart.song_name = Some(v.into()),
         "TitleUnicode" => chart.song_name_unicode = Some(v.into()),
@@ -70,9 +68,9 @@ fn parse_metadata(line: &str, chart: &mut IncompleteChart) -> Result<(), ParseEr
 }
 
 /// Parse a line from the TimingPoints section
-fn parse_timing_points(line: &str, chart: &mut IncompleteChart, last_tp_index: Option<usize>) -> Result<usize, ParseError> {
+fn parse_timing_points(line: &str, chart: &mut IncompleteChart, last_bpm_change_index: Option<usize>) -> Result<usize, ParseError> {
 
-    static err_string: &str = "Error parsing timing points";
+    static ERR_STRING: &str = "Error parsing timing points";
 
     let mut last_index = 0;
 
@@ -89,7 +87,7 @@ fn parse_timing_points(line: &str, chart: &mut IncompleteChart, last_tp_index: O
 
         let n = match field.parse::<f64>() {
             Ok(n) => n,
-            Err(e) => return Err(ParseError::Parse(err_string.to_owned(), Some(Box::new(e)))),
+            Err(e) => return Err(ParseError::Parse(ERR_STRING.to_owned(), Some(Box::new(e)))),
         };
 
         match index {
@@ -108,13 +106,11 @@ fn parse_timing_points(line: &str, chart: &mut IncompleteChart, last_tp_index: O
         }
     }
     if last_index != 7 {
-        return Err(ParseError::Parse(err_string.to_owned(),
+        return Err(ParseError::Parse(ERR_STRING.to_owned(),
                                      Some(Box::new(ParseError::EOL))));
     }
 
     if absolute {
-
-        println!("Got bpm change with offset = {} and bpm = {}", offset.unwrap(), bpm.unwrap());
 
         let timing_point = TimingPoint::BPM(BPM { offset: offset.unwrap(), bpm: bpm.unwrap() });
         chart.timing_points.push(timing_point);
@@ -122,10 +118,10 @@ fn parse_timing_points(line: &str, chart: &mut IncompleteChart, last_tp_index: O
         Ok(chart.timing_points.len() - 1)
     } else {
 
-        println!("Got sv change with offset = {} and sv = {}", offset.unwrap(), sv.unwrap());
-
         let timing_point = TimingPoint::SV(SV { offset: offset.unwrap(), sv: sv.unwrap() });
-        Ok(last_tp_index.unwrap())
+        chart.timing_points.push(timing_point);
+
+        Ok(last_bpm_change_index.unwrap())
     }
 }
 
@@ -134,8 +130,7 @@ fn parse_timing_points(line: &str, chart: &mut IncompleteChart, last_tp_index: O
 pub struct OsuParser {
     current_section: Option<String>,
     chart: IncompleteChart,
-    // tp = timing point
-    last_tp_index: Option<usize>,
+    last_bpm_change_index: Option<usize>,
 }
 
 impl OsuParser {
@@ -151,7 +146,7 @@ impl OsuParser {
                 Some(ref s) => match s.as_str() {
                     "General" => parse_general(line, &mut self.chart)?,
                     "Metadata" => parse_metadata(line, &mut self.chart)?,
-                    "TimingPoints" => self.last_tp_index = Some(parse_timing_points(line, &mut self.chart, self.last_tp_index)?),
+                    "TimingPoints" => self.last_bpm_change_index = Some(parse_timing_points(line, &mut self.chart, self.last_bpm_change_index)?),
                     _ => (),
                 },
                 None => return Err(ParseError::InvalidFile),
@@ -174,7 +169,6 @@ impl ChartParser for OsuParser {
             },
             None => return Err(ParseError::InvalidFile),
         };
-        println!("Version {}", verify(line.trim())?);
 
         for line in lines {
             match line {
@@ -191,7 +185,14 @@ impl ChartParser for OsuParser {
                     ParseError::Parse(String::from("Could not find audio file"), None)),
             },
 
-            ..Default::default()
+            notes: self.chart.notes,
+            timing_points: self.chart.timing_points,
+            creator: self.chart.creator,
+            artist: self.chart.artist,
+            artist_unicode: self.chart.artist_unicode,
+            song_name: self.chart.song_name,
+            song_name_unicode: self.chart.song_name_unicode,
+            difficulty_name: self.chart.difficulty_name.unwrap_or(String::from("Unnamed")),
         })
     }
 }

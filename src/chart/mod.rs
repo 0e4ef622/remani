@@ -12,12 +12,14 @@ mod osu_parser;
 use self::osu_parser::OsuParser;
 
 /// A regular note in a chart.
+#[derive(Debug)]
 pub struct SimpleNote {
     /// Where the note is, in seconds.
     pub time: f64
 }
 
 /// A long note in a chart.
+#[derive(Debug)]
 pub struct LongNote {
 
     /// Where the long note begins, in seconds.
@@ -28,12 +30,14 @@ pub struct LongNote {
 }
 
 /// Either a long note or a regular note.
+#[derive(Debug)]
 pub enum Note {
     Long(LongNote),
     Simple(SimpleNote),
 }
 
 /// Represents a change in the BPM of the song.
+#[derive(Debug)]
 pub struct BPM {
     /// The offset from the start of the song, in seconds.
     pub offset: f64,
@@ -41,6 +45,7 @@ pub struct BPM {
 }
 
 /// Represents a change in the SV of the song.
+#[derive(Debug)]
 pub struct SV {
     /// The offset from the start of the song, in seconds.
     pub offset: f64,
@@ -49,6 +54,8 @@ pub struct SV {
     pub sv: f64,
 }
 
+/// Represents either an SV change or a BPM change
+#[derive(Debug)]
 pub enum TimingPoint {
     BPM(BPM),
     SV(SV),
@@ -106,7 +113,7 @@ impl error::Error for ParseError {
 }
 
 /// Holds chart data, such as notes, BPM, SV changes, and what not.
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct Chart {
     pub notes: Vec<Note>,
     pub timing_points: Vec<TimingPoint>,
