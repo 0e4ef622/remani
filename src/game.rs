@@ -33,7 +33,10 @@ pub fn start(config: Config) {
 
     // test
     let _ = match Chart::from_path("test.osu") {
-        Ok(x) => Some(x),
+        Ok(x) => {
+            println!("{:?}", x);
+            Some(x)
+        },
         Err(e) => { println!("{}", e); None },
     };
 
@@ -54,11 +57,11 @@ pub fn start(config: Config) {
         }
 
         if let Some(i) = e.press_args() {
-            model.press(&i);
+            model.press(&i, &config);
         }
 
         if let Some(i) = e.release_args() {
-            model.release(&i);
+            model.release(&i, &config);
         }
 
     }

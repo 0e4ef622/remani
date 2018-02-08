@@ -30,9 +30,9 @@ pub fn get_config() -> Config {
 
     Config {
         key_bindings: KeyBindings {
-            key1: Keyboard(Key::A),
-            key2: Keyboard(Key::S),
-            key3: Keyboard(Key::D),
+            key1: Keyboard(Key::S),
+            key2: Keyboard(Key::D),
+            key3: Keyboard(Key::F),
             key4: Keyboard(Key::Space),
             key5: Keyboard(Key::J),
             key6: Keyboard(Key::K),
