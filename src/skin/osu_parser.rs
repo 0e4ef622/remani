@@ -2,15 +2,16 @@
 
 extern crate opengl_graphics;
 extern crate texture;
+extern crate ini;
 
 use opengl_graphics::Texture;
-
 use std::io;
 use std::io::BufRead;
 use std::path;
 use std::fs;
-use self::texture::TextureSettings;
 use std::rc::Rc;
+use self::texture::TextureSettings;
+use self::ini::Ini;
 
 use skin::{ Skin, SkinParser, ParseError };
 
@@ -98,15 +99,34 @@ impl SkinParser for OsuParser {
         skin.long_notes_body[5].push(ln2_body.clone());
         skin.long_notes_body[6].push(ln1_body.clone());
         // end test
+        
+        // default values
+        skin.column_start = 136;
+        skin.column_width = 30;
+        skin.column_line_width = 2;
+        skin.hit_position = 402;
 
         if config_path.exists() {
-            let reader = io::BufReader::new(fs::File::open(config_path)?);
-            for line in reader.lines() {
-                let line = line?;
-                let line = line.trim();
-                match line {
-                    "[General]" => println!("Found General section"),
-                    _ => (),
+            let general_section_name = "__General__".into();
+            let config = Ini::load_from_file(config_path).unwrap();
+            for (sec, prop) in config.iter() {
+                let section_name = sec.as_ref().unwrap_or(&general_section_name);
+                println!("-- Section: {:?} begins", section_name);
+                for (k, v) in prop.iter() {
+                    println!("{}: {:?}", *k, *v);
+                    match section_name.as_ref() {
+                        "Mania" => {
+                            match k.as_ref() {
+                                "ColumnStart" => skin.column_start = v.parse::<u16>().unwrap(),
+                                "ColumnWidth" => skin.column_width = v.parse::<u16>().unwrap(),
+                                "ColumnLineWidth" => skin.column_line_width = v.parse::<u16>().unwrap(),
+                                "HitPosition" => skin.hit_position = v.parse::<u16>().unwrap(),
+                                _ => (),
+                            }
+                        },
+
+                        _ => (),
+                    }
                 }
             }
         }
