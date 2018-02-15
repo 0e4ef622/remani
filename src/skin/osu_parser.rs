@@ -2,7 +2,6 @@
 
 extern crate opengl_graphics;
 extern crate texture;
-extern crate ini;
 
 use opengl_graphics::Texture;
 use std::io;
@@ -11,7 +10,6 @@ use std::path;
 use std::fs;
 use std::rc::Rc;
 use self::texture::TextureSettings;
-use self::ini::Ini;
 
 use skin::{ Skin, SkinParser, ParseError };
 
@@ -99,7 +97,7 @@ impl SkinParser for OsuParser {
         skin.long_notes_body[5].push(ln2_body.clone());
         skin.long_notes_body[6].push(ln1_body.clone());
         // end test
-        
+
         // default values
         skin.column_start = 136;
         skin.column_width = 30;
@@ -107,7 +105,7 @@ impl SkinParser for OsuParser {
         skin.hit_position = 402;
 
         if config_path.exists() {
-            let general_section_name = "__General__".into();
+            /* let general_section_name = "__General__".into();
             let config = Ini::load_from_file(config_path).unwrap();
             for (sec, prop) in config.iter() {
                 let section_name = sec.as_ref().unwrap_or(&general_section_name);
@@ -128,7 +126,7 @@ impl SkinParser for OsuParser {
                         _ => (),
                     }
                 }
-            }
+            } */
         }
         Ok(skin)
     }
