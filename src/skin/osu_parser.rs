@@ -5,9 +5,11 @@ extern crate texture;
 
 use opengl_graphics::Texture;
 use std::io;
+use std::io::BufReader;
 use std::io::BufRead;
 use std::path;
 use std::fs;
+use std::fs::File;
 use std::rc::Rc;
 use self::texture::TextureSettings;
 
@@ -105,6 +107,17 @@ impl SkinParser for OsuParser {
         skin.hit_position = 402;
 
         if config_path.exists() {
+            let config_file = File::open(config_path).unwrap();
+            let config_reader = BufReader::new(&config_file);
+            let mut section = String::from("General");
+            for (num, l) in config_reader.lines().enumerate() {
+                let line = l.unwrap().to_string().clone().to_owned().trim_matches(' ').to_owned();
+                if line.starts_with("[") && line.ends_with("]") {
+                    section = line.clone();
+                    section = section[1..section.len()-1].to_string();
+                    println!("{:?}", section);
+                }
+            }
             /* let general_section_name = "__General__".into();
             let config = Ini::load_from_file(config_path).unwrap();
             for (sec, prop) in config.iter() {
