@@ -11,32 +11,26 @@ mod osu_parser;
 
 use self::osu_parser::OsuParser;
 
-/// A regular note in a chart.
+/// Either a long note or a regular note. The existence of end_time signifies whether this is a long
+/// note or not.
 #[derive(Debug)]
-pub struct SimpleNote {
-    /// Where the note is, in seconds.
-    pub time: f64
-}
+pub struct Note {
 
-/// A long note in a chart.
-#[derive(Debug)]
-pub struct LongNote {
-
-    /// Where the long note begins, in seconds.
+    /// Where the note begins, in seconds.
     pub time: f64,
 
-    /// Where the long note ends, in seconds.
-    pub end: f64,
+    /// The column the note is on, with 0 being the first column.
+    pub column: u8,
+
+    /// Where the note ends, in seconds. None means it's a regular note, Some means it's a long note.
+    pub end_time: Option<f64>,
+
+    // TODO
+    // /// The sound to play when the note is hit.
+    // pub sound: something
 }
 
-/// Either a long note or a regular note.
-#[derive(Debug)]
-pub enum Note {
-    Long(LongNote),
-    Simple(SimpleNote),
-}
-
-/// Represents a change in the BPM of the song.
+/// Represents a change in the timing of the song.
 #[derive(Debug)]
 pub struct BPM {
     /// The offset from the start of the song, in seconds.
@@ -44,7 +38,7 @@ pub struct BPM {
     pub bpm: f64,
 }
 
-/// Represents a change in the SV of the song.
+/// Represents a change in the SV or scroll speed of the song.
 #[derive(Debug)]
 pub struct SV {
     /// The offset from the start of the song, in seconds.
