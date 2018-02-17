@@ -98,6 +98,10 @@ impl SkinParser for OsuParser {
         skin.long_notes_body[4].push(ln1_body.clone());
         skin.long_notes_body[5].push(ln2_body.clone());
         skin.long_notes_body[6].push(ln1_body.clone());
+
+        skin.stage_hint = Some(Rc::new(Texture::from_path(self.dir.join("mania-stage-hint.png").as_path(), &TextureSettings::new()).unwrap()));
+        skin.stage_left = Some(Rc::new(Texture::from_path(self.dir.join("mania-stage-left.png").as_path(), &TextureSettings::new()).unwrap()));
+        skin.stage_right = Some(Rc::new(Texture::from_path(self.dir.join("mania-stage-right.png").as_path(), &TextureSettings::new()).unwrap()));
         // end test
 
         // default values

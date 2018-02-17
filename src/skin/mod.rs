@@ -87,7 +87,12 @@ pub struct Skin {
     /// The long notes' bodies' images.
     pub long_notes_body: [Vec<Rc<Texture>>; 7],
 
-    /// Various information related to how to draw components
+    /// The stage components.
+    pub stage_hint: Option<Rc<Texture>>,
+    pub stage_left: Option<Rc<Texture>>,
+    pub stage_right: Option<Rc<Texture>>,
+
+    /// Various information related to how to draw components.
     pub column_start: u16,
     pub column_width: Vec<u16>,
     pub column_line_width: Vec<u16>,
