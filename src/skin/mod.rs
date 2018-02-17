@@ -89,8 +89,8 @@ pub struct Skin {
 
     /// Various information related to how to draw components
     pub column_start: u16,
-    pub column_width: u16,
-    pub column_line_width: u16,
+    pub column_width: Vec<u16>,
+    pub column_line_width: Vec<u16>,
     pub hit_position: u16,
 }
 

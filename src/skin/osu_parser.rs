@@ -102,44 +102,56 @@ impl SkinParser for OsuParser {
 
         // default values
         skin.column_start = 136;
-        skin.column_width = 30;
-        skin.column_line_width = 2;
+        skin.column_width = vec!(30, 30, 30, 30, 30, 30, 30);
+        skin.column_line_width = vec!(2, 2, 2, 2, 2, 2, 2);
         skin.hit_position = 402;
 
         if config_path.exists() {
             let config_file = File::open(config_path).unwrap();
             let config_reader = BufReader::new(&config_file);
             let mut section = String::from("General");
+            let mut keys: u8 = 0;
             for (num, l) in config_reader.lines().enumerate() {
                 let line = l.unwrap().to_string().clone().to_owned().trim_matches(' ').to_owned();
                 if line.starts_with("[") && line.ends_with("]") {
                     section = line.clone();
                     section = section[1..section.len()-1].to_string();
                     println!("{:?}", section);
+                    continue;
                 }
-            }
-            /* let general_section_name = "__General__".into();
-            let config = Ini::load_from_file(config_path).unwrap();
-            for (sec, prop) in config.iter() {
-                let section_name = sec.as_ref().unwrap_or(&general_section_name);
-                println!("-- Section: {:?} begins", section_name);
-                for (k, v) in prop.iter() {
-                    println!("{}: {:?}", *k, *v);
-                    match section_name.as_ref() {
-                        "Mania" => {
-                            match k.as_ref() {
-                                "ColumnStart" => skin.column_start = v.parse::<u16>().unwrap(),
-                                "ColumnWidth" => skin.column_width = v.parse::<u16>().unwrap(),
-                                "ColumnLineWidth" => skin.column_line_width = v.parse::<u16>().unwrap(),
-                                "HitPosition" => skin.hit_position = v.parse::<u16>().unwrap(),
+                if line.starts_with("//") || line == "" {
+                    continue;
+                }
+                let line_parts: Vec<&str> = line.splitn(2, ":").collect();
+                let key = line_parts[0].trim_matches(' ');
+                let value = line_parts[1].trim_matches(' ');
+                match key {
+                    "Keys" => keys = value.parse().unwrap(),
+                    _ => {
+                        if keys == 7 {
+                            match key {
+                                "ColumnStart" => skin.column_start = value.parse().unwrap(),
+                                "HitPosition" => skin.hit_position = value.parse().unwrap(),
+                                "ColumnWidth" => {
+                                    skin.column_width = Vec::with_capacity(7);
+                                    let number_strings: Vec<&str> = value.split(",").collect();
+                                    for number_string in number_strings {
+                                        skin.column_width.push(number_string.parse().unwrap());
+                                    }
+                                },
+                                "ColumnLineWidth" => {
+                                    skin.column_line_width = Vec::with_capacity(8);
+                                    let number_strings: Vec<&str> = value.split(",").collect();
+                                    for number_string in number_strings {
+                                        skin.column_line_width.push(number_string.parse().unwrap());
+                                    }
+                                },
                                 _ => (),
                             }
-                        },
-
-                        _ => (),
-                    }
+                        }
+                    },
                 }
-            } */
+            }
         }
         Ok(skin)
     }
