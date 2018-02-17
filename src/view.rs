@@ -45,6 +45,9 @@ impl View {
         //println!("draw size: {:?}, window size: {:?}", args.viewport().draw_size, args.viewport().window_size);
         self.gl.draw(args.viewport(), |c, gl| {
             graphics::clear([1.0; 4], gl);
+
+            skin.draw_stage(draw_state, &c.transform, gl);
+
             let red_rect = graphics::rectangle::Rectangle::new([1.0, 0.0, 0.0, 1.0]);
             let bordor = graphics::rectangle::Rectangle::new_border([1.0, 0.0, 0.0, 1.0], 2.0).color([1.0; 4]);
             let key1 = [100.0, args.height as f64 - 100.0, 60.0, 30.0];
