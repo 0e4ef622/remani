@@ -1,4 +1,4 @@
-//! Osu parser module
+//! Osu chart parser module
 
 use std::io;
 use std::io::BufRead;
@@ -6,20 +6,21 @@ use std::io::BufRead;
 use chart::{ Chart, IncompleteChart, ChartParser, ParseError };
 use chart::{ Note, TimingPoint, BPM, SV };
 
-/// Verifies that the file headers are correct and returns the file format
-/// version
+/// Convert Err values to ParseError
+macro_rules! cvt_err {
+    ($s:expr, $e:expr) => {
+        $e.or_else(|e| Err(ParseError::Parse($s.to_owned(), Some(Box::new(e)))))
+    }
+}
+
+/// Verifies that the file headers are correct and returns the file format version
 fn verify(line: &str) -> Result<i32, ParseError> {
 
     if !line.starts_with("osu file format v") {
         return Err(ParseError::InvalidFile);
     }
 
-    match line[17..].parse::<i32>() {
-        Ok(n) => Ok(n),
-        Err(e) => Err(
-            ParseError::Parse(String::from("Error parsing file version"),
-                              Some(Box::new(e)))),
-    }
+    cvt_err!("Error parsing file version", line[17..].parse::<i32>())
 }
 
 /// Returns string slice containing the section name
@@ -32,7 +33,7 @@ fn parse_general(line: &str, chart: &mut IncompleteChart) -> Result<(), ParseErr
 
     let (k, v) = line.split_at(match line.find(':') {
         Some(n) => n,
-        None => return Err(ParseError::Parse(String::from("Malformed key/value pair"), None)),
+        None => return Err(ParseError::Parse(String::from("Error parsing General section: Malformed key/value pair"), None)),
     });
     let v = &v[2..];
 
@@ -67,7 +68,8 @@ fn parse_metadata(line: &str, chart: &mut IncompleteChart) -> Result<(), ParseEr
     Ok(())
 }
 
-/// Parse a line from the TimingPoints section
+/// Parse a line from the TimingPoints section and returns the index of the last bpm change (not
+/// sv)
 fn parse_timing_points(line: &str, chart: &mut IncompleteChart, last_bpm_change_index: Option<usize>) -> Result<usize, ParseError> {
 
     static ERR_STRING: &str = "Error parsing timing points";
@@ -85,10 +87,7 @@ fn parse_timing_points(line: &str, chart: &mut IncompleteChart, last_bpm_change_
         // Keep track of how many fields there were
         last_index = index;
 
-        let n = match field.parse::<f64>() {
-            Ok(n) => n,
-            Err(e) => return Err(ParseError::Parse(ERR_STRING.to_owned(), Some(Box::new(e)))),
-        };
+        let n = cvt_err!(ERR_STRING, field.parse::<f64>())?;
 
         match index {
             0 => offset = Some(n / 1000.0),
@@ -105,7 +104,7 @@ fn parse_timing_points(line: &str, chart: &mut IncompleteChart, last_bpm_change_
             _ => (),
         }
     }
-    if last_index != 7 {
+    if last_index < 7 {
         return Err(ParseError::Parse(ERR_STRING.to_owned(),
                                      Some(Box::new(ParseError::EOL))));
     }
