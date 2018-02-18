@@ -2,7 +2,7 @@
 
 extern crate graphics;
 extern crate opengl_graphics;
-extern crate texture;
+pub extern crate texture;
 
 use piston::input::{ RenderArgs, Button };
 use opengl_graphics::GlGraphics;
@@ -46,7 +46,7 @@ impl View {
         self.gl.draw(args.viewport(), |c, gl| {
             graphics::clear([1.0; 4], gl);
 
-            skin.draw_stage(draw_state, &c.transform, gl);
+            skin.draw_stage(draw_state, c.transform, gl);
 
             let red_rect = graphics::rectangle::Rectangle::new([1.0, 0.0, 0.0, 1.0]);
             let bordor = graphics::rectangle::Rectangle::new_border([1.0, 0.0, 0.0, 1.0], 2.0).color([1.0; 4]);
