@@ -3,7 +3,7 @@
 use std::io;
 use std::io::BufRead;
 
-use chart::{ Chart, IncompleteChart, ChartParser, ParseError };
+use chart::{ Chart, ChartParser, ParseError };
 use chart::{ Note, TimingPoint, BPM, SV };
 
 /// Convert Err values to ParseError
@@ -82,7 +82,7 @@ fn parse_timing_points(line: &str, chart: &mut IncompleteChart, last_bpm_change_
 
     let mut absolute = true;
 
-    for (index, field) in line.split(',').enumerate() {
+    for (index, field) in line.split(',').enumerate().take(7) {
 
         // Keep track of how many fields there were
         last_index = index;
@@ -194,4 +194,18 @@ impl ChartParser for OsuParser {
             difficulty_name: self.chart.difficulty_name.unwrap_or(String::from("Unnamed")),
         })
     }
+}
+
+/// Used during parsing, gets finalized into a Chart once all the values are obtained.
+#[derive(Default)]
+struct IncompleteChart {
+    notes: Vec<Note>,
+    timing_points: Vec<TimingPoint>,
+    creator: Option<String>,
+    artist: Option<String>,
+    artist_unicode: Option<String>,
+    song_name: Option<String>,
+    song_name_unicode: Option<String>,
+    difficulty_name: Option<String>,
+    music_path: Option<PathBuf>,
 }

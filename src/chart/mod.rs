@@ -27,7 +27,7 @@ pub struct Note {
 
     // TODO
     // /// The sound to play when the note is hit.
-    // pub sound: something
+    // pub sound: Rc<something>
 }
 
 /// Represents a change in the timing of the song.
@@ -131,20 +131,6 @@ pub struct Chart {
 
     /// Path to the music audio file, relative to the chart's directory
     pub music_path: PathBuf,
-}
-
-/// Same as `Chart`, but everything is an `Option`
-#[derive(Default)]
-struct IncompleteChart {
-    notes: Vec<Note>,
-    timing_points: Vec<TimingPoint>,
-    creator: Option<String>,
-    artist: Option<String>,
-    artist_unicode: Option<String>,
-    song_name: Option<String>,
-    song_name_unicode: Option<String>,
-    difficulty_name: Option<String>,
-    music_path: Option<PathBuf>,
 }
 
 impl Chart {
