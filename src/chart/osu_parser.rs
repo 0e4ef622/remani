@@ -4,7 +4,7 @@ use std::io;
 use std::io::BufRead;
 
 use chart::{ Chart, IncompleteChart, ChartParser, ParseError };
-use chart::{ SimpleNote, LongNote, Note, TimingPoint, BPM, SV };
+use chart::{ Note, TimingPoint, BPM, SV };
 
 /// Verifies that the file headers are correct and returns the file format
 /// version
