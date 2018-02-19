@@ -72,9 +72,9 @@ fn parse_metadata(line: &str, chart: &mut IncompleteChart) -> Result<(), ParseEr
 
 /// Parse a line from the TimingPoints section and returns the index of the last bpm change (not
 /// sv)
-fn parse_timing_points(line: &str, chart: &mut IncompleteChart) -> Result<(), ParseError> {
+fn parse_timing_point(line: &str, chart: &mut IncompleteChart) -> Result<(), ParseError> {
 
-    static ERR_STRING: &str = "Error parsing timing points";
+    static ERR_STRING: &str = "Error parsing timing point";
 
     let mut last_index = 0;
 
@@ -148,7 +148,7 @@ fn parse_timing_points(line: &str, chart: &mut IncompleteChart) -> Result<(), Pa
                                      Some(Box::new(ParseError::EOL))));
     }
 
-    let mut timing_point_value = if inherited {
+    let timing_point_value = if inherited {
         chart::TimingPointValue::SV(sv.unwrap())
     } else {
         chart::TimingPointValue::BPM(bpm.unwrap())
@@ -169,15 +169,15 @@ fn parse_hit_object(line: &str, chart: &mut IncompleteChart) -> Result<(), Parse
     let mut last_index = 0;
     const ERR_STRING: &'static str = "Error parsing hit object";
 
+    let mut ln = false;
     let mut hit_obj = HitObject::default();
     for (index, field) in line.split(',').enumerate().take(6) {
 
         // Keep track of how many fields there were
         last_index = index;
 
-        let mut ln = false;
-
         match index {
+            // x
             0 => {
                 // calculate column
 
@@ -188,9 +188,13 @@ fn parse_hit_object(line: &str, chart: &mut IncompleteChart) -> Result<(), Parse
                 else if c > 7.0 { c = 7.0; }
                 hit_obj.column = c as u8;
             }
+            // y, irrelevant
             1 => (),
+            // time
             2 => hit_obj.time = cvt_err!(ERR_STRING, field.parse::<f64>())? / 1000.0,
-            3 => ln = cvt_err!(ERR_STRING, field.parse::<u8>())? & 0xE == 0xE,
+            // type
+            3 => ln = cvt_err!(ERR_STRING, field.parse::<u8>())? & 128 == 128,
+            // hitsound
             4 => {
                 let n = cvt_err!(ERR_STRING, field.parse::<u8>())?;
 
@@ -211,6 +215,7 @@ fn parse_hit_object(line: &str, chart: &mut IncompleteChart) -> Result<(), Parse
                 if n & 4 == 4 { hit_obj.sounds.push(dflt_hit_snd!(SampleHitSoundSound::Finish)); }
                 if n & 8 == 8 { hit_obj.sounds.push(dflt_hit_snd!(SampleHitSoundSound::Clap)); }
             },
+            // endtime/extras
             5 => {
                 let mut extras = field.split(':');
                 if ln {
@@ -247,7 +252,7 @@ fn parse_hit_object(line: &str, chart: &mut IncompleteChart) -> Result<(), Parse
                                 volume = n;
                             }
                         },
-                        4 => {
+                        4 => if !v.is_empty() {
                             hit_obj.sounds = vec![ HitSound {
                                 volume: volume,
                                 source: HitSoundSource::File(PathBuf::from(v)),
@@ -405,7 +410,8 @@ impl OsuParser {
                 Some(ref s) => match s.as_str() {
                     "General" => parse_general(line, &mut self.chart)?,
                     "Metadata" => parse_metadata(line, &mut self.chart)?,
-                    "TimingPoints" => parse_timing_points(line, &mut self.chart)?,
+                    "TimingPoints" => parse_timing_point(line, &mut self.chart)?,
+                    "HitObjects" => parse_hit_object(line, &mut self.chart)?,
                     _ => (),
                 },
                 None => return Err(ParseError::InvalidFile),
@@ -429,9 +435,12 @@ impl ChartParser for OsuParser {
             None => return Err(ParseError::InvalidFile),
         };
 
-        for line in lines {
+        let version = verify(line.as_str())?;
+        println!("File Format Version {}", version);
+
+        for (line_num, line) in lines.enumerate() {
             match line {
-                Ok(line) => self.parse_line(line.trim())?,
+                Ok(line) => cvt_err!(format!("Error on line {}", line_num), self.parse_line(line.trim()))?,
                 Err(e) => return read_error(e),
             }
         }
