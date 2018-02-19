@@ -1,7 +1,6 @@
 //! Osu chart parser module
 
 use std::io;
-use std::io::BufRead;
 use std::path::PathBuf;
 
 use chart;

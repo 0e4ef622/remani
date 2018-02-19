@@ -4,14 +4,12 @@ extern crate graphics;
 extern crate opengl_graphics;
 pub extern crate texture;
 
-use piston::input::{ RenderArgs, Button };
+use piston::input::RenderArgs;
 use opengl_graphics::GlGraphics;
 use graphics::image::Image;
 use graphics::draw_state::DrawState;
 use skin::Skin;
 use model::Model;
-use graphics::Transformed;
-use std::ops::Deref;
 
 /// Holds values and resources needed by the window to do drawing stuff
 pub struct View {

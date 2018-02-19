@@ -4,11 +4,9 @@ extern crate opengl_graphics;
 extern crate texture;
 
 use opengl_graphics::Texture;
-use std::io;
 use std::io::BufReader;
 use std::io::BufRead;
 use std::path;
-use std::fs;
 use std::fs::File;
 use std::rc::Rc;
 use self::texture::TextureSettings;

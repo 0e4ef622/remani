@@ -6,7 +6,6 @@ use opengl_graphics::Texture;
 use opengl_graphics::GlGraphics;
 use graphics::image::Image;
 use graphics::draw_state::DrawState;
-use graphics::Transformed;
 use graphics::math;
 
 use std::io;
