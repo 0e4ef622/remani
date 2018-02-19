@@ -30,29 +30,19 @@ pub struct Note {
     // pub sound: Rc<something>
 }
 
-/// Represents a change in the timing of the song.
-#[derive(Debug)]
-pub struct BPM {
-    /// The offset from the start of the song, in seconds.
-    pub offset: f64,
-    pub bpm: f64,
-}
-
-/// Represents a change in the SV or scroll speed of the song.
-#[derive(Debug)]
-pub struct SV {
-    /// The offset from the start of the song, in seconds.
-    pub offset: f64,
-
-    /// The SV multiplier.
-    pub sv: f64,
+#[derive(Copy, Clone, Debug)]
+pub enum TimingPointValue {
+    BPM(f64),
+    /// The multipler on the scroll speed
+    SV(f64),
 }
 
 /// Represents either an SV change or a BPM change
 #[derive(Debug)]
-pub enum TimingPoint {
-    BPM(BPM),
-    SV(SV),
+pub struct TimingPoint {
+    /// The offset from the start of the song, in seconds.
+    pub offset: f64,
+    pub value: TimingPointValue,
 }
 
 /// The error type from parsing

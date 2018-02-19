@@ -4,8 +4,9 @@ use std::io;
 use std::io::BufRead;
 use std::path::PathBuf;
 
+use chart;
 use chart::{ Chart, ChartParser, ParseError };
-use chart::{ Note, TimingPoint, BPM, SV };
+use chart::Note;
 
 /// Convert Err values to ParseError
 macro_rules! cvt_err {
@@ -71,7 +72,7 @@ fn parse_metadata(line: &str, chart: &mut IncompleteChart) -> Result<(), ParseEr
 
 /// Parse a line from the TimingPoints section and returns the index of the last bpm change (not
 /// sv)
-fn parse_timing_points(line: &str, chart: &mut IncompleteChart, last_bpm_change_index: Option<usize>) -> Result<usize, ParseError> {
+fn parse_timing_points(line: &str, chart: &mut IncompleteChart) -> Result<(), ParseError> {
 
     static ERR_STRING: &str = "Error parsing timing points";
 
@@ -80,29 +81,66 @@ fn parse_timing_points(line: &str, chart: &mut IncompleteChart, last_bpm_change_
     let mut offset: Option<f64> = None;
     let mut bpm: Option<f64> = None;
     let mut sv: Option<f64> = None;
+    let mut sample_set: Option<SampleSet> = None;
+    let mut sample_index: Option<u32> = None;
+    let mut volume: Option<u8> = None;
 
-    let mut absolute = true;
+    let mut inherited = false;
 
     for (index, field) in line.split(',').enumerate().take(8) {
 
         // Keep track of how many fields there were
         last_index = index;
 
-        let n = cvt_err!(ERR_STRING, field.parse::<f64>())?;
-
         match index {
-            0 => offset = Some(n / 1000.0),
-            1 => if n.is_sign_positive() {
 
-                bpm = Some(60000.0 / n);
+            // offset
+            0 => offset = Some(cvt_err!(ERR_STRING, field.parse::<f64>())? / 1000.0),
 
-            } else {
+            // ms per beat or sv
+            1 => {
+                let n = cvt_err!(ERR_STRING, field.parse::<f64>())?;
+                if n.is_sign_positive() {
 
-                sv = Some(100.0 / -n);
-                absolute = false;
+                    bpm = Some(60000.0 / n);
 
+                } else {
+
+                    sv = Some(100.0 / -n);
+                    inherited = true;
+                }
             },
-            _ => (),
+
+            // meter, not important
+            2 => (),
+
+            // sample set
+            3 => {
+                let n = cvt_err!(ERR_STRING, field.parse::<u8>())?;
+                sample_set = Some(match n {
+                    0 => SampleSet::Auto,
+                    1 => SampleSet::Normal,
+                    2 => SampleSet::Soft,
+                    3 => SampleSet::Drum,
+                    x => { println!("Unknown sample set {}", x); SampleSet::Auto },
+                });
+            },
+
+            // sample index
+            4 => {
+                sample_index = Some(cvt_err!(ERR_STRING, field.parse::<u32>())?);
+            },
+
+            // volume
+            5 => {
+                volume = Some(cvt_err!(ERR_STRING, field.parse::<u8>())?);
+            },
+
+            // inherited, we're gonna ignore since we determined this when looking at the ms / beat
+            6 => (),
+            // kiai mode, not important
+            7 => (),
+            _ => unreachable!(),
         }
     }
     if last_index < 7 {
@@ -110,21 +148,20 @@ fn parse_timing_points(line: &str, chart: &mut IncompleteChart, last_bpm_change_
                                      Some(Box::new(ParseError::EOL))));
     }
 
-    if absolute {
-
-        let timing_point = TimingPoint::BPM(BPM { offset: offset.unwrap(), bpm: bpm.unwrap() });
-        chart.timing_points.push(timing_point);
-
-        Ok(chart.timing_points.len() - 1)
+    let mut timing_point_value = if inherited {
+        chart::TimingPointValue::SV(sv.unwrap())
     } else {
-
-        let timing_point = TimingPoint::SV(SV { offset: offset.unwrap(), sv: sv.unwrap() });
-        chart.timing_points.push(timing_point);
-
-        Ok(last_bpm_change_index.unwrap())
-    }
+        chart::TimingPointValue::BPM(bpm.unwrap())
+    };
+    chart.timing_points.push(OsuTimingPoint {
+        offset: offset.unwrap(),
+        value: timing_point_value,
+        sample_set: sample_set.unwrap(),
+        sample_index: sample_index.unwrap(),
+        volume: volume.unwrap(),
+    });
+    Ok(())
 }
-
 
 /// Parse a line from the HitObjects section
 fn parse_hit_object(line: &str, chart: &mut IncompleteChart) -> Result<(), ParseError> {
@@ -165,7 +202,7 @@ fn parse_hit_object(line: &str, chart: &mut IncompleteChart) -> Result<(), Parse
                             source: HitSoundSource::SampleSet(SampleHitSound {
                                 set: SampleSet::Auto,
                                 sound: $e,
-                                custom_index: 0,
+                                index: 0,
                             }),
                         }
                     }
@@ -199,7 +236,7 @@ fn parse_hit_object(line: &str, chart: &mut IncompleteChart) -> Result<(), Parse
                             match cvt_err!(ERR_STRING, v.parse::<u32>())? {
                                 0 => (),
                                 n => {
-                                    hit_obj.sounds.iter_mut().for_each(|s| if let HitSoundSource::SampleSet(ref mut shs) = s.source { shs.custom_index = n });
+                                    hit_obj.sounds.iter_mut().for_each(|s| if let HitSoundSource::SampleSet(ref mut shs) = s.source { shs.index = n });
                                 }
                             }
                         },
@@ -223,6 +260,9 @@ fn parse_hit_object(line: &str, chart: &mut IncompleteChart) -> Result<(), Parse
             _ => unreachable!()
         }
     }
+    if last_index < 5 { return Err(ParseError::Parse(ERR_STRING.to_owned(),
+                            Some(Box::new(ParseError::EOL)))); }
+
     chart.hit_objects.push(hit_obj);
     Ok(())
 }
@@ -274,11 +314,11 @@ enum HitSoundSource {
 struct SampleHitSound {
     set: SampleSet,
     sound: SampleHitSoundSound,
-    custom_index: u32,
+    index: u32,
 }
 
 /// A sample set
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug)]
 enum SampleSet {
     Auto,
     Normal,
@@ -286,7 +326,7 @@ enum SampleSet {
     Drum,
 }
 
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug)]
 enum SampleHitSoundSound {
     Normal,
     Whistle,
@@ -298,7 +338,7 @@ enum SampleHitSoundSound {
 #[derive(Default)]
 struct IncompleteChart {
     hit_objects: Vec<HitObject>,
-    timing_points: Vec<TimingPoint>,
+    timing_points: Vec<OsuTimingPoint>,
     creator: Option<String>,
     artist: Option<String>,
     artist_unicode: Option<String>,
@@ -308,12 +348,48 @@ struct IncompleteChart {
     music_path: Option<PathBuf>,
 }
 
+impl IncompleteChart {
+    fn finalize(self) -> Result<Chart, ParseError> {
+        let timing_points = self.timing_points.iter()
+                            .map(|t| chart::TimingPoint {
+                                offset: t.offset,
+                                value: t.value,
+                            }).collect::<Vec<_>>();
+        Ok(Chart {
+            notes: Default::default(), // TODO
+            timing_points: timing_points,
+            creator: self.creator,
+            artist: self.artist,
+            artist_unicode: self.artist_unicode,
+            song_name: self.song_name,
+            song_name_unicode: self.song_name_unicode,
+            difficulty_name: self.difficulty_name.unwrap_or(String::from("Unnamed")),
+
+            music_path: match self.music_path {
+                Some(s) => s,
+                None => return Err(
+                    ParseError::Parse(String::from("Could not find audio file"), None)),
+            }
+        })
+    }
+}
+
+/// Represents a timing point from the Timing Points section of the .osu chart. This has extra
+/// stuff that we need but does not go into the real TimingPoint
+#[derive(Debug)]
+struct OsuTimingPoint {
+    offset: f64,
+    value: chart::TimingPointValue,
+    sample_set: SampleSet,
+    sample_index: u32,
+    volume: u8,
+}
+
 /// Parses .osu charts and returns a `Chart`
 #[derive(Default)]
 pub struct OsuParser {
     current_section: Option<String>,
     chart: IncompleteChart,
-    last_bpm_change_index: Option<usize>,
 }
 
 impl OsuParser {
@@ -329,7 +405,7 @@ impl OsuParser {
                 Some(ref s) => match s.as_str() {
                     "General" => parse_general(line, &mut self.chart)?,
                     "Metadata" => parse_metadata(line, &mut self.chart)?,
-                    "TimingPoints" => self.last_bpm_change_index = Some(parse_timing_points(line, &mut self.chart, self.last_bpm_change_index)?),
+                    "TimingPoints" => parse_timing_points(line, &mut self.chart)?,
                     _ => (),
                 },
                 None => return Err(ParseError::InvalidFile),
@@ -360,23 +436,6 @@ impl ChartParser for OsuParser {
             }
         }
 
-        Ok(Chart {
-
-            music_path: match self.chart.music_path {
-                Some(s) => s,
-                None => return Err(
-                    ParseError::Parse(String::from("Could not find audio file"), None)),
-            },
-
-            //notes: self.chart.notes,
-            notes: Default::default(),
-            timing_points: self.chart.timing_points,
-            creator: self.chart.creator,
-            artist: self.chart.artist,
-            artist_unicode: self.chart.artist_unicode,
-            song_name: self.chart.song_name,
-            song_name_unicode: self.chart.song_name_unicode,
-            difficulty_name: self.chart.difficulty_name.unwrap_or(String::from("Unnamed")),
-        })
+        Ok(self.chart.finalize()?)
     }
 }
