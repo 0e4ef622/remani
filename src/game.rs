@@ -35,7 +35,7 @@ pub fn start(config: Config) {
     // test
     let _ = match Chart::from_path("test.osu") {
         Ok(x) => {
-            println!("{:?}", x);
+            //println!("{:?}", x);
             Some(x)
         },
         Err(e) => { println!("{}", e); None },
