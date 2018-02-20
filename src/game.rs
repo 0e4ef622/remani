@@ -8,7 +8,6 @@ extern crate opengl_graphics;
 use model::Model;
 use view::View;
 use chart::Chart;
-use skin::Skin;
 use config::Config;
 
 use skin;

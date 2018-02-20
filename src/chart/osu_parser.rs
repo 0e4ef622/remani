@@ -181,8 +181,8 @@ fn parse_hit_object(line: &str, chart: &mut IncompleteChart) -> Result<(), Parse
                 // calculate column
 
                 let n = cvt_err!(ERR_STRING, field.parse::<f64>())?;
-                const cw: f64 = 512.0 / 7.0;
-                let mut c = (n / cw).floor();
+                const CW: f64 = 512.0 / 7.0;
+                let mut c = (n / CW).floor();
                 if c < 0.0 { c = 0.0; }
                 else if c > 7.0 { c = 7.0; }
                 hit_obj.column = c as u8;
