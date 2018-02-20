@@ -13,12 +13,8 @@ use std::error;
 use std::fmt;
 use std::path;
 use std::rc::Rc;
-use std::ops::Deref;
-use view::texture::ImageSize;
 
-mod osu_parser;
-
-use self::osu_parser::OsuParser;
+mod osu_skin;
 
 /// The error type from parsing
 #[derive(Debug)]
@@ -68,76 +64,14 @@ impl error::Error for ParseError {
     }
 }
 
-/// Holds skin data, such as note images and what not.
-#[derive(Default)]
-pub struct Skin {
-    pub miss: Vec<Texture>,
-    pub hit50: Vec<Texture>,
-    pub hit100: Vec<Texture>,
-    pub hit300: Vec<Texture>,
-    pub hit300g: Vec<Texture>,
-
-    /// The images virtual keys under the judgement line.
-    pub keys: [Vec<Rc<Texture>>; 7],
-
-    /// The images of the virtual keys under the judgement line when the
-    /// corresponding key on the keyboard is pressed.
-    pub keys_d: [Vec<Rc<Texture>>; 7],
-
-    /// The notes' images.
-    pub notes: [Vec<Rc<Texture>>; 7],
-
-    /// The long notes' ends' images.
-    pub long_notes_head: [Vec<Rc<Texture>>; 7],
-
-    /// The long notes' bodies' images.
-    pub long_notes_body: [Vec<Rc<Texture>>; 7],
-
-    /// The stage components.
-    pub stage_hint: Option<Rc<Texture>>,
-    pub stage_left: Option<Rc<Texture>>,
-    pub stage_right: Option<Rc<Texture>>,
-
-    /// Various information related to how to draw components.
-    pub column_start: u16,
-    pub column_width: Vec<u16>,
-    pub column_line_width: Vec<u16>,
-    pub hit_position: u16,
-}
-
-impl Skin {
-
-    /// Parse from a directory specified by the path.
-    ///
-    /// For now, the osu parser is assumed.
-    pub fn from_path<P: AsRef<path::Path>>(path: P) -> Result<Skin, ParseError> {
-
-        let parser = OsuParser::new(path::PathBuf::new().join(&path));
-        parser.parse()
-    }
-
-    pub fn draw_stage(&self, draw_state: &DrawState, transform: math::Matrix2d, gl: &mut GlGraphics) {
-        let keys_height = 20.0;
-        let stage_h = 100.0;
-        let stage_l_s: f64 = stage_h / self.stage_left.as_ref().unwrap().get_height() as f64;
-        let stage_r_s: f64 = stage_h / self.stage_right.as_ref().unwrap().get_height() as f64;
-        let stage_h_s: f64 = stage_h / self.stage_hint.as_ref().unwrap().get_height() as f64;
-        let stage_l_width: f64 = stage_l_s * self.stage_left.as_ref().unwrap().get_width() as f64;
-        let stage_r_width: f64 = stage_r_s * self.stage_right.as_ref().unwrap().get_width() as f64;
-        let stage_hint_width: f64 = stage_h_s * self.stage_hint.as_ref().as_ref().unwrap().get_width() as f64;
-        let stage_hint_height: f64 = stage_h_s * self.stage_hint.as_ref().unwrap().get_height() as f64;
-        let stage_l_img = Image::new().rect([self.column_start as f64, 0.0, stage_l_width, stage_l_s * self.stage_left.as_ref().unwrap().get_height() as f64]);
-        let stage_hint_img = Image::new().rect([self.column_start as f64 + stage_l_width, stage_h - keys_height - stage_hint_height, stage_hint_width, stage_hint_height]);
-        let stage_r_img = Image::new().rect([self.column_start as f64 + stage_l_width + stage_hint_width, 0.0, stage_r_width, stage_r_s * self.stage_right.as_ref().unwrap().get_height() as f64]);
-        stage_hint_img.draw(self.stage_hint.as_ref().unwrap().deref(), draw_state, transform, gl);
-        stage_l_img.draw(self.stage_left.as_ref().unwrap().deref(), draw_state, transform, gl);
-        stage_r_img.draw(self.stage_right.as_ref().unwrap().deref(), draw_state, transform, gl);
-    }
+/// Parse from a directory specified by the path.
+///
+/// For now, the osu parser is assumed.
+pub fn from_path<P: AsRef<path::Path>>(path: P) -> Result<Box<Skin>, ParseError> {
+    Ok(osu_skin::from_path(path.as_ref())?)
 }
 
 /// A skin parser. Should be implemented by skin builders/parsers.
-trait SkinParser {
-
-    /// Parse the directory
-    fn parse(self) -> Result<Skin, ParseError>;
+pub trait Skin {
+    fn draw_stage(&self, draw_state: &DrawState, transform: math::Matrix2d, gl: &mut GlGraphics);
 }

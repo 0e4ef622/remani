@@ -14,7 +14,7 @@ use model::Model;
 /// Holds values and resources needed by the window to do drawing stuff
 pub struct View {
     pub gl: GlGraphics,
-    skin: Skin,
+    skin: Box<Skin>,
     image: Image,
     draw_state: DrawState,
 }
@@ -22,7 +22,7 @@ pub struct View {
 impl View {
 
     /// Create a view with some hardcoded defaults and stuffs
-    pub fn new(gl: GlGraphics, skin: Skin) -> Self {
+    pub fn new(gl: GlGraphics, skin: Box<Skin>) -> Self {
         let gl = gl;
         let image = Image::new().rect(graphics::rectangle::square(50.0, 50.0, 100.0));
         let draw_state = DrawState::default();
