@@ -210,6 +210,7 @@ fn parse_hit_object(line: &str, chart: &mut IncompleteChart) -> Result<(), Parse
                         }
                     }
                 }
+                hit_obj.sounds.push(dflt_hit_snd!(SampleHitSoundSound::Normal));
                 if n & 2 == 2 { hit_obj.sounds.push(dflt_hit_snd!(SampleHitSoundSound::Whistle)); }
                 if n & 4 == 4 { hit_obj.sounds.push(dflt_hit_snd!(SampleHitSoundSound::Finish)); }
                 if n & 8 == 8 { hit_obj.sounds.push(dflt_hit_snd!(SampleHitSoundSound::Clap)); }
@@ -223,15 +224,17 @@ fn parse_hit_object(line: &str, chart: &mut IncompleteChart) -> Result<(), Parse
                         None => return Err(ParseError::Parse(ERR_STRING.to_owned(), Some(Box::new(ParseError::EOL)))),
                     });
                 }
+                let mut volume = 100;
                 for (i, v) in extras.enumerate().take(5) {
-                    let mut volume = 100;
                     match i {
+                        // sample set
                         0 => {
+                            let hs_iter = hit_obj.sounds.iter_mut();
                             match cvt_err!(ERR_STRING, v.parse::<u8>())? {
                                 0 => (),
-                                1 => hit_obj.sounds.iter_mut().for_each(|s| if let HitSoundSource::SampleSet(ref mut shs) = s.source { shs.set = SampleSet::Normal }),
-                                2 => hit_obj.sounds.iter_mut().for_each(|s| if let HitSoundSource::SampleSet(ref mut shs) = s.source { shs.set = SampleSet::Soft }),
-                                3 => hit_obj.sounds.iter_mut().for_each(|s| if let HitSoundSource::SampleSet(ref mut shs) = s.source { shs.set = SampleSet::Drum }),
+                                1 => hs_iter.for_each(|s| if let HitSoundSource::SampleSet(ref mut shs) = s.source { shs.set = SampleSet::Normal }),
+                                2 => hs_iter.for_each(|s| if let HitSoundSource::SampleSet(ref mut shs) = s.source { shs.set = SampleSet::Soft }),
+                                3 => hs_iter.for_each(|s| if let HitSoundSource::SampleSet(ref mut shs) = s.source { shs.set = SampleSet::Drum }),
                                 _ => (),
                             }
                         },
@@ -244,6 +247,7 @@ fn parse_hit_object(line: &str, chart: &mut IncompleteChart) -> Result<(), Parse
                                 }
                             }
                         },
+                        // volume
                         3 => {
                             let n = cvt_err!(ERR_STRING, v.parse::<u8>())?;
                             if n != 0 {
@@ -251,11 +255,12 @@ fn parse_hit_object(line: &str, chart: &mut IncompleteChart) -> Result<(), Parse
                                 volume = n;
                             }
                         },
+                        // hitsound from file
                         4 => if !v.is_empty() {
-                            hit_obj.sounds = vec![ HitSound {
+                            hit_obj.sounds.push(HitSound {
                                 volume: volume,
                                 source: HitSoundSource::File(PathBuf::from(v)),
-                            } ];
+                            });
                         },
                         _ => unreachable!(),
                     }
@@ -273,7 +278,7 @@ fn parse_hit_object(line: &str, chart: &mut IncompleteChart) -> Result<(), Parse
 
 /// Represents a hit object. This will get converted into a Note once the file is parsed and we can
 /// get the audio samples for the hit sound.
-#[derive(Default,Debug)]
+#[derive(Default, Debug)]
 struct HitObject {
 
     /// Where the note begins, in seconds.

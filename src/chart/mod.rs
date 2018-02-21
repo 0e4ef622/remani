@@ -52,10 +52,8 @@ pub enum ParseError {
     Io(String, io::Error),
     /// Parsing error
     Parse(String, Option<Box<error::Error>>),
-    InvalidChar(char),
     UnknownFormat,
     InvalidFile,
-    EOF,
     EOL,
 }
 
@@ -65,10 +63,8 @@ impl fmt::Display for ParseError {
             ParseError::Io(ref s, ref e) => write!(f, "{}: {}", s, e),
             ParseError::Parse(ref s, Some(ref e)) => write!(f, "{}: {}", s, e),
             ParseError::Parse(ref s, None) => write!(f, "{}", s),
-            ParseError::InvalidChar(c) => write!(f, "Invalid character `{}'", c),
             ParseError::UnknownFormat => write!(f, "Unknown chart format"),
             ParseError::InvalidFile => write!(f, "Invalid chart"),
-            ParseError::EOF => write!(f, "Unexpected EOF"),
             ParseError::EOL => write!(f, "Unexpected end of line"),
         }
     }
@@ -79,10 +75,8 @@ impl error::Error for ParseError {
         match *self {
             ParseError::Io(_, _) => "IO error",
             ParseError::Parse(_, _) => "Parse error",
-            ParseError::InvalidChar(_) => "Invalid character",
             ParseError::UnknownFormat => "Unknown chart format",
             ParseError::InvalidFile => "Invalid chart",
-            ParseError::EOF => "Unexpected EOF",
             ParseError::EOL => "Unexpected end of line",
         }
     }

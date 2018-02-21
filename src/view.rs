@@ -6,7 +6,6 @@ pub extern crate texture;
 
 use piston::input::RenderArgs;
 use opengl_graphics::GlGraphics;
-use graphics::image::Image;
 use graphics::draw_state::DrawState;
 use skin::Skin;
 use model::Model;
@@ -15,7 +14,6 @@ use model::Model;
 pub struct View {
     pub gl: GlGraphics,
     skin: Box<Skin>,
-    image: Image,
     draw_state: DrawState,
 }
 
@@ -24,20 +22,17 @@ impl View {
     /// Create a view with some hardcoded defaults and stuffs
     pub fn new(gl: GlGraphics, skin: Box<Skin>) -> Self {
         let gl = gl;
-        let image = Image::new().rect(graphics::rectangle::square(50.0, 50.0, 100.0));
         let draw_state = DrawState::default();
 
         Self {
             gl: gl,
             skin: skin,
-            image: image,
             draw_state: draw_state,
         }
     }
 
     /// Called when a render event occurs
     pub fn render(&mut self, args: &RenderArgs, model: &Model) {
-        let image = &self.image;
         let skin = &self.skin;
         let draw_state = &self.draw_state;
         //println!("draw size: {:?}, window size: {:?}", args.viewport().draw_size, args.viewport().window_size);

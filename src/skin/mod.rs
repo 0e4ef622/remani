@@ -2,9 +2,7 @@
 
 extern crate opengl_graphics;
 
-use opengl_graphics::Texture;
 use opengl_graphics::GlGraphics;
-use graphics::image::Image;
 use graphics::draw_state::DrawState;
 use graphics::math;
 
@@ -12,7 +10,6 @@ use std::io;
 use std::error;
 use std::fmt;
 use std::path;
-use std::rc::Rc;
 
 mod osu_skin;
 

@@ -176,7 +176,7 @@ pub fn from_path(dir: &path::Path) -> Result<Box<Skin>, ParseError> {
         let config_reader = BufReader::new(&config_file);
         let mut section = String::from("General");
         let mut keys: u8 = 0;
-        for (num, l) in config_reader.lines().enumerate() {
+        for l in config_reader.lines() {
             let line = l.unwrap().to_string().clone().to_owned().trim_matches(' ').to_owned();
             if line.starts_with("[") && line.ends_with("]") {
                 section = line.clone();
