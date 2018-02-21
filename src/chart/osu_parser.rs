@@ -344,7 +344,7 @@ struct SampleHitSound {
 }
 
 /// A sample set
-#[derive(Copy, Clone, Debug)]
+#[derive(PartialEq, Eq, Copy, Clone, Debug)]
 enum SampleSet {
     Auto,
     Normal,
@@ -352,7 +352,7 @@ enum SampleSet {
     Drum,
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(PartialEq, Eq, Copy, Clone, Debug)]
 enum SampleHitSoundSound {
     Normal,
     Whistle,
@@ -468,5 +468,48 @@ impl ChartParser for OsuParser {
         }
 
         Ok(self.chart.finalize()?)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use chart::osu_parser::*;
+
+    /// Test hit object parser
+    #[test]
+    fn test_ho_parse() {
+        let mut chart = IncompleteChart::default();
+        parse_hit_object("0,0,5000,128,0,6000:0:0:0:70:", &mut chart);
+        {
+            let ho = &chart.hit_objects[0];
+            assert_eq!(5.0, ho.time);
+            assert_eq!(0, ho.column);
+            assert_eq!(70, ho.sounds[0].volume);
+            assert_eq!(Some(6.0), ho.end_time);
+            match ho.sounds[0].source {
+                HitSoundSource::SampleSet(ref shs) => {
+                    assert_eq!(SampleSet::Auto, shs.set);
+                    assert_eq!(SampleHitSoundSound::Normal, shs.sound);
+                    assert_eq!(0, shs.index);
+                },
+                _ => panic!("Incorrect hit sound source"),
+            }
+        }
+
+        chart.hit_objects.clear();
+
+        parse_hit_object("75,0,1337,0,0,0:0:0:10:potato.wav", &mut chart);
+        {
+            let ho = &chart.hit_objects[0];
+            assert_eq!(1.337, ho.time);
+            assert_eq!(1, ho.column);
+            assert_eq!(10, ho.sounds[0].volume);
+            match ho.sounds[1].source {
+                HitSoundSource::File(ref path) => {
+                    assert_eq!("potato.wav", path.to_str().unwrap());
+                },
+                _ => panic!("Incorrect hit sound source"),
+            }
+        }
     }
 }
