@@ -23,38 +23,38 @@ use skin::{ Skin, ParseError };
 /// Holds skin data, such as note images and what not.
 #[derive(Default)]
 struct OsuSkin {
-    pub miss: Vec<Texture>,
-    pub hit50: Vec<Texture>,
-    pub hit100: Vec<Texture>,
-    pub hit300: Vec<Texture>,
-    pub hit300g: Vec<Texture>,
+    miss: Vec<Texture>,
+    hit50: Vec<Texture>,
+    hit100: Vec<Texture>,
+    hit300: Vec<Texture>,
+    hit300g: Vec<Texture>,
 
     /// The images virtual keys under the judgement line.
-    pub keys: [Vec<Rc<Texture>>; 7],
+    keys: [Vec<Rc<Texture>>; 7],
 
     /// The images of the virtual keys under the judgement line when the
     /// corresponding key on the keyboard is pressed.
-    pub keys_d: [Vec<Rc<Texture>>; 7],
+    keys_d: [Vec<Rc<Texture>>; 7],
 
     /// The notes' images.
-    pub notes: [Vec<Rc<Texture>>; 7],
+    notes: [Vec<Rc<Texture>>; 7],
 
     /// The long notes' ends' images.
-    pub long_notes_head: [Vec<Rc<Texture>>; 7],
+    long_notes_head: [Vec<Rc<Texture>>; 7],
 
     /// The long notes' bodies' images.
-    pub long_notes_body: [Vec<Rc<Texture>>; 7],
+    long_notes_body: [Vec<Rc<Texture>>; 7],
 
     /// The stage components.
-    pub stage_hint: Option<Rc<Texture>>,
-    pub stage_left: Option<Rc<Texture>>,
-    pub stage_right: Option<Rc<Texture>>,
+    stage_hint: Option<Rc<Texture>>,
+    stage_left: Option<Rc<Texture>>,
+    stage_right: Option<Rc<Texture>>,
 
     /// Various information related to how to draw components.
-    pub column_start: u16,
-    pub column_width: Vec<u16>,
-    pub column_line_width: Vec<u16>,
-    pub hit_position: u16,
+    column_start: u16,
+    column_width: Vec<u16>,
+    column_line_width: Vec<u16>,
+    hit_position: u16,
 }
 
 impl Skin for OsuSkin {
