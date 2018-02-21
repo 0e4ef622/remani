@@ -68,7 +68,7 @@ pub fn from_path<P: AsRef<path::Path>>(path: P) -> Result<Box<Skin>, ParseError>
     Ok(osu_skin::from_path(path.as_ref())?)
 }
 
-/// A skin parser. Should be implemented by skin builders/parsers.
+/// A skin. Should be returned by skin parsers.
 pub trait Skin {
     fn draw_stage(&self, draw_state: &DrawState, transform: math::Matrix2d, gl: &mut GlGraphics);
 }

@@ -29,7 +29,7 @@ fn parse_section(line: &str) -> &str {
     &line[1..line.len()-1]
 }
 
-/// Parse a line from the General section
+/// Parse a line from the General section and add the info to the chart passed in
 fn parse_general(line: &str, chart: &mut IncompleteChart) -> Result<(), ParseError> {
 
     let (k, v) = line.split_at(match line.find(':') {
@@ -49,7 +49,7 @@ fn parse_general(line: &str, chart: &mut IncompleteChart) -> Result<(), ParseErr
     Ok(())
 }
 
-/// Parse a line from the Metadata section
+/// Parse a line from the Metadata section and add the info to the chart passed in
 fn parse_metadata(line: &str, chart: &mut IncompleteChart) -> Result<(), ParseError> {
     let (k, v) = line.split_at(match line.find(':') {
         Some(n) => n,
@@ -69,8 +69,7 @@ fn parse_metadata(line: &str, chart: &mut IncompleteChart) -> Result<(), ParseEr
     Ok(())
 }
 
-/// Parse a line from the TimingPoints section and returns the index of the last bpm change (not
-/// sv)
+/// Parse a line from the TimingPoints section and add the timing point to the chart passed in
 fn parse_timing_point(line: &str, chart: &mut IncompleteChart) -> Result<(), ParseError> {
 
     static ERR_STRING: &str = "Error parsing timing point";
@@ -162,7 +161,7 @@ fn parse_timing_point(line: &str, chart: &mut IncompleteChart) -> Result<(), Par
     Ok(())
 }
 
-/// Parse a line from the HitObjects section
+/// Parse a line from the HitObjects section and add the hit object to the chart passed in
 fn parse_hit_object(line: &str, chart: &mut IncompleteChart) -> Result<(), ParseError> {
 
     let mut last_index = 0;
