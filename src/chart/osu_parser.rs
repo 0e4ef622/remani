@@ -238,7 +238,24 @@ fn parse_hit_object(line: &str, chart: &mut IncompleteChart) -> Result<(), Parse
                                 _ => (),
                             }
                         },
-                        1 => (),
+                        // addition set
+                        1 => {
+                            let hs_iter = hit_obj.sounds.iter_mut().filter(|s| {
+                                if let HitSoundSource::SampleSet(ref shs) = s.source {
+                                    shs.sound != SampleHitSoundSound::Normal
+                                } else {
+                                    false
+                                }
+                            });
+                            match cvt_err!(ERR_STRING, v.parse::<u8>())? {
+                                0 => (),
+                                1 => hs_iter.for_each(|s| if let HitSoundSource::SampleSet(ref mut shs) = s.source { shs.set = SampleSet::Normal }),
+                                2 => hs_iter.for_each(|s| if let HitSoundSource::SampleSet(ref mut shs) = s.source { shs.set = SampleSet::Soft }),
+                                3 => hs_iter.for_each(|s| if let HitSoundSource::SampleSet(ref mut shs) = s.source { shs.set = SampleSet::Drum }),
+                                _ => (),
+                            }
+                        },
+                        // custom index
                         2 => {
                             match cvt_err!(ERR_STRING, v.parse::<u32>())? {
                                 0 => (),
