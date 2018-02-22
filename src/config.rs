@@ -4,19 +4,9 @@ extern crate piston;
 use piston::input;
 use std::path;
 
-pub struct KeyBindings {
-    pub key1: input::Button,
-    pub key2: input::Button,
-    pub key3: input::Button,
-    pub key4: input::Button,
-    pub key5: input::Button,
-    pub key6: input::Button,
-    pub key7: input::Button,
-}
-
 /// Holds all the configuration values like skin path or key bindings
 pub struct Config {
-    pub key_bindings: KeyBindings,
+    pub key_bindings: [input::Button; 7],
     pub skin_path: path::PathBuf,
     pub scroll_speed: u32,
 }
@@ -29,15 +19,15 @@ pub fn get_config() -> Config {
     // TODO
 
     Config {
-        key_bindings: KeyBindings {
-            key1: Keyboard(Key::S),
-            key2: Keyboard(Key::D),
-            key3: Keyboard(Key::F),
-            key4: Keyboard(Key::Space),
-            key5: Keyboard(Key::J),
-            key6: Keyboard(Key::K),
-            key7: Keyboard(Key::L),
-        },
+        key_bindings: [
+            Keyboard(Key::S),
+            Keyboard(Key::D),
+            Keyboard(Key::F),
+            Keyboard(Key::Space),
+            Keyboard(Key::J),
+            Keyboard(Key::K),
+            Keyboard(Key::L),
+        ],
         skin_path: path::PathBuf::from("test_skin"),
         scroll_speed: 1,
     }

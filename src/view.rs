@@ -57,13 +57,13 @@ impl View {
             bordor.draw(key5, draw_state, c.transform, gl);
             bordor.draw(key6, draw_state, c.transform, gl);
             bordor.draw(key7, draw_state, c.transform, gl);
-            if model.key1_down { red_rect.draw(key1, draw_state, c.transform, gl); }
-            if model.key2_down { red_rect.draw(key2, draw_state, c.transform, gl); }
-            if model.key3_down { red_rect.draw(key3, draw_state, c.transform, gl); }
-            if model.key4_down { red_rect.draw(key4, draw_state, c.transform, gl); }
-            if model.key5_down { red_rect.draw(key5, draw_state, c.transform, gl); }
-            if model.key6_down { red_rect.draw(key6, draw_state, c.transform, gl); }
-            if model.key7_down { red_rect.draw(key7, draw_state, c.transform, gl); }
+            if model.keys_down[0] { red_rect.draw(key1, draw_state, c.transform, gl); }
+            if model.keys_down[1] { red_rect.draw(key2, draw_state, c.transform, gl); }
+            if model.keys_down[2] { red_rect.draw(key3, draw_state, c.transform, gl); }
+            if model.keys_down[3] { red_rect.draw(key4, draw_state, c.transform, gl); }
+            if model.keys_down[4] { red_rect.draw(key5, draw_state, c.transform, gl); }
+            if model.keys_down[5] { red_rect.draw(key6, draw_state, c.transform, gl); }
+            if model.keys_down[6] { red_rect.draw(key7, draw_state, c.transform, gl); }
         });
 
     }
