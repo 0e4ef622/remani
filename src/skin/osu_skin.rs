@@ -181,7 +181,6 @@ pub fn from_path(dir: &path::Path) -> Result<Box<Skin>, ParseError> {
             if line.starts_with("[") && line.ends_with("]") {
                 section = line.clone();
                 section = section[1..section.len()-1].to_string();
-                println!("{:?}", section);
                 continue;
             }
             if line.starts_with("//") || line == "" {

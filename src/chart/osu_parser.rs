@@ -375,7 +375,7 @@ struct IncompleteChart {
 
 impl IncompleteChart {
     fn finalize(self) -> Result<Chart, ParseError> {
-        //println!("Hit objects:\n{:?}", self.hit_objects);
+        println!("Notes:           {}", self.hit_objects.len());
         let timing_points = self.timing_points.iter()
                             .map(|t| chart::TimingPoint {
                                 offset: t.offset,

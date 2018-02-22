@@ -30,12 +30,17 @@ pub fn start(config: Config) {
                              .expect("Could not create window");
 
     let dpifactor = window.window.hidpi_factor();
-    println!("hidpi_factor: {}", dpifactor);
+    //println!("hidpi_factor: {}", dpifactor);
 
     // test
     let _ = match Chart::from_path("test.osu") {
         Ok(x) => {
             //println!("{:?}", x);
+            println!("Chart creator:   {}", x.creator.as_ref().unwrap());
+            println!("Song artist:     {}", x.artist.as_ref().unwrap());
+            println!("Song name:       {}", x.song_name.as_ref().unwrap());
+            println!("Difficulty name: {}", x.difficulty_name);
+            println!("Timing points:   {}", x.timing_points.len());
             Some(x)
         },
         Err(e) => { println!("{}", e); None },
