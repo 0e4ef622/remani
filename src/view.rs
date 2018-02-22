@@ -37,7 +37,7 @@ impl View {
         let draw_state = &self.draw_state;
         //println!("draw size: {:?}, window size: {:?}", args.viewport().draw_size, args.viewport().window_size);
         self.gl.draw(args.viewport(), |c, gl| {
-            graphics::clear([1.0; 4], gl);
+            graphics::clear([0.0; 4], gl);
 
             skin.draw_stage(draw_state, c.transform, gl);
 
