@@ -79,7 +79,7 @@ impl Skin for OsuSkin {
 
         let stage_l_img = Image::new().rect([column_start, 0.0, stage_l_scaled_width, stage_h]);
         let stage_r_img = Image::new().rect([column_start + stage_l_scaled_width + column_width_sum as f64, 0.0, stage_r_ar * stage_h, stage_h]);
-        let stage_hint_img = Image::new().rect([column_start + stage_l_scaled_width, self.hit_position as f64 - stage_hint_height / 2.0, column_width_sum as f64, stage_hint_height]);
+        let stage_hint_img = Image::new().rect([column_start + stage_l_scaled_width, self.hit_position as f64 * stage_h / 480.0 - stage_hint_height / 2.0, column_width_sum as f64, stage_hint_height]);
 
         stage_hint_img.draw(stage_hint, draw_state, transform, gl);
         stage_l_img.draw(stage_l, draw_state, transform, gl);
