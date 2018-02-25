@@ -41,6 +41,7 @@ pub fn start(config: Config) {
             println!("Song name:       {}", x.song_name.as_ref().unwrap());
             println!("Difficulty name: {}", x.difficulty_name);
             println!("Timing points:   {}", x.timing_points.len());
+            println!("Notes:           {}", x.notes.len());
             Some(x)
         },
         Err(e) => { println!("{}", e); None },

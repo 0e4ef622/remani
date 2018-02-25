@@ -313,6 +313,7 @@ impl HitObject {
             column: self.column,
             end_time: self.end_time,
             //sound: mixed?_hitsounds,
+            // TODO
         }
     }
 }
@@ -375,14 +376,13 @@ struct IncompleteChart {
 
 impl IncompleteChart {
     fn finalize(self) -> Result<Chart, ParseError> {
-        println!("Notes:           {}", self.hit_objects.len());
-        let timing_points = self.timing_points.iter()
+        let timing_points = self.timing_points.into_iter()
                             .map(|t| chart::TimingPoint {
                                 offset: t.offset,
                                 value: t.value,
                             }).collect::<Vec<_>>();
         Ok(Chart {
-            notes: Default::default(), // TODO
+            notes: self.hit_objects.into_iter().map(HitObject::to_note).collect(),
             timing_points: timing_points,
             creator: self.creator,
             artist: self.artist,
