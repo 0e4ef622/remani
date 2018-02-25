@@ -69,6 +69,21 @@ fn parse_metadata(line: &str, chart: &mut IncompleteChart) -> Result<(), ParseEr
     Ok(())
 }
 
+/// Parse a line from the Difficulty section. This just checks to see if the chart is a 7k chart.
+fn parse_difficulty(line: &str) -> Result<(), ParseError> {
+    let (k, v) = line.split_at(match line.find(':') {
+        Some(n) => n,
+        None => return Err(ParseError::Parse(String::from("Malformed key/value pair"), None)),
+    });
+    let v = &v[1..];
+
+    if k == "CircleSize" && v != "7" {
+            Err(ParseError::Parse(String::from("This chart is not 7 key"), None))
+    } else {
+        Ok(())
+    }
+}
+
 /// Parse a line from the TimingPoints section and add the timing point to the chart passed in
 fn parse_timing_point(line: &str, chart: &mut IncompleteChart) -> Result<(), ParseError> {
 
@@ -430,6 +445,7 @@ impl OsuParser {
 
                 Some(ref s) => match s.as_str() {
                     "General" => parse_general(line, &mut self.chart)?,
+                    "Difficulty" => parse_difficulty(line)?,
                     "Metadata" => parse_metadata(line, &mut self.chart)?,
                     "TimingPoints" => parse_timing_point(line, &mut self.chart)?,
                     "HitObjects" => parse_hit_object(line, &mut self.chart)?,
