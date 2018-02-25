@@ -445,13 +445,17 @@ impl OsuParser {
 impl ChartParser for OsuParser {
     fn parse<R: io::BufRead>(mut self, reader: R) -> Result<Chart, ParseError> {
 
-        let read_error = |e| Err(ParseError::Io(String::from("Error reading chart"), e));
+        macro_rules! read_error {
+            ($e:expr) =>  {
+                Err(ParseError::Io(String::from("Error reading chart"), $e))
+            }
+        }
 
         let mut lines = reader.lines();
         let line = match lines.next() {
             Some(r) => match r {
                 Ok(s) => s,
-                Err(e) => return read_error(e),
+                Err(e) => return read_error!(e),
             },
             None => return Err(ParseError::InvalidFile),
         };
@@ -461,8 +465,8 @@ impl ChartParser for OsuParser {
 
         for (line_num, line) in lines.enumerate() {
             match line {
-                Ok(line) => cvt_err!(format!("Error on line {}", line_num), self.parse_line(line.trim()))?,
-                Err(e) => return read_error(e),
+                Ok(line) => cvt_err!(format!("Error on line {} of .osu file", line_num + 2), self.parse_line(line.trim()))?,
+                Err(e) => return read_error!(e),
             }
         }
 
