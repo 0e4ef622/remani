@@ -59,7 +59,7 @@ struct OsuSkin {
 }
 
 impl Skin for OsuSkin {
-    fn draw_stage(&self, draw_state: &DrawState, transform: math::Matrix2d, gl: &mut GlGraphics) {
+    fn draw_track(&self, draw_state: &DrawState, transform: math::Matrix2d, gl: &mut GlGraphics) {
 
         let stage_h = 480.0;
 
