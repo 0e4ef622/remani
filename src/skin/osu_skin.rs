@@ -1,9 +1,5 @@
 //! Osu skin directory parser module
 
-extern crate opengl_graphics;
-extern crate texture;
-extern crate image;
-
 use opengl_graphics::Texture;
 use opengl_graphics::GlGraphics;
 use graphics::image::Image;

@@ -1,9 +1,5 @@
 //! A module that handles window render events
 
-extern crate graphics;
-extern crate opengl_graphics;
-pub extern crate texture;
-
 use piston::input::RenderArgs;
 use opengl_graphics::GlGraphics;
 use graphics::draw_state::DrawState;

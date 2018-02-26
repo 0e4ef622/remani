@@ -1,5 +1,4 @@
 //! Handles configuration of the game
-extern crate piston;
 
 use piston::input;
 use std::path;

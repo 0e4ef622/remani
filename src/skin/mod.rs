@@ -1,7 +1,5 @@
 //! A module for reading skins.
 
-extern crate opengl_graphics;
-
 use opengl_graphics::GlGraphics;
 use graphics::draw_state::DrawState;
 use graphics::math;
