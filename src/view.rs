@@ -2,6 +2,7 @@
 
 use piston::input::RenderArgs;
 use opengl_graphics::GlGraphics;
+use graphics;
 use graphics::draw_state::DrawState;
 use skin::Skin;
 use model::Model;

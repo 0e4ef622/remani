@@ -1,12 +1,14 @@
 //! Osu skin directory parser module
 
+use image;
+
 use opengl_graphics::Texture;
 use opengl_graphics::GlGraphics;
 use graphics::image::Image;
 use graphics::draw_state::DrawState;
 use graphics::math;
-use self::texture::TextureSettings;
-use view::texture::ImageSize;
+use texture::TextureSettings;
+use texture::ImageSize;
 use std::ops::Deref;
 
 use std::io::BufReader;
