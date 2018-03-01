@@ -5,6 +5,7 @@ use view::View;
 use chart::Chart;
 use config::Config;
 
+use audio;
 use skin;
 
 /// Start everything
@@ -41,6 +42,8 @@ pub fn start(config: Config) {
         },
         Err(e) => { println!("{}", e); None },
     };
+
+    let audio = audio::start_audio_thread();
 
     let the_skin = skin::from_path(&config.skin_path).unwrap();
 
