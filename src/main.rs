@@ -5,6 +5,7 @@ extern crate graphics;
 extern crate opengl_graphics;
 extern crate image;
 extern crate cpal;
+extern crate simplemad;
 
 mod model;
 mod view;

@@ -28,10 +28,9 @@ pub fn start(config: Config) {
     let dpifactor = window.window.hidpi_factor();
     //println!("hidpi_factor: {}", dpifactor);
 
-    // test
+    /* test
     let _ = match Chart::from_path("test.osu") {
         Ok(x) => {
-            //println!("{:?}", x);
             println!("Chart creator:   {}", x.creator.as_ref().unwrap());
             println!("Song artist:     {}", x.artist.as_ref().unwrap());
             println!("Song name:       {}", x.song_name.as_ref().unwrap());
@@ -42,8 +41,13 @@ pub fn start(config: Config) {
         },
         Err(e) => { println!("{}", e); None },
     };
+    */
+
+    let uhhh = audio::music_from_path("test.mp3");
 
     let audio = audio::start_audio_thread();
+
+    audio.play_music(uhhh);
 
     let the_skin = skin::from_path(&config.skin_path).unwrap();
 

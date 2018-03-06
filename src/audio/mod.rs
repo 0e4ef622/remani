@@ -1,5 +1,7 @@
 //! This module deals with audio playback.
 
+mod mp3;
+
 use std::sync::mpsc;
 use std::collections::VecDeque;
 use std::iter;
@@ -146,5 +148,22 @@ pub fn start_audio_thread() -> Audio<f32> {
         effect_sender: effect_tx,
         music_sender: music_tx,
         format: format,
+    }
+}
+
+use std::fs::File;
+use std::path::Path;
+use std::ffi;
+use std::io;
+
+pub fn music_from_path<P: AsRef<Path>>(path: P) -> MusicStream<f32> {
+
+    let file = File::open(&path).expect("Audio file not found");
+
+    match path.as_ref().extension().and_then(ffi::OsStr::to_str) {
+
+        Some("mp3") => mp3::decode(file).unwrap(),
+
+        _ => panic!("Unsupported format"),
     }
 }
