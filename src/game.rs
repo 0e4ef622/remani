@@ -43,9 +43,9 @@ pub fn start(config: Config) {
     };
     */
 
-    let uhhh = audio::music_from_path("test.mp3");
-
     let audio = audio::start_audio_thread();
+
+    let uhhh = audio::music_from_path("test.mp3", audio.format());
 
     audio.play_music(uhhh);
 

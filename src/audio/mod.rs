@@ -13,8 +13,22 @@ use std::thread;
 use cpal;
 use cpal::Sample;
 
-pub type MusicStream<S: cpal::Sample> = Box<Iterator<Item = S> + Send>;
+//pub type MusicStream<S: cpal::Sample> = Box<Iterator<Item = S> + Send>;
 pub type EffectStream<S: cpal::Sample> = Arc<Vec<S>>;
+
+/// A lazy iterator over audio samples
+pub struct MusicStream<S: cpal::Sample> {
+    samples: Box<Iterator<Item = S> + Send>,
+    channel_count: u8,
+    sample_rate: u32,
+}
+
+impl<S: cpal::Sample> Iterator for MusicStream<S> {
+    type Item = S;
+    fn next(&mut self) -> Option<S> {
+        self.samples.next()
+    }
+}
 
 /// An iterator over a Vec contained in an Arc
 pub struct ArcIter<T: Copy> {
@@ -70,6 +84,8 @@ impl<S: cpal::Sample> Audio<S> {
     pub fn play_effect(&self, effect: EffectStream<S>) -> Result<(), mpsc::TrySendError<ArcIter<S>>> {
         self.effect_sender.try_send(ArcIter::new(effect))
     }
+
+    pub fn format(&self) -> &cpal::Format { &self.format }
 }
 
 pub fn start_audio_thread() -> Audio<f32> {
@@ -90,7 +106,11 @@ pub fn start_audio_thread() -> Audio<f32> {
     thread::spawn(move || {
 
         let mut effects: VecDeque<Peekable<ArcIter<f32>>> = VecDeque::with_capacity(128);
-        let mut music: MusicStream<f32> = Box::new(iter::empty::<f32>());
+        let mut music: MusicStream<f32> = MusicStream {
+            samples: Box::new(iter::empty::<f32>()),
+            channel_count: 0,
+            sample_rate: 44100,
+        };
 
         event_loop.run(move |_, data| {
             while let Ok(effect) = effect_rx.try_recv() {
@@ -156,7 +176,7 @@ use std::path::Path;
 use std::ffi;
 use std::io;
 
-pub fn music_from_path<P: AsRef<Path>>(path: P) -> MusicStream<f32> {
+pub fn music_from_path<P: AsRef<Path>>(path: P, format: &cpal::Format) -> MusicStream<f32> {
 
     let file = File::open(&path).expect("Audio file not found");
 
