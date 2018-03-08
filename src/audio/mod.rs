@@ -88,16 +88,35 @@ impl<S: cpal::Sample> Audio<S> {
     pub fn format(&self) -> &cpal::Format { &self.format }
 }
 
-pub fn start_audio_thread() -> Audio<f32> {
+#[derive(Debug)]
+pub enum AudioThreadError {
+    NoOutputDevice,
+    DefaultFormatError(cpal::DefaultFormatError),
+    OutputStreamCreationError(cpal::CreationError),
+}
 
-    let device = cpal::default_output_device().expect("Failed to get default output device");
+impl From<cpal::DefaultFormatError> for AudioThreadError {
+    fn from(e: cpal::DefaultFormatError) -> Self {
+        AudioThreadError::DefaultFormatError(e)
+    }
+}
+
+impl From<cpal::CreationError> for AudioThreadError {
+    fn from(e: cpal::CreationError) -> Self {
+        AudioThreadError::OutputStreamCreationError(e)
+    }
+}
+
+pub fn start_audio_thread() -> Result<Audio<f32>, AudioThreadError> {
+
+    let device = cpal::default_output_device().ok_or(AudioThreadError::NoOutputDevice)?;
 
     println!("Using device {}", device.name());
 
-    let format = device.default_output_format().expect("Failed to get default output format");
+    let format = device.default_output_format()?;
 
     let event_loop = cpal::EventLoop::new();
-    let stream_id = event_loop.build_output_stream(&device, &format).unwrap();
+    let stream_id = event_loop.build_output_stream(&device, &format)?;
     event_loop.play_stream(stream_id.clone());
 
     let (music_tx, music_rx) = mpsc::sync_channel::<MusicStream<f32>>(2);
@@ -164,11 +183,11 @@ pub fn start_audio_thread() -> Audio<f32> {
         });
     });
 
-    Audio {
+    Ok(Audio {
         effect_sender: effect_tx,
         music_sender: music_tx,
         format: format,
-    }
+    })
 }
 
 use std::fs::File;
