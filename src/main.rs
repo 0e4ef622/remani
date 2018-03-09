@@ -5,6 +5,8 @@ extern crate graphics;
 extern crate opengl_graphics;
 extern crate image;
 extern crate cpal;
+
+#[cfg(feature="mp3")]
 extern crate simplemad;
 
 mod model;

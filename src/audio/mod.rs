@@ -1,5 +1,6 @@
 //! This module deals with audio playback.
 
+#[cfg(feature="mp3")]
 mod mp3;
 
 use std::sync::mpsc;
@@ -198,9 +199,11 @@ use std::io;
 pub fn music_from_path<P: AsRef<Path>>(path: P, format: &cpal::Format) -> MusicStream<f32> {
 
     let file = File::open(&path).expect("Audio file not found");
+    let extension = path.as_ref().extension().and_then(ffi::OsStr::to_str).map(str::to_lowercase);
 
-    match path.as_ref().extension().and_then(ffi::OsStr::to_str) {
+    match extension.as_ref().map(String::as_str) {
 
+        #[cfg(feature="mp3")]
         Some("mp3") => mp3::decode(file).unwrap(),
 
         _ => panic!("Unsupported format"),

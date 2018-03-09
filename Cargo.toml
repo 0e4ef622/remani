@@ -11,4 +11,8 @@ piston2d-graphics = "0.26.0"
 piston2d-opengl_graphics = "0.52.0"
 image = "0.18.0"
 cpal = "0.8.0"
-simplemad = "0.8.1"
+simplemad = { optional = true, version = "0.8.1" }
+
+[features]
+default = ["mp3"]
+mp3 = ["simplemad"]
