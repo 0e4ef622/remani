@@ -6,7 +6,7 @@ authors = ["Matthew Tran <0e4ef622@gmail.com>"]
 [dependencies]
 piston = "0.36.0"
 piston-texture = "0.6.0"
-pistoncore-glutin_window = "0.45.1"
+pistoncore-glutin_window = "<= 0.45.1"
 piston2d-graphics = "0.26.0"
 piston2d-opengl_graphics = "0.52.0"
 image = "0.18.0"
