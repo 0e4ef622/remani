@@ -68,5 +68,6 @@ pub fn from_path<P: AsRef<path::Path>>(path: P) -> Result<Box<Skin>, ParseError>
 
 /// A skin. Should be returned by skin parsers.
 pub trait Skin {
+    fn draw_note(&self, draw_state: &DrawState, transform: math::Matrix2d, gl: &mut GlGraphics, y_pos: f64, column_index: usize);
     fn draw_track(&self, draw_state: &DrawState, transform: math::Matrix2d, gl: &mut GlGraphics);
 }

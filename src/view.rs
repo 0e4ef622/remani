@@ -37,6 +37,7 @@ impl View {
             graphics::clear([0.0; 4], gl);
 
             skin.draw_track(draw_state, c.transform, gl);
+            skin.draw_note(draw_state, c.transform, gl, 5.0, 2);
 
             let red_rect = graphics::rectangle::Rectangle::new([1.0, 0.0, 0.0, 1.0]);
             let bordor = graphics::rectangle::Rectangle::new_border([1.0, 0.0, 0.0, 1.0], 2.0).color([1.0; 4]);
