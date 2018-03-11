@@ -735,7 +735,7 @@ dependencies = [
 
 [[package]]
 name = "pistoncore-glutin_window"
-version = "0.45.1"
+version = "0.45.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 dependencies = [
  "gl 0.10.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -886,7 +886,7 @@ dependencies = [
  "piston-texture 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "piston2d-graphics 0.26.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "piston2d-opengl_graphics 0.52.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "pistoncore-glutin_window 0.45.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "pistoncore-glutin_window 0.45.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "simplemad 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
@@ -1322,7 +1322,7 @@ dependencies = [
 "checksum piston2d-graphics 0.26.0 (registry+https://github.com/rust-lang/crates.io-index)" = "c09f6be9257a440796af745f492ec947a7c9576897da7e62cf77fc3dc3ff45e3"
 "checksum piston2d-opengl_graphics 0.52.0 (registry+https://github.com/rust-lang/crates.io-index)" = "ab329836a6e3fac501df4eabffb08d9a40feb2316e9fb2f61a1ca90a81ff6ff9"
 "checksum pistoncore-event_loop 0.36.0 (registry+https://github.com/rust-lang/crates.io-index)" = "ea2e3ca418a90b8957b5570833195740fafef5924ea8bc4ff3659f0d8820b451"
-"checksum pistoncore-glutin_window 0.45.1 (registry+https://github.com/rust-lang/crates.io-index)" = "ed51d7a5327588c9ad1b214450ced43c07fb40219928bc5ec70bbf50396d18ab"
+"checksum pistoncore-glutin_window 0.45.3 (registry+https://github.com/rust-lang/crates.io-index)" = "295d1d493b4f11dcc7f1bafad5ec6b875ed8c303392235d5aba52eafd05ff2e4"
 "checksum pistoncore-input 0.20.0 (registry+https://github.com/rust-lang/crates.io-index)" = "c7fef44b03e1dfe7f16aa067a0d3591a1e75635206279c12493ddcb279fbcb66"
 "checksum pistoncore-window 0.31.0 (registry+https://github.com/rust-lang/crates.io-index)" = "c2608db6e11773b5857d51252110f919d293625a857369b5834b89821f522466"
 "checksum pkg-config 0.3.9 (registry+https://github.com/rust-lang/crates.io-index)" = "3a8b4c6b8165cd1a1cd4b9b120978131389f64bdaf456435caa41e630edba903"
