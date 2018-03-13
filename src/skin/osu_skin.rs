@@ -107,6 +107,36 @@ impl Skin for OsuSkin {
         stage_l_img.draw(stage_l, draw_state, transform, gl);
         stage_r_img.draw(stage_r, draw_state, transform, gl);
     }
+    fn draw_keys(&self, draw_state: &DrawState, transform: math::Matrix2d, gl: &mut GlGraphics, pressed: &[bool]) {
+
+        let stage_h = 480.0;
+        let scale = stage_h / 480.0;
+
+        // ar = aspect ratio
+        let stage_hint = self.stage_hint.as_ref().unwrap().deref();
+        let stage_hint_height = stage_hint.get_height() as f64;
+
+        let stage_l = self.stage_left.as_ref().unwrap().deref();
+        let stage_r = self.stage_right.as_ref().unwrap().deref();
+
+        let stage_l_ar = stage_l.get_width() as f64 / stage_l.get_height() as f64;
+        let stage_r_ar = stage_r.get_width() as f64 / stage_r.get_height() as f64;
+
+        let stage_l_scaled_width = stage_l_ar * stage_h;
+
+        for (i, key_pressed) in pressed.iter().enumerate() {
+            let key_texture: &Texture = if *key_pressed { self.keys_d[i].as_ref() } else { self.keys[i].as_ref() };
+            let key_width = self.column_width[i] as f64 * scale;
+
+            // Seriously peppy?
+            let key_height = key_texture.get_height() as f64 * scale * 480.0 / 768.0;
+            let key_x = scale * (self.column_start as f64 + self.column_width[0..i].iter().sum::<u16>() as f64);
+            let key_y = stage_h - key_height;
+            let key_img = Image::new().rect([key_x, key_y, key_width, key_height]);
+            key_img.draw(key_texture, draw_state, transform, gl);
+        }
+    }
+
 }
 
 // Work around https://github.com/PistonDevelopers/opengl_graphics/issues/264
