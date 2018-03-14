@@ -60,23 +60,13 @@ impl Skin for OsuSkin {
     fn draw_note(&self, draw_state: &DrawState, transform: math::Matrix2d, gl: &mut GlGraphics, y_pos: f64, column_index: usize) {
 
         let stage_h = 480.0;
+        let scale = stage_h / 480.0;
 
         // ar = aspect ratio
-        let stage_l = self.stage_left.as_ref().unwrap().deref();
-        let stage_r = self.stage_right.as_ref().unwrap().deref();
-        let stage_hint = self.stage_hint.as_ref().unwrap().deref();
-
-        let stage_l_ar = stage_l.get_width() as f64 / stage_l.get_height() as f64;
-        let stage_r_ar = stage_r.get_width() as f64 / stage_r.get_height() as f64;
-
-        let column_width_sum: u16 = self.column_width.iter().sum();
         let column_start = self.column_start as f64;
-        let stage_hint_width = stage_hint.get_width() as f64;
-        let stage_hint_height = stage_hint.get_height() as f64;
-        let stage_l_scaled_width = stage_l_ar * stage_h;
 
         let note = self.notes[column_index][0].deref();
-        let note_img = Image::new().rect([column_start + self.column_width[0..column_index].iter().sum::<u16>() as f64 + stage_l_scaled_width, y_pos, self.column_width[column_index] as f64, self.width_for_note_height_scale]);
+        let note_img = Image::new().rect([column_start + self.column_width[0..column_index].iter().sum::<u16>() as f64, y_pos, self.column_width[column_index] as f64, self.width_for_note_height_scale]);
         note_img.draw(note, draw_state, transform, gl);
     }
     fn draw_track(&self, draw_state: &DrawState, transform: math::Matrix2d, gl: &mut GlGraphics) {
