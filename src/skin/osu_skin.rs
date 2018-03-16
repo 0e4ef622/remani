@@ -44,9 +44,9 @@ struct OsuSkin {
     long_notes_body: [Vec<Rc<Texture>>; 7],
 
     /// The stage components.
-    stage_hint: Option<Rc<Texture>>,
-    stage_left: Option<Rc<Texture>>,
-    stage_right: Option<Rc<Texture>>,
+    stage_hint: Rc<Texture>,
+    stage_left: Rc<Texture>,
+    stage_right: Rc<Texture>,
 
     /// Various information related to how to draw components.
     column_start: u16,
@@ -75,17 +75,12 @@ impl Skin for OsuSkin {
         let scale = stage_h / 480.0;
 
         // ar = aspect ratio
-        let stage_l = self.stage_left.as_ref().unwrap().deref();
-        let stage_r = self.stage_right.as_ref().unwrap().deref();
-        let stage_hint = self.stage_hint.as_ref().unwrap().deref();
-
-        let stage_l_ar = stage_l.get_width() as f64 / stage_l.get_height() as f64;
-        let stage_r_ar = stage_r.get_width() as f64 / stage_r.get_height() as f64;
+        let stage_l_ar = self.stage_left.get_width() as f64 / self.stage_left.get_height() as f64;
+        let stage_r_ar = self.stage_right.get_width() as f64 / self.stage_right.get_height() as f64;
 
         let column_width_sum = self.column_width.iter().sum::<u16>() as f64 * scale;
         let column_start = self.column_start as f64 * scale;
-        let stage_hint_width = stage_hint.get_width() as f64;
-        let stage_hint_height = stage_hint.get_height() as f64;
+        let stage_hint_height = self.stage_hint.get_height() as f64;
         let stage_l_scaled_width = stage_l_ar * stage_h;
         let stage_r_scaled_width = stage_r_ar * stage_h;
 
@@ -93,26 +88,14 @@ impl Skin for OsuSkin {
         let stage_r_img = Image::new().rect([column_start + column_width_sum, 0.0, stage_r_scaled_width, stage_h]);
         let stage_hint_img = Image::new().rect([column_start, self.hit_position as f64 * scale - stage_hint_height / 2.0, column_width_sum, stage_hint_height]);
 
-        stage_hint_img.draw(stage_hint, draw_state, transform, gl);
-        stage_l_img.draw(stage_l, draw_state, transform, gl);
-        stage_r_img.draw(stage_r, draw_state, transform, gl);
+        stage_hint_img.draw(self.stage_hint.deref(), draw_state, transform, gl);
+        stage_l_img.draw(self.stage_left.deref(), draw_state, transform, gl);
+        stage_r_img.draw(self.stage_right.deref(), draw_state, transform, gl);
     }
     fn draw_keys(&self, draw_state: &DrawState, transform: math::Matrix2d, gl: &mut GlGraphics, pressed: &[bool]) {
 
         let stage_h = 480.0;
         let scale = stage_h / 480.0;
-
-        // ar = aspect ratio
-        let stage_hint = self.stage_hint.as_ref().unwrap().deref();
-        let stage_hint_height = stage_hint.get_height() as f64;
-
-        let stage_l = self.stage_left.as_ref().unwrap().deref();
-        let stage_r = self.stage_right.as_ref().unwrap().deref();
-
-        let stage_l_ar = stage_l.get_width() as f64 / stage_l.get_height() as f64;
-        let stage_r_ar = stage_r.get_width() as f64 / stage_r.get_height() as f64;
-
-        let stage_l_scaled_width = stage_l_ar * stage_h;
 
         for (i, key_pressed) in pressed.iter().enumerate() {
             let key_texture: &Texture = if *key_pressed { self.keys_d[i].as_ref() } else { self.keys[i].as_ref() };
@@ -226,9 +209,9 @@ pub fn from_path(dir: &path::Path) -> Result<Box<Skin>, ParseError> {
                            vec![ln2_body.clone()],
                            vec![ln1_body.clone()]];
 
-    let stage_hint = Some(Rc::new(texture_from_path(dir.join("mania-stage-hint.png"), &texture_settings)));
-    let stage_left = Some(Rc::new(texture_from_path(dir.join("mania-stage-left.png"), &texture_settings)));
-    let stage_right = Some(Rc::new(texture_from_path(dir.join("mania-stage-right.png"), &texture_settings)));
+    let stage_hint = Rc::new(texture_from_path(dir.join("mania-stage-hint.png"), &texture_settings));
+    let stage_left = Rc::new(texture_from_path(dir.join("mania-stage-left.png"), &texture_settings));
+    let stage_right = Rc::new(texture_from_path(dir.join("mania-stage-right.png"), &texture_settings));
     // end test
 
     // default values
