@@ -2,7 +2,6 @@ use simplemad;
 use audio::MusicStream;
 
 use std::io;
-use std::fs::File;
 use std::time::Duration;
 use std::vec;
 use std::iter::Peekable;
