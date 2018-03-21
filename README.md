@@ -3,6 +3,8 @@ remani [![Build status](https://travis-ci.org/0e4ef622/remani.svg?branch=master)
 
 Remake of o2jam/osumania written in Rust.
 
+Basically a 7k VSRG that aims to support multiple skin formats (for gameplay at least) and multiple chart formats.
+
 Libraries used
 ==============
 * [Piston](https://github.com/PistonDevelopers/piston) [MIT]
