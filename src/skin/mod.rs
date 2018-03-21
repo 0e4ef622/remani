@@ -3,6 +3,7 @@
 use opengl_graphics::GlGraphics;
 use graphics::draw_state::DrawState;
 use graphics::math;
+use image;
 
 use std::io;
 use std::error;
@@ -20,6 +21,7 @@ pub enum ParseError {
     Parse(String, Option<Box<error::Error>>),
     UnknownFormat,
     InvalidFile,
+    ImageError(String, image::ImageError),
 }
 
 impl fmt::Display for ParseError {
@@ -30,6 +32,7 @@ impl fmt::Display for ParseError {
             ParseError::Parse(ref s, None) => write!(f, "{}", s),
             ParseError::UnknownFormat => write!(f, "Unknown skin format"),
             ParseError::InvalidFile => write!(f, "Invalid skin"),
+            ParseError::ImageError(ref s, _) => write!(f, "Error reading image {}", s),
         }
     }
 }
@@ -47,6 +50,7 @@ impl error::Error for ParseError {
             ParseError::Parse(_, _) => "Parse error",
             ParseError::UnknownFormat => "Unknown skin format",
             ParseError::InvalidFile => "Invalid skin",
+            ParseError::ImageError(_, _) => "Error reading image",
         }
     }
     fn cause(&self) -> Option<&error::Error> {
@@ -54,6 +58,7 @@ impl error::Error for ParseError {
         match *self {
             ParseError::Io(_, ref e) => Some(e),
             ParseError::Parse(_, Some(ref e)) => Some(e.deref()),
+            ParseError::ImageError(_, ref e) => Some(e),
             _ => Some(self),
         }
     }
@@ -63,7 +68,8 @@ impl error::Error for ParseError {
 ///
 /// For now, the osu parser is assumed.
 pub fn from_path<P: AsRef<path::Path>>(path: P) -> Result<Box<Skin>, ParseError> {
-    Ok(osu_skin::from_path(path.as_ref())?)
+    // TODO get default osu skin path from config
+    osu_skin::from_path(path.as_ref(), "default_osu_skin".as_ref())
 }
 
 /// A skin. Should be returned by skin parsers.

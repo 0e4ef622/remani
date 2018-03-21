@@ -13,19 +13,23 @@ use std::ops::Deref;
 
 use std::io::BufReader;
 use std::io::BufRead;
-use std::path;
 use std::fs::File;
 use std::rc::Rc;
+use std::collections::HashMap;
+use std::path;
+use std::error;
+use std::fmt;
 
 use skin::{ Skin, ParseError };
 
 /// Holds skin data, such as note images and what not.
 struct OsuSkin {
-    miss: Vec<Texture>,
-    hit50: Vec<Texture>,
-    hit100: Vec<Texture>,
-    hit300: Vec<Texture>,
-    hit300g: Vec<Texture>,
+    miss: Rc<Vec<Rc<Texture>>>,
+    hit50: Rc<Vec<Rc<Texture>>>,
+    hit100: Rc<Vec<Rc<Texture>>>,
+    hit200: Rc<Vec<Rc<Texture>>>,
+    hit300: Rc<Vec<Rc<Texture>>>,
+    hit300g: Rc<Vec<Rc<Texture>>>,
 
     /// The images virtual keys under the judgement line.
     keys: [Rc<Texture>; 7],
@@ -35,16 +39,16 @@ struct OsuSkin {
     keys_d: [Rc<Texture>; 7],
 
     /// The notes' images.
-    notes: [Vec<Rc<Texture>>; 7],
+    notes: [Rc<Vec<Rc<Texture>>>; 7],
 
     /// The long notes' ends' images.
-    long_notes_head: [Vec<Rc<Texture>>; 7],
+    long_notes_head: [Rc<Vec<Rc<Texture>>>; 7],
 
     /// The long notes' bodies' images.
-    long_notes_body: [Vec<Rc<Texture>>; 7],
+    long_notes_body: [Rc<Vec<Rc<Texture>>>; 7],
 
     /// The stage components.
-    stage_hint: Rc<Texture>,
+    stage_hint: Rc<Vec<Rc<Texture>>>,
     stage_left: Rc<Texture>,
     stage_right: Rc<Texture>,
 
@@ -80,7 +84,7 @@ impl Skin for OsuSkin {
 
         let column_width_sum = self.column_width.iter().sum::<u16>() as f64 * scale;
         let column_start = self.column_start as f64 * scale;
-        let stage_hint_height = self.stage_hint.get_height() as f64;
+        let stage_hint_height = self.stage_hint[0].get_height() as f64;
         let stage_l_scaled_width = stage_l_ar * stage_h;
         let stage_r_scaled_width = stage_r_ar * stage_h;
 
@@ -88,7 +92,7 @@ impl Skin for OsuSkin {
         let stage_r_img = Image::new().rect([column_start + column_width_sum, 0.0, stage_r_scaled_width, stage_h]);
         let stage_hint_img = Image::new().rect([column_start, self.hit_position as f64 * scale - stage_hint_height / 2.0, column_width_sum, stage_hint_height]);
 
-        stage_hint_img.draw(self.stage_hint.deref(), draw_state, transform, gl);
+        stage_hint_img.draw(self.stage_hint[0].deref(), draw_state, transform, gl);
         stage_l_img.draw(self.stage_left.deref(), draw_state, transform, gl);
         stage_r_img.draw(self.stage_right.deref(), draw_state, transform, gl);
     }
@@ -110,6 +114,36 @@ impl Skin for OsuSkin {
         }
     }
 
+}
+
+#[derive(Debug)]
+enum OsuSkinParseError {
+    NoDefaultTexture(String),
+}
+
+impl fmt::Display for OsuSkinParseError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            OsuSkinParseError::NoDefaultTexture(ref s) => write!(f, "No default texture found for {}", s),
+        }
+    }
+}
+
+impl From<OsuSkinParseError> for ParseError {
+    fn from(e: OsuSkinParseError) -> ParseError {
+        ParseError::Parse(String::from("Error reading osu skin"), Some(Box::new(e)))
+    }
+}
+
+impl error::Error for OsuSkinParseError {
+    fn description(&self) -> &str {
+        match *self {
+            OsuSkinParseError::NoDefaultTexture(_) => "No default texture found",
+        }
+    }
+    fn cause(&self) -> Option<&error::Error> {
+        Some(self)
+    }
 }
 
 // Work around https://github.com/PistonDevelopers/opengl_graphics/issues/264
@@ -136,83 +170,148 @@ fn image_reverse_srgb(mut img: image::RgbaImage) -> image::RgbaImage {
     img
 }
 
-fn texture_from_path<T: AsRef<path::Path>>(path: T, texture_settings: &TextureSettings) -> Texture {
-    Texture::from_image(
-        &image_reverse_srgb(image::open(path).expect("Could not load image").to_rgba()),
-        texture_settings)
+fn texture_from_path<T: AsRef<path::Path>>(path: T, texture_settings: &TextureSettings) -> Result<Texture, ParseError> {
+    let image = match image::open(&path) {
+        Ok(t) => t,
+        Err(e) => return Err(ParseError::ImageError(path.as_ref().to_string_lossy().into_owned(), e)),
+    };
+    Ok(Texture::from_image(&image_reverse_srgb(image.to_rgba()), texture_settings))
 }
 
-pub fn from_path(dir: &path::Path) -> Result<Box<Skin>, ParseError> {
+/// Load an animatable skin element's textures
+fn load_texture_anim(cache: &mut HashMap<String, Rc<Vec<Rc<Texture>>>>,
+                dir: &path::Path,
+                default_dir: &path::Path,
+                names: &(&'static str, String),
+                texture_settings: &TextureSettings) -> Result<Rc<Vec<Rc<Texture>>>, ParseError> {
+
+    if cache.contains_key(&names.1) {
+        return Ok(Rc::clone(cache.get(&names.1).unwrap()));
+    } else if cache.contains_key(names.0) {
+        return Ok(Rc::clone(cache.get(names.0).unwrap()));
+    }
+
+    let mut textures = Vec::new();
+    let mut path;
+
+    macro_rules! repetitive_code {
+        ($(($dir:ident, $name:expr)),*) => {$(
+            path = $dir.join($name + ".png");
+            if path.exists() {
+                // help
+                let texture = Rc::new(texture_from_path(&path, texture_settings)?);
+                let anim = Rc::new(vec![texture]);
+                cache.insert($name, Rc::clone(&anim));
+                return Ok(anim);
+            }
+
+            path = $dir.join($name + "-0.png");
+            if path.exists() {
+                textures.push(Rc::new(texture_from_path(&path, texture_settings)?));
+                let mut n = 1;
+                loop {
+                    path = $dir.join(format!("{}-{}.png", $name, n));
+                    if !path.exists() { break; }
+                    textures.push(Rc::new(texture_from_path(&path, texture_settings)?));
+                    n += 1;
+                }
+                let anim = Rc::new(textures);
+                cache.insert($name, Rc::clone(&anim));
+                return Ok(anim);
+            }
+        )*}
+    }
+
+    repetitive_code!((dir, names.1.clone()), (default_dir, names.0.to_owned()));
+
+    Err(OsuSkinParseError::NoDefaultTexture(String::from(names.0)).into())
+}
+
+/// Load a skin element's texture
+fn load_texture(cache: &mut HashMap<String, Rc<Vec<Rc<Texture>>>>,
+                dir: &path::Path,
+                default_dir: &path::Path,
+                names: &(&'static str, String),
+                texture_settings: &TextureSettings) -> Result<Rc<Texture>, ParseError> {
+
+    // rust devs pls fix borrow checker
+    if cache.contains_key(names.0) {
+        return Ok(Rc::clone(&cache.get(names.0).unwrap()[0]));
+    }
+
+    if cache.contains_key(&names.1) {
+        return Ok(Rc::clone(&cache.get(&names.1).unwrap()[0]));
+    }
+
+    macro_rules! repetitive_code {
+        ($(($dir:ident, $name:expr)),*) => {$(
+            let path = $dir.join($name + ".png");
+            if path.exists() {
+                let texture = texture_from_path(path, texture_settings)?;
+                let rc = Rc::new(texture);
+                cache.insert($name, Rc::new(vec![Rc::clone(&rc)]));
+                return Ok(rc);
+            }
+        )*}
+    }
+
+    repetitive_code!((dir, names.1.clone()), (default_dir, names.0.to_owned()));
+
+    Err(OsuSkinParseError::NoDefaultTexture(String::from(names.0)).into())
+}
+
+pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<Skin>, ParseError> {
     let config_path = dir.join(path::Path::new("skin.ini"));
 
     let texture_settings = TextureSettings::new();
 
-    // test
-    let miss = vec![texture_from_path(dir.join("mania-hit0.png"), &texture_settings)];
-    let hit50 = vec![texture_from_path(dir.join("mania-hit50.png"), &texture_settings)];
-    let hit100 = vec![texture_from_path(dir.join("mania-hit100.png"), &texture_settings)];
-    let hit300 = vec![texture_from_path(dir.join("mania-hit300.png"), &texture_settings)];
-    let hit300g = vec![texture_from_path(dir.join("mania-hit300g-0.png"), &texture_settings)];
+    macro_rules! double {
+        ($e:expr) => (($e, String::from($e)))
+    }
 
-    let key1 = Rc::new(texture_from_path(dir.join("mania-key1.png"), &texture_settings));
-    let key2 = Rc::new(texture_from_path(dir.join("mania-key2.png"), &texture_settings));
-    let key3 = Rc::new(texture_from_path(dir.join("mania-keyS.png"), &texture_settings));
-    let keys = [key1.clone(),
-                key2.clone(),
-                key1.clone(),
-                key3.clone(),
-                key1.clone(),
-                key2.clone(),
-                key1.clone()];
+    // put things into the 1213121 pattern
+    macro_rules! pat {
+        ($a:expr, $b:expr, $c:expr) => [[$a, $b, $a, $c, $a, $b, $a]]
+    }
 
-    let key1_d = Rc::new(texture_from_path(dir.join("mania-key1D.png"), &texture_settings));
-    let key2_d = Rc::new(texture_from_path(dir.join("mania-key2D.png"), &texture_settings));
-    let key3_d = Rc::new(texture_from_path(dir.join("mania-keySD.png"), &texture_settings));
-    let keys_d = [key1_d.clone(),
-                  key2_d.clone(),
-                  key1_d.clone(),
-                  key3_d.clone(),
-                  key1_d.clone(),
-                  key2_d.clone(),
-                  key1_d.clone()];
+    // (default image name, skin image name)
+    // the skin filename might get changed by the skin.ini, which is parsed later
+    let mut miss_name = double!("mania-hit0");
+    let mut hit50_name = double!("mania-hit50");
+    let mut hit100_name = double!("mania-hit100");
+    let mut hit200_name = double!("mania-hit200");
+    let mut hit300_name = double!("mania-hit300");
+    let mut hit300g_name = double!("mania-hit300g");
 
-    let note1 = Rc::new(texture_from_path(dir.join("mania-note1.png"), &texture_settings));
-    let note2 = Rc::new(texture_from_path(dir.join("mania-note2.png"), &texture_settings));
-    let note3 = Rc::new(texture_from_path(dir.join("mania-noteS.png"), &texture_settings));
-    let notes = [vec![note1.clone()],
-                 vec![note2.clone()],
-                 vec![note1.clone()],
-                 vec![note3.clone()],
-                 vec![note1.clone()],
-                 vec![note2.clone()],
-                 vec![note1.clone()]];
+    let mut keys_name = pat![double!("mania-key1"),
+                             double!("mania-key2"),
+                             double!("mania-keyS")];
 
-    let ln1_head = Rc::new(texture_from_path(dir.join("mania-note1H.png"), &texture_settings));
-    let ln2_head = Rc::new(texture_from_path(dir.join("mania-note2H.png"), &texture_settings));
-    let ln3_head = Rc::new(texture_from_path(dir.join("mania-noteSH.png"), &texture_settings));
-    let long_notes_head = [vec![ln1_head.clone()],
-                           vec![ln2_head.clone()],
-                           vec![ln1_head.clone()],
-                           vec![ln3_head.clone()],
-                           vec![ln1_head.clone()],
-                           vec![ln2_head.clone()],
-                           vec![ln1_head.clone()]];
+    let mut keys_d_name = pat![double!("mania-key1D"),
+                               double!("mania-key2D"),
+                               double!("mania-keySD")];
 
-    let ln1_body = Rc::new(texture_from_path(dir.join("mania-note1L-0.png"), &texture_settings));
-    let ln2_body = Rc::new(texture_from_path(dir.join("mania-note2L-0.png"), &texture_settings));
-    let ln3_body = Rc::new(texture_from_path(dir.join("mania-noteSL-0.png"), &texture_settings));
-    let long_notes_body = [vec![ln1_body.clone()],
-                           vec![ln2_body.clone()],
-                           vec![ln1_body.clone()],
-                           vec![ln3_body.clone()],
-                           vec![ln1_body.clone()],
-                           vec![ln2_body.clone()],
-                           vec![ln1_body.clone()]];
+    let mut notes_name = pat![double!("mania-note1"),
+                              double!("mania-note2"),
+                              double!("mania-noteS")];
 
-    let stage_hint = Rc::new(texture_from_path(dir.join("mania-stage-hint.png"), &texture_settings));
-    let stage_left = Rc::new(texture_from_path(dir.join("mania-stage-left.png"), &texture_settings));
-    let stage_right = Rc::new(texture_from_path(dir.join("mania-stage-right.png"), &texture_settings));
-    // end test
+    // lns is plural of ln (long note)
+    let mut lns_head_name = pat![double!("mania-note1H"),
+                                 double!("mania-note2H"),
+                                 double!("mania-noteSH")];
+
+    let mut lns_body_name = pat![double!("mania-note1L"),
+                                 double!("mania-note2L"),
+                                 double!("mania-noteSL")];
+
+    let mut lns_tail_name = pat![double!("mania-note1T"),
+                                 double!("mania-note2T"),
+                                 double!("mania-noteST")];
+
+    // TODO stage_bottom
+    let mut stage_hint_name = double!("mania-stage-hint");
+    let mut stage_left_name = double!("mania-stage-left");
+    let mut stage_right_name = double!("mania-stage-right");
 
     // default values
     let mut column_start = 136;
@@ -220,13 +319,14 @@ pub fn from_path(dir: &path::Path) -> Result<Box<Skin>, ParseError> {
     let mut column_line_width = vec!(2, 2, 2, 2, 2, 2, 2, 2);
     let mut hit_position = 402;
 
+    // parse skin.ini
     if config_path.exists() {
         let config_file = File::open(config_path).unwrap();
         let config_reader = BufReader::new(&config_file);
         let mut section = String::from("General");
         let mut keys: u8 = 0;
         for l in config_reader.lines() {
-            let line = l.unwrap().to_string().clone().to_owned().trim_matches(' ').to_owned();
+            let line = l.unwrap().to_string().clone().to_owned().trim().to_owned();
             if line.starts_with("[") && line.ends_with("]") {
                 section = line.clone();
                 section = section[1..section.len()-1].to_string();
@@ -235,13 +335,26 @@ pub fn from_path(dir: &path::Path) -> Result<Box<Skin>, ParseError> {
             if line.starts_with("//") || line == "" {
                 continue;
             }
-            let line_parts: Vec<&str> = line.splitn(2, ":").collect();
-            let key = line_parts[0].trim_matches(' ');
-            let value = line_parts[1].trim_matches(' ');
+
+            let mut line_parts = line.splitn(2, ":");
+
+            let key = if let Some(k) = line_parts.next() { k.trim() } else { continue; };
+            let value = if let Some(v) = line_parts.next() { v.trim() } else { continue; };
             match key {
                 "Keys" => keys = value.parse().unwrap(),
                 _ => {
                     if keys == 7 {
+                        // fancy macros
+                        macro_rules! enumerate_match {
+                            ($key:ident, $($prefix:expr, $suffix:expr => $varname:ident = $value:expr, ($baseidx:expr, [ $($idx:expr)* ]),)*) => {
+                                match $key {
+                                    $($(
+                                    concat!(concat!($prefix, stringify!($idx)), $suffix) => $varname[$idx - $baseidx].1 = $value,
+                                    )*)*
+                                    _ => (),
+                                }
+                            }
+                        }
                         match key {
                             "ColumnStart" => column_start = value.parse().unwrap(),
                             "HitPosition" => hit_position = value.parse().unwrap(),
@@ -257,13 +370,78 @@ pub fn from_path(dir: &path::Path) -> Result<Box<Skin>, ParseError> {
                                     column_line_width[i] = number_string.parse().unwrap();
                                 }
                             },
-                            _ => (),
+                            "Hit0" => miss_name.1 = value.to_owned(),
+                            "Hit50" => hit50_name.1 = value.to_owned(),
+                            "Hit100" => hit100_name.1 = value.to_owned(),
+                            "Hit200" => hit200_name.1 = value.to_owned(),
+                            "Hit300" => hit300_name.1 = value.to_owned(),
+                            "Hit300g" => hit300g_name.1 = value.to_owned(),
+                            "StageHint" => stage_hint_name.1 = value.to_owned(),
+                            "StageLeft" => stage_left_name.1 = value.to_owned(),
+                            "StageRight" => stage_right_name.1 = value.to_owned(),
+                            k => enumerate_match! { k,
+                                "KeyImage", "" => keys_name = value.to_owned(), (0, [0 1 2 3 4 5 6]),
+                                "KeyImage", "D" => keys_d_name = value.to_owned(), (0, [0 1 2 3 4 5 6]),
+                                "NoteImage", "" => notes_name = value.to_owned(), (0, [0 1 2 3 4 5 6]),
+                                "NoteImage", "H" => lns_head_name = value.to_owned(), (0, [0 1 2 3 4 5 6]),
+                                "NoteImage", "L" => lns_body_name = value.to_owned(), (0, [0 1 2 3 4 5 6]),
+                                "NoteImage", "T" => lns_tail_name = value.to_owned(), (0, [0 1 2 3 4 5 6]),
+                            },
                         }
                     }
                 },
             }
         }
     }
+
+    let mut cache = HashMap::new();
+
+    // TODO streamline this an bit more ;-;
+    let miss = load_texture_anim(&mut cache, dir, default_dir, &miss_name, &texture_settings)?;
+    let hit50 = load_texture_anim(&mut cache, dir, default_dir, &hit50_name, &texture_settings)?;
+    let hit100 = load_texture_anim(&mut cache, dir, default_dir, &hit100_name, &texture_settings)?;
+    let hit200 = load_texture_anim(&mut cache, dir, default_dir, &hit200_name, &texture_settings)?;
+    let hit300 = load_texture_anim(&mut cache, dir, default_dir, &hit300_name, &texture_settings)?;
+    let hit300g = load_texture_anim(&mut cache, dir, default_dir, &hit300g_name, &texture_settings)?;
+    let keys = [load_texture(&mut cache, dir, default_dir, &keys_name[0], &texture_settings)?,
+                load_texture(&mut cache, dir, default_dir, &keys_name[1], &texture_settings)?,
+                load_texture(&mut cache, dir, default_dir, &keys_name[2], &texture_settings)?,
+                load_texture(&mut cache, dir, default_dir, &keys_name[3], &texture_settings)?,
+                load_texture(&mut cache, dir, default_dir, &keys_name[4], &texture_settings)?,
+                load_texture(&mut cache, dir, default_dir, &keys_name[5], &texture_settings)?,
+                load_texture(&mut cache, dir, default_dir, &keys_name[6], &texture_settings)?];
+    let keys_d = [load_texture(&mut cache, dir, default_dir, &keys_d_name[0], &texture_settings)?,
+                  load_texture(&mut cache, dir, default_dir, &keys_d_name[1], &texture_settings)?,
+                  load_texture(&mut cache, dir, default_dir, &keys_d_name[2], &texture_settings)?,
+                  load_texture(&mut cache, dir, default_dir, &keys_d_name[3], &texture_settings)?,
+                  load_texture(&mut cache, dir, default_dir, &keys_d_name[4], &texture_settings)?,
+                  load_texture(&mut cache, dir, default_dir, &keys_d_name[5], &texture_settings)?,
+                  load_texture(&mut cache, dir, default_dir, &keys_d_name[6], &texture_settings)?];
+    let notes = [load_texture_anim(&mut cache, dir, default_dir, &notes_name[0], &texture_settings)?,
+                 load_texture_anim(&mut cache, dir, default_dir, &notes_name[1], &texture_settings)?,
+                 load_texture_anim(&mut cache, dir, default_dir, &notes_name[2], &texture_settings)?,
+                 load_texture_anim(&mut cache, dir, default_dir, &notes_name[3], &texture_settings)?,
+                 load_texture_anim(&mut cache, dir, default_dir, &notes_name[4], &texture_settings)?,
+                 load_texture_anim(&mut cache, dir, default_dir, &notes_name[5], &texture_settings)?,
+                 load_texture_anim(&mut cache, dir, default_dir, &notes_name[6], &texture_settings)?];
+    let long_notes_head = [load_texture_anim(&mut cache, dir, default_dir, &lns_head_name[0], &texture_settings)?,
+                           load_texture_anim(&mut cache, dir, default_dir, &lns_head_name[1], &texture_settings)?,
+                           load_texture_anim(&mut cache, dir, default_dir, &lns_head_name[2], &texture_settings)?,
+                           load_texture_anim(&mut cache, dir, default_dir, &lns_head_name[3], &texture_settings)?,
+                           load_texture_anim(&mut cache, dir, default_dir, &lns_head_name[4], &texture_settings)?,
+                           load_texture_anim(&mut cache, dir, default_dir, &lns_head_name[5], &texture_settings)?,
+                           load_texture_anim(&mut cache, dir, default_dir, &lns_head_name[6], &texture_settings)?];
+    let long_notes_body = [load_texture_anim(&mut cache, dir, default_dir, &lns_body_name[0], &texture_settings)?,
+                           load_texture_anim(&mut cache, dir, default_dir, &lns_body_name[1], &texture_settings)?,
+                           load_texture_anim(&mut cache, dir, default_dir, &lns_body_name[2], &texture_settings)?,
+                           load_texture_anim(&mut cache, dir, default_dir, &lns_body_name[3], &texture_settings)?,
+                           load_texture_anim(&mut cache, dir, default_dir, &lns_body_name[4], &texture_settings)?,
+                           load_texture_anim(&mut cache, dir, default_dir, &lns_body_name[5], &texture_settings)?,
+                           load_texture_anim(&mut cache, dir, default_dir, &lns_body_name[6], &texture_settings)?];
+    let stage_hint = load_texture_anim(&mut cache, dir, default_dir, &stage_hint_name, &texture_settings)?;
+    let stage_left = load_texture(&mut cache, dir, default_dir, &stage_left_name, &texture_settings)?;
+    let stage_right = load_texture(&mut cache, dir, default_dir, &stage_right_name, &texture_settings)?;
+
     let smallest_note_width;
     let smallest_note_height;
     {
@@ -276,6 +454,7 @@ pub fn from_path(dir: &path::Path) -> Result<Box<Skin>, ParseError> {
         miss,
         hit50,
         hit100,
+        hit200,
         hit300,
         hit300g,
         keys,
