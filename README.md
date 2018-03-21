@@ -14,3 +14,7 @@ Libraries used
 * [Image](https://github.com/PistonDevelopers/image) [MIT]
 * [CPAL](https://github.com/tomaka/cpal) [Apache 2.0]
 * [libmad](https://www.underbit.com/products/mad/) [GPLv2] through [simplemad](https://github.com/bendykst/simple-mad.rs) [MIT]
+
+Other resources used
+====================
+* [osu default skin](https://osu.ppy.sh/forum/t/129191)
