@@ -70,7 +70,7 @@ impl Skin for OsuSkin {
         let column_start = self.column_start as f64 * scale;
 
         let note = self.notes[column_index][0].deref();
-        let note_img = Image::new().rect([column_start + self.column_width[0..column_index].iter().sum::<u16>() as f64 * scale, y_pos, self.column_width[column_index] as f64 * scale, self.width_for_note_height_scale * scale]);
+        let note_img = Image::new().rect([column_start + self.column_width[0..column_index].iter().sum::<u16>() as f64 * scale, self.hit_position as f64 - y_pos - self.width_for_note_height_scale, self.column_width[column_index] as f64 * scale, self.width_for_note_height_scale * scale]);
         note_img.draw(note, draw_state, transform, gl);
     }
     fn draw_track(&self, draw_state: &DrawState, transform: math::Matrix2d, gl: &mut GlGraphics) {
