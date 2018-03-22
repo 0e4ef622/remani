@@ -17,4 +17,4 @@ Libraries used
 
 Other resources used
 ====================
-* [osu default skin](https://osu.ppy.sh/forum/t/129191)
+* [osu!mania default skin](https://osu.ppy.sh/forum/t/129191)
