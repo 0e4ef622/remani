@@ -51,6 +51,7 @@ struct OsuSkin {
     stage_hint: Rc<Vec<Rc<Texture>>>,
     stage_left: Rc<Texture>,
     stage_right: Rc<Texture>,
+    stage_bottom: Option<Rc<Texture>>,
 
     /// Various information related to how to draw components.
     column_start: u16,
@@ -84,17 +85,24 @@ impl Skin for OsuSkin {
 
         let column_width_sum = self.column_width.iter().sum::<u16>() as f64 * scale;
         let column_start = self.column_start as f64 * scale;
-        let stage_hint_height = self.stage_hint[0].get_height() as f64;
-        let stage_l_scaled_width = stage_l_ar * stage_h;
-        let stage_r_scaled_width = stage_r_ar * stage_h;
+        let stage_hint_height = self.stage_hint[0].get_height() as f64 * scale;
+        let stage_l_width = stage_l_ar * stage_h;
+        let stage_r_width = stage_r_ar * stage_h;
 
-        let stage_l_img = Image::new().rect([column_start - stage_l_scaled_width , 0.0, stage_l_scaled_width, stage_h]);
-        let stage_r_img = Image::new().rect([column_start + column_width_sum, 0.0, stage_r_scaled_width, stage_h]);
+        let stage_l_img = Image::new().rect([column_start - stage_l_width , 0.0, stage_l_width, stage_h]);
+        let stage_r_img = Image::new().rect([column_start + column_width_sum, 0.0, stage_r_width, stage_h]);
         let stage_hint_img = Image::new().rect([column_start, self.hit_position as f64 * scale - stage_hint_height / 2.0, column_width_sum, stage_hint_height]);
 
         stage_hint_img.draw(self.stage_hint[0].deref(), draw_state, transform, gl);
         stage_l_img.draw(self.stage_left.deref(), draw_state, transform, gl);
         stage_r_img.draw(self.stage_right.deref(), draw_state, transform, gl);
+
+        if let Some(ref stage_bottom) = self.stage_bottom {
+            let stage_b_width = stage_bottom.get_width() as f64 * scale;
+            let stage_b_height = stage_bottom.get_height() as f64 * scale;
+            let stage_b_img = Image::new().rect([column_start + column_width_sum / 2.0 - stage_b_width / 2.0, stage_h - stage_b_height, stage_b_width, stage_b_height]);
+            stage_b_img.draw(stage_bottom.deref(), draw_state, transform, gl);
+        }
     }
     fn draw_keys(&self, draw_state: &DrawState, transform: math::Matrix2d, gl: &mut GlGraphics, pressed: &[bool]) {
 
@@ -312,6 +320,7 @@ pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<Skin>
     let mut stage_hint_name = double!("mania-stage-hint");
     let mut stage_left_name = double!("mania-stage-left");
     let mut stage_right_name = double!("mania-stage-right");
+    let mut stage_bottom_name = double!("mania-stage-bottom");
 
     // default values
     let mut column_start = 136;
@@ -379,6 +388,7 @@ pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<Skin>
                             "StageHint" => stage_hint_name.1 = value.to_owned(),
                             "StageLeft" => stage_left_name.1 = value.to_owned(),
                             "StageRight" => stage_right_name.1 = value.to_owned(),
+                            "StageBottom" => stage_bottom_name.1 = value.to_owned(),
                             k => enumerate_match! { k,
                                 "KeyImage", "" => keys_name = value.to_owned(), (0, [0 1 2 3 4 5 6]),
                                 "KeyImage", "D" => keys_d_name = value.to_owned(), (0, [0 1 2 3 4 5 6]),
@@ -441,6 +451,7 @@ pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<Skin>
     let stage_hint = load_texture_anim(&mut cache, dir, default_dir, &stage_hint_name, &texture_settings)?;
     let stage_left = load_texture(&mut cache, dir, default_dir, &stage_left_name, &texture_settings)?;
     let stage_right = load_texture(&mut cache, dir, default_dir, &stage_right_name, &texture_settings)?;
+    let stage_bottom = load_texture(&mut cache, dir, default_dir, &stage_bottom_name, &texture_settings).ok();
 
     let smallest_note_width;
     let smallest_note_height;
@@ -465,6 +476,7 @@ pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<Skin>
         stage_hint,
         stage_left,
         stage_right,
+        stage_bottom,
         column_start,
         column_width,
         column_line_width,
