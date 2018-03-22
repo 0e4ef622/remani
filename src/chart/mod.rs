@@ -20,7 +20,7 @@ pub struct Note {
     pub time: f64,
 
     /// The column the note is on, with 0 being the first column.
-    pub column: u8,
+    pub column: usize,
 
     /// Where the note ends, in seconds. None means it's a regular note, Some means it's a long note.
     pub end_time: Option<f64>,

@@ -199,7 +199,7 @@ fn parse_hit_object(line: &str, chart: &mut IncompleteChart) -> Result<(), Parse
                 let mut c = (n / CW).floor();
                 if c < 0.0 { c = 0.0; }
                 else if c > 7.0 { c = 7.0; }
-                hit_obj.column = c as u8;
+                hit_obj.column = c as usize;
             }
             // y, irrelevant
             1 => (),
@@ -314,7 +314,7 @@ struct HitObject {
 
     /// Where the note begins, in seconds.
     time: f64,
-    column: u8,
+    column: usize,
     end_time: Option<f64>,
     sounds: Vec<HitSound>,
 }
