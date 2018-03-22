@@ -9,6 +9,8 @@ use std::iter;
 use std::iter::Peekable;
 use std::sync::Arc;
 use std::thread;
+use std::fmt;
+use std::error;
 
 //use sample;
 use cpal;
@@ -60,16 +62,19 @@ impl<T: Copy> Iterator for ArcIter<T> {
     }
 }
 
-/// A handle to the audio thread that lets you send music and effects to play
+/// A handle to the audio thread that lets you send music and effects to play.
 pub struct Audio<S: cpal::Sample> {
     music_sender: mpsc::SyncSender<MusicStream<S>>,
     effect_sender: mpsc::SyncSender<ArcIter<S>>,
 
-    /// Ask the audio thread to start streaming the playback time to playhead_rcv
-    //request_playhead: mpsc::SyncSender<bool>,
+    // TODO
+    // /// Ask the audio thread to start streaming the playback time to playhead_rcv. (Not implemented
+    // /// yet)
+    // request_playhead: mpsc::SyncSender<bool>,
 
-    /// Gives the time of the samples that were just sent.
-    //playhead_rcv: mpsc::Receiver<f64>,
+    // TODO
+    // /// Gives the time of the samples that were just sent. (Not implemented yet)
+    // playhead_rcv: mpsc::Receiver<f64>,
 
     format: cpal::Format,
 }
@@ -105,6 +110,33 @@ impl From<cpal::DefaultFormatError> for AudioThreadError {
 impl From<cpal::CreationError> for AudioThreadError {
     fn from(e: cpal::CreationError) -> Self {
         AudioThreadError::OutputStreamCreationError(e)
+    }
+}
+
+impl fmt::Display for AudioThreadError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            AudioThreadError::NoOutputDevice => write!(f, "No output device found"),
+            AudioThreadError::DefaultFormatError(ref e) => write!(f, "Error requesting stream format"),
+            AudioThreadError::OutputStreamCreationError(ref e) => write!(f, "Error building audio stream: {}", e),
+        }
+    }
+}
+
+impl error::Error for AudioThreadError {
+    fn cause(&self) -> Option<&error::Error> {
+        match *self {
+            AudioThreadError::NoOutputDevice => None,
+            AudioThreadError::DefaultFormatError(ref e) => None,
+            AudioThreadError::OutputStreamCreationError(ref e) => Some(e),
+        }
+    }
+    fn description(&self) -> &str {
+        match *self {
+            AudioThreadError::NoOutputDevice => "No output device found",
+            AudioThreadError::DefaultFormatError(_) => "Error requesting stream format",
+            AudioThreadError::OutputStreamCreationError(_) => "Error building audio stream",
+        }
     }
 }
 

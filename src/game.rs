@@ -25,23 +25,12 @@ pub fn start(config: Config) {
                              .build()
                              .expect("Could not create window");
 
-    let dpifactor = window.window.hidpi_factor();
-    //println!("hidpi_factor: {}", dpifactor);
-
-    /* test
-    let _ = match Chart::from_path("test.osu") {
-        Ok(x) => {
-            println!("Chart creator:   {}", x.creator.as_ref().unwrap());
-            println!("Song artist:     {}", x.artist.as_ref().unwrap());
-            println!("Song name:       {}", x.song_name.as_ref().unwrap());
-            println!("Difficulty name: {}", x.difficulty_name);
-            println!("Timing points:   {}", x.timing_points.len());
-            println!("Notes:           {}", x.notes.len());
-            Some(x)
-        },
-        Err(e) => { println!("{}", e); None },
+    // test
+    let chart = match Chart::from_path("test.osu") {
+        Ok(x) => x,
+        Err(e) => { println!("{}", e); panic!(); },
     };
-    */
+
 
     let audio = audio::start_audio_thread().unwrap();
 
@@ -52,7 +41,7 @@ pub fn start(config: Config) {
     let the_skin = skin::from_path(&config.skin_path).unwrap();
 
     let mut model = Model::new();
-    let mut view = View::new(GlGraphics::new(opengl), the_skin);
+    let mut view = View::new(GlGraphics::new(opengl), the_skin, chart);
 
     let mut events = Events::new(EventSettings::new());
     while let Some(e) = events.next(&mut window) {
