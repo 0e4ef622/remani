@@ -51,7 +51,7 @@ struct OsuSkin {
     stage_hint: Rc<Vec<Rc<Texture>>>,
     stage_left: Rc<Texture>,
     stage_right: Rc<Texture>,
-    stage_bottom: Option<Rc<Texture>>,
+    stage_bottom: Option<Rc<Vec<Rc<Texture>>>>,
 
     /// Various information related to how to draw components.
     column_start: u16,
@@ -97,7 +97,8 @@ impl Skin for OsuSkin {
         stage_l_img.draw(self.stage_left.deref(), draw_state, transform, gl);
         stage_r_img.draw(self.stage_right.deref(), draw_state, transform, gl);
 
-        if let Some(ref stage_bottom) = self.stage_bottom {
+        if let Some(ref v) = self.stage_bottom {
+            let stage_bottom = &v[0];
             let stage_b_width = stage_bottom.get_width() as f64 * scale;
             let stage_b_height = stage_bottom.get_height() as f64 * scale;
             let stage_b_img = Image::new().rect([column_start + column_width_sum / 2.0 - stage_b_width / 2.0, stage_h - stage_b_height, stage_b_width, stage_b_height]);
@@ -193,17 +194,16 @@ fn load_texture_anim(cache: &mut HashMap<String, Rc<Vec<Rc<Texture>>>>,
                 names: &(&'static str, String),
                 texture_settings: &TextureSettings) -> Result<Rc<Vec<Rc<Texture>>>, ParseError> {
 
-    if cache.contains_key(&names.1) {
-        return Ok(Rc::clone(cache.get(&names.1).unwrap()));
-    } else if cache.contains_key(names.0) {
-        return Ok(Rc::clone(cache.get(names.0).unwrap()));
-    }
-
     let mut textures = Vec::new();
     let mut path;
 
     macro_rules! repetitive_code {
         ($(($dir:ident, $name:expr)),*) => {$(
+
+            if let Some(texture) = cache.get(&$name) {
+                return Ok(Rc::clone(texture));
+            }
+
             path = $dir.join($name + ".png");
             if path.exists() {
                 // help
@@ -242,17 +242,13 @@ fn load_texture(cache: &mut HashMap<String, Rc<Vec<Rc<Texture>>>>,
                 names: &(&'static str, String),
                 texture_settings: &TextureSettings) -> Result<Rc<Texture>, ParseError> {
 
-    // rust devs pls fix borrow checker
-    if cache.contains_key(names.0) {
-        return Ok(Rc::clone(&cache.get(names.0).unwrap()[0]));
-    }
-
-    if cache.contains_key(&names.1) {
-        return Ok(Rc::clone(&cache.get(&names.1).unwrap()[0]));
-    }
-
     macro_rules! repetitive_code {
         ($(($dir:ident, $name:expr)),*) => {$(
+
+            if let Some(texture) = cache.get(&$name) {
+                return Ok(Rc::clone(&texture[0]));
+            }
+
             let path = $dir.join($name + ".png");
             if path.exists() {
                 let texture = texture_from_path(path, texture_settings)?;
@@ -451,7 +447,7 @@ pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<Skin>
     let stage_hint = load_texture_anim(&mut cache, dir, default_dir, &stage_hint_name, &texture_settings)?;
     let stage_left = load_texture(&mut cache, dir, default_dir, &stage_left_name, &texture_settings)?;
     let stage_right = load_texture(&mut cache, dir, default_dir, &stage_right_name, &texture_settings)?;
-    let stage_bottom = load_texture(&mut cache, dir, default_dir, &stage_bottom_name, &texture_settings).ok();
+    let stage_bottom = load_texture_anim(&mut cache, dir, default_dir, &stage_bottom_name, &texture_settings).ok();
 
     let smallest_note_width;
     let smallest_note_height;
