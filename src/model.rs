@@ -14,7 +14,7 @@ impl Model {
     /// Create a model for the game controller
     pub fn new() -> Self {
         Self {
-            keys_down: [false, false, false, false, false, false, false]
+            keys_down: [false; 7]
         }
     }
 

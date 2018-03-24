@@ -12,11 +12,9 @@ use std::thread;
 use std::fmt;
 use std::error;
 
-//use sample;
 use cpal;
 use cpal::Sample;
 
-//pub type MusicStream<S: cpal::Sample> = Box<Iterator<Item = S> + Send>;
 pub type EffectStream<S: cpal::Sample> = Arc<Vec<S>>;
 
 /// A lazy iterator over audio samples
@@ -140,6 +138,8 @@ impl error::Error for AudioThreadError {
     }
 }
 
+/// Starts the audio thread and returns an object that can be used to communicate with the audio
+/// thread.
 pub fn start_audio_thread() -> Result<Audio<f32>, AudioThreadError> {
 
     let device = cpal::default_output_device().ok_or(AudioThreadError::NoOutputDevice)?;
