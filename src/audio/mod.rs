@@ -11,6 +11,7 @@ use std::sync::Arc;
 use std::thread;
 use std::fmt;
 use std::error;
+use std::time;
 
 use cpal;
 use cpal::Sample;
@@ -44,6 +45,9 @@ impl<T: Copy> ArcIter<T> {
             index: 0,
         }
     }
+    pub fn inner(self) -> Arc<Vec<T>> {
+        self.inner
+    }
 }
 
 impl<T: Copy> Iterator for ArcIter<T> {
@@ -65,28 +69,43 @@ pub struct Audio<S: cpal::Sample> {
     music_sender: mpsc::SyncSender<MusicStream<S>>,
     effect_sender: mpsc::SyncSender<ArcIter<S>>,
 
-    // TODO
-    // /// Ask the audio thread to start streaming the playback time to playhead_rcv. (Not implemented
-    // /// yet)
-    // request_playhead: mpsc::SyncSender<bool>,
+    /// Used by `request_playhead()` to ask the audio thread to send the playback time to playhead_rcv.
+    request_playhead_sender: mpsc::SyncSender<()>,
 
-    // TODO
-    // /// Gives the time of the samples that were just sent. (Not implemented yet)
-    // playhead_rcv: mpsc::Receiver<f64>,
+    /// Gives the time of the samples that were just sent. (See request_playhead)
+    playhead_rcv: mpsc::Receiver<(time::Instant, f64)>,
 
+    /// The format of the audio device being used
     format: cpal::Format,
 }
 
 impl<S: cpal::Sample> Audio<S> {
 
-    /// Start playing music
-    pub fn play_music(&self, music: MusicStream<S>) -> Result<(), mpsc::TrySendError<MusicStream<S>>> {
-        self.music_sender.try_send(music)
+    /// Start playing music, returning the passed in music stream if there was an error
+    pub fn play_music(&self, music: MusicStream<S>) -> Result<(), MusicStream<S>> {
+        self.music_sender.try_send(music).or_else(|e| match e {
+            mpsc::TrySendError::Full(m) => Err(m),
+            mpsc::TrySendError::Disconnected(m) => Err(m),
+        })
     }
 
-    /// Play a sound effect/hitsound
-    pub fn play_effect(&self, effect: EffectStream<S>) -> Result<(), mpsc::TrySendError<ArcIter<S>>> {
-        self.effect_sender.try_send(ArcIter::new(effect))
+    /// Play a sound effect/hitsound, returning the passed in effect stream if there was an error
+    pub fn play_effect(&self, effect: EffectStream<S>) -> Result<(), EffectStream<S>> {
+        self.effect_sender.try_send(ArcIter::new(effect)).or_else(|e| Err(match e {
+            mpsc::TrySendError::Full(m) => m,
+            mpsc::TrySendError::Disconnected(m) => m,
+        }.inner()))
+    }
+
+    /// Sends a request to the audio thread for the current playhead of the music.
+    pub fn request_playhead(&self) -> Result<(), mpsc::TrySendError<()>> {
+        self.request_playhead_sender.try_send(())
+    }
+
+    /// Get the audio thread's response to the request for the current playhead. Returns the time
+    /// that the playhead was sent, and the playhead in seconds.
+    pub fn get_playhead(&self) -> Option<(time::Instant, f64)> {
+        self.playhead_rcv.try_recv().ok()
     }
 
     pub fn format(&self) -> &cpal::Format { &self.format }
@@ -152,17 +171,24 @@ pub fn start_audio_thread() -> Result<Audio<f32>, AudioThreadError> {
     let stream_id = event_loop.build_output_stream(&device, &format)?;
     event_loop.play_stream(stream_id.clone());
 
-    let (music_tx, music_rx) = mpsc::sync_channel::<MusicStream<f32>>(2);
+    let (request_playhead_tx, request_playhead_rx) = mpsc::sync_channel(1);
+    let (send_playhead_tx, send_playhead_rx) = mpsc::sync_channel(4);
+    let (music_tx, music_rx) = mpsc::sync_channel(2);
     let (effect_tx, effect_rx) = mpsc::sync_channel::<ArcIter<f32>>(128);
 
+    let channel_count = format.channels as usize;
+    let sample_rate = format.sample_rate.0;
     thread::spawn(move || {
 
         let mut effects: VecDeque<Peekable<ArcIter<f32>>> = VecDeque::with_capacity(128);
         let mut music: MusicStream<f32> = MusicStream {
             samples: Box::new(iter::empty::<f32>()),
             channel_count: 0,
-            sample_rate: 44100,
+            sample_rate: sample_rate,
         };
+
+        // hopefully u64 is big enough and no one tries to play a 3 million year 192kHz audio file
+        let mut current_music_frame_index: u64 = 0;
 
         event_loop.run(move |_, data| {
             while let Ok(effect) = effect_rx.try_recv() {
@@ -171,6 +197,10 @@ pub fn start_audio_thread() -> Result<Audio<f32>, AudioThreadError> {
             }
             while let Ok(m) = music_rx.try_recv() {
                 music = m;
+                current_music_frame_index = 0;
+            }
+            if let Ok(_) = request_playhead_rx.try_recv() {
+                send_playhead_tx.try_send((time::Instant::now(), current_music_frame_index as f64 / sample_rate as f64));
             }
 
             let mut s = |effects: &mut VecDeque<Peekable<ArcIter<f32>>>| {
@@ -188,20 +218,29 @@ pub fn start_audio_thread() -> Result<Audio<f32>, AudioThreadError> {
 
             match data {
                 cpal::StreamData::Output { buffer: cpal::UnknownTypeOutputBuffer::U16(mut buffer) } => {
-                    for sample in buffer.iter_mut() {
-                        *sample = s(&mut effects).to_u16();
+                    for frame in buffer.chunks_mut(channel_count) {
+                        for sample in frame.iter_mut() {
+                            *sample = s(&mut effects).to_u16();
+                        }
+                        current_music_frame_index += 1;
                     }
                 },
 
                 cpal::StreamData::Output { buffer: cpal::UnknownTypeOutputBuffer::I16(mut buffer) } => {
-                    for sample in buffer.iter_mut() {
-                        *sample = s(&mut effects).to_i16();
+                    for frame in buffer.chunks_mut(channel_count) {
+                        for sample in frame.iter_mut() {
+                            *sample = s(&mut effects).to_i16();
+                        }
+                        current_music_frame_index += 1;
                     }
                 },
 
                 cpal::StreamData::Output { buffer: cpal::UnknownTypeOutputBuffer::F32(mut buffer) } => {
-                    for sample in buffer.iter_mut() {
-                        *sample = s(&mut effects).to_f32();;
+                    for frame in buffer.chunks_mut(channel_count) {
+                        for sample in frame.iter_mut() {
+                            *sample = s(&mut effects).to_f32();;
+                        }
+                        current_music_frame_index += 1;
                     }
                 },
                 _ => (),
@@ -219,6 +258,10 @@ pub fn start_audio_thread() -> Result<Audio<f32>, AudioThreadError> {
     Ok(Audio {
         effect_sender: effect_tx,
         music_sender: music_tx,
+
+        request_playhead_sender: request_playhead_tx,
+        playhead_rcv: send_playhead_rx,
+
         format: format,
     })
 }
