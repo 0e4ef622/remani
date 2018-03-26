@@ -27,7 +27,7 @@ pub fn get_config() -> Config {
             Keyboard(Key::K),
             Keyboard(Key::L),
         ],
-        skin_path: path::PathBuf::from("test_skin"),
+        skin_path: path::PathBuf::from("test/test_skin"),
         scroll_speed: 1,
     }
 }

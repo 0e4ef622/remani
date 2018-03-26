@@ -28,7 +28,7 @@ pub fn start(config: Config) {
                              .expect("Could not create window");
 
     // test
-    let chart = match Chart::from_path("test.osu") {
+    let chart = match Chart::from_path("test/test.osu") {
         Ok(x) => x,
         Err(e) => { println!("{}", e); panic!(); },
     };
@@ -36,7 +36,7 @@ pub fn start(config: Config) {
 
     let audio = audio::start_audio_thread().unwrap();
 
-    let uhhh = audio::music_from_path("test.mp3", audio.format());
+    let uhhh = audio::music_from_path("test/test.mp3", audio.format());
 
     audio.play_music(uhhh);
 
@@ -66,7 +66,6 @@ pub fn start(config: Config) {
             last_instant = time::Instant::now();
 
         }
-
 
         if let Some(u) = e.update_args() {
             println!("{}", time);
