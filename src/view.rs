@@ -44,7 +44,7 @@ impl View {
             skin.draw_track(draw_state, c.transform, gl, args.height as f64);
 
             for note in &chart.notes {
-                skin.draw_note(draw_state, c.transform, gl, args.height as f64, note.time * 200.0, note.column);
+                skin.draw_note(draw_state, c.transform, gl, args.height as f64, note.time, note.column);
             }
 
             skin.draw_keys(draw_state, c.transform, gl, args.height as f64, &model.keys_down);

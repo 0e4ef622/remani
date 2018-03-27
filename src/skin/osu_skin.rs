@@ -65,12 +65,15 @@ impl Skin for OsuSkin {
     fn draw_note(&self, draw_state: &DrawState, transform: math::Matrix2d, gl: &mut GlGraphics, stage_h: f64, pos: f64, column_index: usize) {
 
         let scale = stage_h / 480.0;
+        let hit_p = self.hit_position as f64 * scale;
 
-        // ar = aspect ratio
-        let column_start = self.column_start as f64 * scale;
+        let note_w = self.column_width[column_index] as f64 * scale;
+        let note_h = self.width_for_note_height_scale * scale;
+        let note_x = self.column_start as f64 * scale + self.column_width[0..column_index].iter().sum::<u16>() as f64 * scale;
+        let note_y = hit_p * (1.0 - pos) - note_h;
 
         let note = self.notes[column_index][0].deref();
-        let note_img = Image::new().rect([column_start + self.column_width[0..column_index].iter().sum::<u16>() as f64 * scale, self.hit_position as f64 - pos - self.width_for_note_height_scale, self.column_width[column_index] as f64 * scale, self.width_for_note_height_scale * scale]);
+        let note_img = Image::new().rect([note_x, note_y, note_w, note_h]);
         note_img.draw(note, draw_state, transform, gl);
     }
     fn draw_track(&self, draw_state: &DrawState, transform: math::Matrix2d, gl: &mut GlGraphics, stage_h: f64) {
