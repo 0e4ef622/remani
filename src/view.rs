@@ -37,17 +37,17 @@ impl View {
         let skin = &self.skin;
         let draw_state = &self.draw_state;
         let chart = &self.chart;
-        //println!("draw size: {:?}, window size: {:?}", args.viewport().draw_size, args.viewport().window_size);
+
         self.gl.draw(args.viewport(), |c, gl| {
             graphics::clear([0.0; 4], gl);
 
-            skin.draw_track(draw_state, c.transform, gl);
+            skin.draw_track(draw_state, c.transform, gl, args.height as f64);
 
             for note in &chart.notes {
-                skin.draw_note(draw_state, c.transform, gl, note.time * 200.0, note.column);
+                skin.draw_note(draw_state, c.transform, gl, args.height as f64, note.time * 200.0, note.column);
             }
 
-            skin.draw_keys(draw_state, c.transform, gl, &model.keys_down);
+            skin.draw_keys(draw_state, c.transform, gl, args.height as f64, &model.keys_down);
         });
 
     }
