@@ -74,6 +74,8 @@ pub fn from_path<P: AsRef<path::Path>>(path: P) -> Result<Box<Skin>, ParseError>
 
 /// A skin. Should be returned by skin parsers.
 pub trait Skin {
+    /// Draw a note on the track. `pos` represents the y coordinate of the note, where 0 is on the
+    /// judgement line, and 1 is at the top of the screen
     fn draw_note(&self, draw_state: &DrawState, transform: math::Matrix2d, gl: &mut GlGraphics, stage_height: f64, pos: f64, column_index: usize);
     fn draw_track(&self, draw_state: &DrawState, transform: math::Matrix2d, gl: &mut GlGraphics, stage_height: f64);
     fn draw_keys(&self, draw_state: &DrawState, transform: math::Matrix2d, gl: &mut GlGraphics, stage_height: f64, pressed: &[bool]);
