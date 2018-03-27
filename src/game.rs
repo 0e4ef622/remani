@@ -53,7 +53,6 @@ pub fn start(config: Config) {
 
         if let Some((instant, playhead)) = audio.get_playhead() {
 
-            println!("playhead update");
             let d = instant.elapsed();
             time = playhead + d.as_secs() as f64 + d.subsec_nanos() as f64 / 1_000_000_000.0;
             last_instant = time::Instant::now();
@@ -68,7 +67,6 @@ pub fn start(config: Config) {
         }
 
         if let Some(u) = e.update_args() {
-            println!("{}", time);
             model.update(&u);
         }
 
