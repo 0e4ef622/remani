@@ -36,7 +36,7 @@ pub fn start(config: Config) {
 
     let audio = audio::start_audio_thread().unwrap();
 
-    let uhhh = audio::music_from_path("test/test.mp3", audio.format());
+    let uhhh = audio::music_from_path("test/test.mp3", audio.format()).unwrap();
 
     audio.play_music(uhhh);
 

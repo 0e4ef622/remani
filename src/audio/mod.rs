@@ -267,19 +267,61 @@ pub fn start_audio_thread() -> Result<Audio<f32>, AudioThreadError> {
 }
 
 use std::fs::File;
-use std::path::Path;
+use std::path::{ Path, PathBuf };
 use std::ffi;
 use std::io;
 
-pub fn music_from_path<P: AsRef<Path>>(path: P, format: &cpal::Format) -> MusicStream<f32> {
+#[derive(Debug)]
+pub enum AudioLoadError {
+    Io(io::Error),
+    Decode(String),
+}
 
-    let file = File::open(&path).expect("Audio file not found");
+impl From<io::Error> for AudioLoadError {
+    fn from(e: io::Error) -> Self {
+        AudioLoadError::Io(e)
+    }
+}
+
+impl From<String> for AudioLoadError {
+    fn from(s: String) -> Self {
+        AudioLoadError::Decode(s)
+    }
+}
+
+impl fmt::Display for AudioLoadError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            AudioLoadError::Io(ref e) => write!(f, "IO error: {}", e),
+            AudioLoadError::Decode(ref s) => write!(f, "Decode error: {}", s),
+        }
+    }
+}
+
+impl error::Error for AudioLoadError {
+    fn description(&self) -> &str {
+        match *self {
+            AudioLoadError::Io(_) => "IO error",
+            AudioLoadError::Decode(_) => "Decode error",
+        }
+    }
+    fn cause(&self) -> Option<&error::Error> {
+        match *self {
+            AudioLoadError::Io(ref e) => Some(e),
+            AudioLoadError::Decode(_) => None
+        }
+    }
+}
+
+pub fn music_from_path<P: AsRef<Path>>(path: P, format: &cpal::Format) -> Result<MusicStream<f32>, AudioLoadError> {
+
+    let file = File::open(&path)?;
     let extension = path.as_ref().extension().and_then(ffi::OsStr::to_str).map(str::to_lowercase);
 
     match extension.as_ref().map(String::as_str) {
 
         #[cfg(feature="mp3")]
-        Some("mp3") => mp3::decode(file).unwrap(),
+        Some("mp3") => mp3::decode(file).map_err(AudioLoadError::from),
 
         _ => panic!("Unsupported format"),
     }
