@@ -10,6 +10,8 @@ use std::error;
 use std::fmt;
 use std::path;
 
+use config;
+
 mod osu_skin;
 
 /// The error type from parsing
@@ -67,9 +69,9 @@ impl error::Error for ParseError {
 /// Parse from a directory specified by the path.
 ///
 /// For now, the osu parser is assumed.
-pub fn from_path<P: AsRef<path::Path>>(path: P) -> Result<Box<Skin>, ParseError> {
+pub fn from_path<P: AsRef<path::Path>>(path: P, config: &config::Config) -> Result<Box<Skin>, ParseError> {
     // TODO get default osu skin path from config
-    osu_skin::from_path(path.as_ref(), "default_osu_skin".as_ref())
+    osu_skin::from_path(path.as_ref(), &config.default_osu_skin_path)
 }
 
 /// A skin. Should be returned by skin parsers.

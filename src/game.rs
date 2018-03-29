@@ -1,6 +1,7 @@
 //! Holds the main game logic
 
 use std::time;
+use std::path::Path;
 
 use model::Model;
 use view::View;
@@ -28,7 +29,7 @@ pub fn start(config: Config) {
                              .expect("Could not create window");
 
     // test
-    let chart = match Chart::from_path("test/test.osu") {
+    let chart = match Chart::from_path("test/test_chart/test.osu") {
         Ok(x) => x,
         Err(e) => { println!("{}", e); panic!(); },
     };
@@ -40,7 +41,7 @@ pub fn start(config: Config) {
 
     audio.play_music(uhhh);
 
-    let the_skin = skin::from_path(&config.skin_path).unwrap();
+    let the_skin = skin::from_path(&config.skin_path, &config).unwrap();
 
     let mut model = Model::new();
     let mut view = View::new(GlGraphics::new(opengl), the_skin, chart);

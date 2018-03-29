@@ -312,7 +312,6 @@ pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<Skin>
                                  double!("mania-note2T"),
                                  double!("mania-noteST")];
 
-    // TODO stage_bottom
     let mut stage_hint_name = double!("mania-stage-hint");
     let mut stage_left_name = double!("mania-stage-left");
     let mut stage_right_name = double!("mania-stage-right");
@@ -402,7 +401,6 @@ pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<Skin>
 
     let mut cache = HashMap::new();
 
-    // TODO streamline this an bit more ;-;
     let miss = load_texture_anim(&mut cache, dir, default_dir, &miss_name, &texture_settings)?;
     let hit50 = load_texture_anim(&mut cache, dir, default_dir, &hit50_name, &texture_settings)?;
     let hit100 = load_texture_anim(&mut cache, dir, default_dir, &hit100_name, &texture_settings)?;
