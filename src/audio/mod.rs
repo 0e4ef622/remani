@@ -2,6 +2,7 @@
 
 #[cfg(feature="mp3")]
 mod mp3;
+mod resample;
 
 use std::sync::mpsc;
 use std::collections::VecDeque;
@@ -321,7 +322,14 @@ pub fn music_from_path<P: AsRef<Path>>(path: P, format: &cpal::Format) -> Result
     match extension.as_ref().map(String::as_str) {
 
         #[cfg(feature="mp3")]
-        Some("mp3") => mp3::decode(file).map_err(AudioLoadError::from),
+        Some("mp3") => {
+            let stream = mp3::decode(file).map_err(AudioLoadError::from)?;
+            if stream.sample_rate == format.sample_rate.0 {
+                Ok(stream)
+            } else {
+                Ok(resample::from_music_stream(stream, format.sample_rate.0))
+            }
+        },
 
         _ => panic!("Unsupported format"),
     }
