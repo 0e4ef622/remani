@@ -15,6 +15,7 @@ pub struct View {
     skin: Box<Skin>,
     draw_state: DrawState,
     chart: chart::Chart,
+    note_index: usize,
 }
 
 impl View {
@@ -29,22 +30,26 @@ impl View {
             skin,
             draw_state,
             chart,
+            note_index: 0,
         }
     }
 
     /// Called when a render event occurs
-    pub fn render(&mut self, args: &RenderArgs, model: &Model) {
+    pub fn render(&mut self, args: &RenderArgs, model: &Model, time: f64) {
         let skin = &self.skin;
         let draw_state = &self.draw_state;
         let chart = &self.chart;
+        let note_index = &mut self.note_index;
 
         self.gl.draw(args.viewport(), |c, gl| {
             graphics::clear([0.0; 4], gl);
 
             skin.draw_track(draw_state, c.transform, gl, args.height as f64);
 
-            for note in &chart.notes {
-                skin.draw_note(draw_state, c.transform, gl, args.height as f64, note.time, note.column);
+            for note in &chart.notes[*note_index..] {
+                if note.time - time > 1.0 { break; }
+                if note.time - time < -1.0 { *note_index += 1; continue; }
+                skin.draw_note(draw_state, c.transform, gl, args.height as f64, (note.time - time) * 1.3, note.column);
             }
 
             skin.draw_keys(draw_state, c.transform, gl, args.height as f64, &model.keys_down);

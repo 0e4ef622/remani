@@ -37,7 +37,7 @@ pub fn start(config: Config) {
 
     let audio = audio::start_audio_thread().unwrap();
 
-    let uhhh = audio::music_from_path("test/test.mp3", audio.format()).unwrap();
+    let uhhh = audio::music_from_path(Path::new("test/test_chart").join(&chart.music_path), audio.format()).unwrap();
 
     audio.play_music(uhhh);
 
@@ -80,7 +80,7 @@ pub fn start(config: Config) {
         }
 
         if let Some(r) = e.render_args() {
-            view.render(&r, &model);
+            view.render(&r, &model, time);
         }
     }
 

@@ -70,7 +70,6 @@ impl error::Error for ParseError {
 ///
 /// For now, the osu parser is assumed.
 pub fn from_path<P: AsRef<path::Path>>(path: P, config: &config::Config) -> Result<Box<Skin>, ParseError> {
-    // TODO get default osu skin path from config
     osu_skin::from_path(path.as_ref(), &config.default_osu_skin_path)
 }
 
@@ -79,6 +78,8 @@ pub trait Skin {
     /// Draw a note on the track. `pos` represents the y coordinate of the note, where 0 is on the
     /// judgement line, and 1 is at the top of the screen
     fn draw_note(&self, draw_state: &DrawState, transform: math::Matrix2d, gl: &mut GlGraphics, stage_height: f64, pos: f64, column_index: usize);
+    // TODO
+    //fn draw_long_note(&self, draw_state: &DrawState, transform: math::Matrix2d, gl: &mut GlGraphics, stage_height: f64, begin: f64, end: f64, column_index: usize);
     fn draw_track(&self, draw_state: &DrawState, transform: math::Matrix2d, gl: &mut GlGraphics, stage_height: f64);
     fn draw_keys(&self, draw_state: &DrawState, transform: math::Matrix2d, gl: &mut GlGraphics, stage_height: f64, pressed: &[bool]);
 }
