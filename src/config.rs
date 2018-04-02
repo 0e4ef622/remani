@@ -8,7 +8,10 @@ pub struct Config {
     pub key_bindings: [input::Button; 7],
     pub default_osu_skin_path: path::PathBuf,
     pub skin_path: path::PathBuf,
-    pub scroll_speed: u32,
+    pub scroll_speed: f64,
+    /// Timing offset, in seconds. Applies to visual and timing judgement. Positive means you have
+    /// to hit later, and vice versa.
+    pub offset: f64,
 }
 
 /// Load configuration from a file
@@ -30,6 +33,7 @@ pub fn get_config() -> Config {
         ],
         default_osu_skin_path: path::PathBuf::from("default_osu_skin"),
         skin_path: path::PathBuf::from("test/test_skin"),
-        scroll_speed: 1,
+        scroll_speed: 1.3,
+        offset: 0.1,
     }
 }

@@ -62,6 +62,7 @@ struct OsuSkin {
 }
 
 impl Skin for OsuSkin {
+    // TODO render animations
     fn draw_note(&self, draw_state: &DrawState, transform: math::Matrix2d, gl: &mut GlGraphics, stage_h: f64, pos: f64, column_index: usize) {
 
         let scale = stage_h / 480.0;

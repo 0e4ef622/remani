@@ -47,7 +47,7 @@ pub fn start(config: Config) {
     let mut view = View::new(GlGraphics::new(opengl), the_skin, chart);
 
     let mut events = Events::new(EventSettings::new());
-    let mut time = 0.0;
+    let mut time = -config.offset;
     let mut last_instant = time::Instant::now();
     audio.request_playhead();
     while let Some(e) = events.next(&mut window) {
@@ -55,7 +55,7 @@ pub fn start(config: Config) {
         if let Some((instant, playhead)) = audio.get_playhead() {
 
             let d = instant.elapsed();
-            time = playhead + d.as_secs() as f64 + d.subsec_nanos() as f64 / 1_000_000_000.0;
+            time = playhead + d.as_secs() as f64 + d.subsec_nanos() as f64 / 1_000_000_000.0 - config.offset;
             last_instant = time::Instant::now();
             audio.request_playhead();
 
@@ -80,7 +80,7 @@ pub fn start(config: Config) {
         }
 
         if let Some(r) = e.render_args() {
-            view.render(&r, &model, time);
+            view.render(&r, &config, &model, time);
         }
     }
 

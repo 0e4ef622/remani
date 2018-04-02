@@ -8,6 +8,7 @@ use skin::Skin;
 use model::Model;
 
 use chart;
+use config::Config;
 
 /// Holds values and resources needed by the window to do drawing stuff
 pub struct View {
@@ -35,7 +36,7 @@ impl View {
     }
 
     /// Called when a render event occurs
-    pub fn render(&mut self, args: &RenderArgs, model: &Model, time: f64) {
+    pub fn render(&mut self, args: &RenderArgs, config: &Config, model: &Model, time: f64) {
         let skin = &self.skin;
         let draw_state = &self.draw_state;
         let chart = &self.chart;
@@ -48,8 +49,15 @@ impl View {
 
             for note in &chart.notes[*note_index..] {
                 if note.time - time > 1.0 { break; }
-                if note.time - time < -1.0 { *note_index += 1; continue; }
-                skin.draw_note(draw_state, c.transform, gl, args.height as f64, (note.time - time) * 1.3, note.column);
+
+                if let Some(end_time) = note.end_time {
+
+                } else {
+
+                    if note.time - time < 0.0 { *note_index += 1; continue; }
+                    skin.draw_note(draw_state, c.transform, gl, args.height as f64, (note.time - time) * config.scroll_speed, note.column);
+
+                }
             }
 
             skin.draw_keys(draw_state, c.transform, gl, args.height as f64, &model.keys_down);
