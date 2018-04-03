@@ -55,8 +55,8 @@ struct OsuSkin {
 
     /// Various information related to how to draw components.
     column_start: u16,
-    column_width: Vec<u16>,
-    column_line_width: Vec<u16>,
+    column_width: [u16; 7],
+    column_line_width: [u16; 8],
     hit_position: u16,
     width_for_note_height_scale: f64,
 }
@@ -320,8 +320,8 @@ pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<Skin>
 
     // default values
     let mut column_start = 136;
-    let mut column_width = vec!(30, 30, 30, 30, 30, 30, 30);
-    let mut column_line_width = vec!(2, 2, 2, 2, 2, 2, 2, 2);
+    let mut column_width = [30; 7];
+    let mut column_line_width = [2; 8];
     let mut hit_position = 402;
 
     // parse skin.ini
@@ -360,21 +360,21 @@ pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<Skin>
                                 }
                             }
                         }
+
+                        // for values that look like
+                        // 42,10,5,1337,4,8,2
+                        macro_rules! csv {
+                            ($var_name:ident $count:expr) => {{
+                                for (i, value) in value.split(",").enumerate().take($count) {
+                                    $var_name[i] = value.parse().unwrap();
+                                }
+                            }}
+                        }
                         match key {
                             "ColumnStart" => column_start = value.parse().unwrap(),
                             "HitPosition" => hit_position = value.parse().unwrap(),
-                            "ColumnWidth" => {
-                                let number_strings: Vec<&str> = value.split(",").collect();
-                                for (i, number_string) in number_strings.iter().enumerate() {
-                                    column_width[i] = number_string.parse().unwrap();
-                                }
-                            },
-                            "ColumnLineWidth" => {
-                                let number_strings: Vec<&str> = value.split(",").collect();
-                                for (i, number_string) in number_strings.iter().enumerate() {
-                                    column_line_width[i] = number_string.parse().unwrap();
-                                }
-                            },
+                            "ColumnWidth" => csv!(column_width 7),
+                            "ColumnLineWidth" => csv!(column_line_width 8),
                             "Hit0" => miss_name.1 = value.to_owned(),
                             "Hit50" => hit50_name.1 = value.to_owned(),
                             "Hit100" => hit100_name.1 = value.to_owned(),
