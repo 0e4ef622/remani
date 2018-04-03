@@ -56,6 +56,17 @@ struct OsuSkin {
     /// Various information related to how to draw components.
     column_start: u16,
     column_width: [u16; 7],
+    // TODO
+    // column_spacing: [u16; 7],
+    // lighting_n_width: [u16; 7],
+    // lighting_l_width: [u16; 7],
+    // score_position: u16,
+    // combo_position: u16,
+    // judgement_line: bool,
+    // note_body_style: [NoteBodyStyle; 7],
+
+    // low priority
+    // special_style: SpecialStyle,
     column_line_width: [u16; 8],
     hit_position: u16,
     width_for_note_height_scale: f64,
@@ -81,15 +92,15 @@ impl Skin for OsuSkin {
 
         let scale = stage_h / 480.0;
 
-        // ar = aspect ratio
-        let stage_l_ar = self.stage_left.get_width() as f64 / self.stage_left.get_height() as f64;
-        let stage_r_ar = self.stage_right.get_width() as f64 / self.stage_right.get_height() as f64;
+        // Apparently some things are based on a height of 480, and other things are based on a
+        // height of 768. .-.
+        let scale2 = stage_h / 768.0;
 
         let column_width_sum = self.column_width.iter().sum::<u16>() as f64 * scale;
         let column_start = self.column_start as f64 * scale;
         let stage_hint_height = self.stage_hint[0].get_height() as f64 * scale;
-        let stage_l_width = stage_l_ar * stage_h;
-        let stage_r_width = stage_r_ar * stage_h;
+        let stage_l_width = self.stage_left.get_width() as f64 * scale2;
+        let stage_r_width = self.stage_right.get_width() as f64 * scale2;
 
         let stage_l_img = Image::new().rect([column_start - stage_l_width , 0.0, stage_l_width, stage_h]);
         let stage_r_img = Image::new().rect([column_start + column_width_sum, 0.0, stage_r_width, stage_h]);
@@ -110,13 +121,14 @@ impl Skin for OsuSkin {
     fn draw_keys(&self, draw_state: &DrawState, transform: math::Matrix2d, gl: &mut GlGraphics, stage_h: f64, pressed: &[bool]) {
 
         let scale = stage_h / 480.0;
+        let scale2 = stage_h / 768.0;
 
         for (i, key_pressed) in pressed.iter().enumerate() {
             let key_texture: &Texture = if *key_pressed { self.keys_d[i].as_ref() } else { self.keys[i].as_ref() };
             let key_width = self.column_width[i] as f64 * scale;
 
             // Seriously peppy?
-            let key_height = key_texture.get_height() as f64 * scale * 480.0 / 768.0;
+            let key_height = key_texture.get_height() as f64 * scale2;
             let key_x = scale * (self.column_start as f64 + self.column_width[0..i].iter().sum::<u16>() as f64);
             let key_y = stage_h - key_height;
             let key_img = Image::new().rect([key_x, key_y, key_width, key_height]);
