@@ -47,6 +47,9 @@ struct OsuSkin {
     /// The long notes' bodies' images.
     long_notes_body: [Rc<Vec<Rc<Texture>>>; 7],
 
+    /// The long notes' tails' images.
+    long_notes_tail: [Option<Rc<Vec<Rc<Texture>>>>; 7],
+
     /// The stage components.
     stage_hint: Rc<Vec<Rc<Texture>>>,
     stage_left: Rc<Texture>,
@@ -427,6 +430,7 @@ pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<Skin>
                 load_texture(&mut cache, dir, default_dir, &keys_name[4], &texture_settings)?,
                 load_texture(&mut cache, dir, default_dir, &keys_name[5], &texture_settings)?,
                 load_texture(&mut cache, dir, default_dir, &keys_name[6], &texture_settings)?];
+
     let keys_d = [load_texture(&mut cache, dir, default_dir, &keys_d_name[0], &texture_settings)?,
                   load_texture(&mut cache, dir, default_dir, &keys_d_name[1], &texture_settings)?,
                   load_texture(&mut cache, dir, default_dir, &keys_d_name[2], &texture_settings)?,
@@ -434,6 +438,7 @@ pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<Skin>
                   load_texture(&mut cache, dir, default_dir, &keys_d_name[4], &texture_settings)?,
                   load_texture(&mut cache, dir, default_dir, &keys_d_name[5], &texture_settings)?,
                   load_texture(&mut cache, dir, default_dir, &keys_d_name[6], &texture_settings)?];
+
     let notes = [load_texture_anim(&mut cache, dir, default_dir, &notes_name[0], &texture_settings)?,
                  load_texture_anim(&mut cache, dir, default_dir, &notes_name[1], &texture_settings)?,
                  load_texture_anim(&mut cache, dir, default_dir, &notes_name[2], &texture_settings)?,
@@ -441,6 +446,7 @@ pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<Skin>
                  load_texture_anim(&mut cache, dir, default_dir, &notes_name[4], &texture_settings)?,
                  load_texture_anim(&mut cache, dir, default_dir, &notes_name[5], &texture_settings)?,
                  load_texture_anim(&mut cache, dir, default_dir, &notes_name[6], &texture_settings)?];
+
     let long_notes_head = [load_texture_anim(&mut cache, dir, default_dir, &lns_head_name[0], &texture_settings)?,
                            load_texture_anim(&mut cache, dir, default_dir, &lns_head_name[1], &texture_settings)?,
                            load_texture_anim(&mut cache, dir, default_dir, &lns_head_name[2], &texture_settings)?,
@@ -448,6 +454,7 @@ pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<Skin>
                            load_texture_anim(&mut cache, dir, default_dir, &lns_head_name[4], &texture_settings)?,
                            load_texture_anim(&mut cache, dir, default_dir, &lns_head_name[5], &texture_settings)?,
                            load_texture_anim(&mut cache, dir, default_dir, &lns_head_name[6], &texture_settings)?];
+
     let long_notes_body = [load_texture_anim(&mut cache, dir, default_dir, &lns_body_name[0], &texture_settings)?,
                            load_texture_anim(&mut cache, dir, default_dir, &lns_body_name[1], &texture_settings)?,
                            load_texture_anim(&mut cache, dir, default_dir, &lns_body_name[2], &texture_settings)?,
@@ -455,6 +462,15 @@ pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<Skin>
                            load_texture_anim(&mut cache, dir, default_dir, &lns_body_name[4], &texture_settings)?,
                            load_texture_anim(&mut cache, dir, default_dir, &lns_body_name[5], &texture_settings)?,
                            load_texture_anim(&mut cache, dir, default_dir, &lns_body_name[6], &texture_settings)?];
+
+    let long_notes_tail = [load_texture_anim(&mut cache, dir, default_dir, &lns_tail_name[0], &texture_settings).ok(),
+                           load_texture_anim(&mut cache, dir, default_dir, &lns_tail_name[1], &texture_settings).ok(),
+                           load_texture_anim(&mut cache, dir, default_dir, &lns_tail_name[2], &texture_settings).ok(),
+                           load_texture_anim(&mut cache, dir, default_dir, &lns_tail_name[3], &texture_settings).ok(),
+                           load_texture_anim(&mut cache, dir, default_dir, &lns_tail_name[4], &texture_settings).ok(),
+                           load_texture_anim(&mut cache, dir, default_dir, &lns_tail_name[5], &texture_settings).ok(),
+                           load_texture_anim(&mut cache, dir, default_dir, &lns_tail_name[6], &texture_settings).ok()];
+
     let stage_hint = load_texture_anim(&mut cache, dir, default_dir, &stage_hint_name, &texture_settings)?;
     let stage_left = load_texture(&mut cache, dir, default_dir, &stage_left_name, &texture_settings)?;
     let stage_right = load_texture(&mut cache, dir, default_dir, &stage_right_name, &texture_settings)?;
@@ -480,6 +496,7 @@ pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<Skin>
         notes,
         long_notes_head,
         long_notes_body,
+        long_notes_tail,
         stage_hint,
         stage_left,
         stage_right,
