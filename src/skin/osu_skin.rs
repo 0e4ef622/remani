@@ -56,8 +56,8 @@ struct OsuSkin {
     /// Various information related to how to draw components.
     column_start: u16,
     column_width: [u16; 7],
+    column_spacing: [u16; 6],
     // TODO
-    // column_spacing: [u16; 7],
     // lighting_n_width: [u16; 7],
     // lighting_l_width: [u16; 7],
     // score_position: u16,
@@ -81,7 +81,7 @@ impl Skin for OsuSkin {
 
         let note_w = self.column_width[column_index] as f64 * scale;
         let note_h = self.width_for_note_height_scale * scale;
-        let note_x = self.column_start as f64 * scale + self.column_width[0..column_index].iter().sum::<u16>() as f64 * scale;
+        let note_x = scale * (self.column_start as f64 + self.column_width[0..column_index].iter().sum::<u16>() as f64 + self.column_spacing[0..column_index].iter().sum::<u16>() as f64);
         let note_y = hit_p * (1.0 - pos) - note_h;
 
         let note = self.notes[column_index][0].deref();
@@ -96,7 +96,7 @@ impl Skin for OsuSkin {
         // height of 768. .-.
         let scale2 = stage_h / 768.0;
 
-        let column_width_sum = self.column_width.iter().sum::<u16>() as f64 * scale;
+        let column_width_sum = (self.column_width.iter().sum::<u16>() as f64 + self.column_spacing.iter().sum::<u16>() as f64) * scale;
         let column_start = self.column_start as f64 * scale;
         let stage_hint_height = self.stage_hint[0].get_height() as f64 * scale;
         let stage_l_width = self.stage_left.get_width() as f64 * scale2;
@@ -126,10 +126,8 @@ impl Skin for OsuSkin {
         for (i, key_pressed) in pressed.iter().enumerate() {
             let key_texture: &Texture = if *key_pressed { self.keys_d[i].as_ref() } else { self.keys[i].as_ref() };
             let key_width = self.column_width[i] as f64 * scale;
-
-            // Seriously peppy?
             let key_height = key_texture.get_height() as f64 * scale2;
-            let key_x = scale * (self.column_start as f64 + self.column_width[0..i].iter().sum::<u16>() as f64);
+            let key_x = scale * (self.column_start as f64 + self.column_width[0..i].iter().sum::<u16>() as f64 + self.column_spacing[0..i].iter().sum::<u16>() as f64);
             let key_y = stage_h - key_height;
             let key_img = Image::new().rect([key_x, key_y, key_width, key_height]);
             key_img.draw(key_texture, draw_state, transform, gl);
@@ -334,6 +332,7 @@ pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<Skin>
     let mut column_start = 136;
     let mut column_width = [30; 7];
     let mut column_line_width = [2; 8];
+    let mut column_spacing = [0; 6];
     let mut hit_position = 402;
 
     // parse skin.ini
@@ -376,7 +375,7 @@ pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<Skin>
                         // for values that look like
                         // 42,10,5,1337,4,8,2
                         macro_rules! csv {
-                            ($var_name:ident $count:expr) => {{
+                            ($var_name:ident; $count:expr) => {{
                                 for (i, value) in value.split(",").enumerate().take($count) {
                                     $var_name[i] = value.parse().unwrap();
                                 }
@@ -385,8 +384,9 @@ pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<Skin>
                         match key {
                             "ColumnStart" => column_start = value.parse().unwrap(),
                             "HitPosition" => hit_position = value.parse().unwrap(),
-                            "ColumnWidth" => csv!(column_width 7),
-                            "ColumnLineWidth" => csv!(column_line_width 8),
+                            "ColumnWidth" => csv![column_width; 7],
+                            "ColumnLineWidth" => csv![column_line_width; 8],
+                            "ColumnSpacing" => csv![column_spacing; 6],
                             "Hit0" => miss_name.1 = value.to_owned(),
                             "Hit50" => hit50_name.1 = value.to_owned(),
                             "Hit100" => hit100_name.1 = value.to_owned(),
@@ -486,6 +486,7 @@ pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<Skin>
         stage_bottom,
         column_start,
         column_width,
+        column_spacing,
         column_line_width,
         hit_position,
         width_for_note_height_scale,
