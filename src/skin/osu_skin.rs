@@ -22,6 +22,13 @@ use std::fmt;
 
 use skin::{ Skin, ParseError };
 
+#[derive(Copy, Clone, Debug)]
+enum NoteBodyStyle {
+    Stretch,
+    CascadeFromTop,
+    CascadeFromBottom,
+}
+
 /// Holds skin data, such as note images and what not.
 struct OsuSkin {
     miss: Rc<Vec<Rc<Texture>>>,
@@ -60,19 +67,20 @@ struct OsuSkin {
     column_start: u16,
     column_width: [u16; 7],
     column_spacing: [u16; 6],
+    column_line_width: [u16; 8],
+    hit_position: u16,
+    width_for_note_height_scale: f64,
+    note_body_style: [NoteBodyStyle; 7],
+
     // TODO
     // lighting_n_width: [u16; 7],
     // lighting_l_width: [u16; 7],
     // score_position: u16,
     // combo_position: u16,
     // judgement_line: bool,
-    // note_body_style: [NoteBodyStyle; 7],
 
     // low priority
     // special_style: SpecialStyle,
-    column_line_width: [u16; 8],
-    hit_position: u16,
-    width_for_note_height_scale: f64,
 }
 
 impl Skin for OsuSkin {
@@ -337,6 +345,7 @@ pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<Skin>
     let mut column_line_width = [2; 8];
     let mut column_spacing = [0; 6];
     let mut hit_position = 402;
+    let mut note_body_style = [NoteBodyStyle::CascadeFromTop; 7];
 
     // parse skin.ini
     if config_path.exists() {
@@ -382,7 +391,12 @@ pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<Skin>
                                 for (i, value) in value.split(",").enumerate().take($count) {
                                     $var_name[i] = value.parse().unwrap();
                                 }
-                            }}
+                            }};
+                            ($var_name:ident = $expr:expr; $count:expr) => {{
+                                for (i, value) in value.split(",").enumerate().take($count) {
+                                    $var_name[i] = $expr;
+                                }
+                            }};
                         }
                         match key {
                             "ColumnStart" => column_start = value.parse().unwrap(),
@@ -390,6 +404,12 @@ pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<Skin>
                             "ColumnWidth" => csv![column_width; 7],
                             "ColumnLineWidth" => csv![column_line_width; 8],
                             "ColumnSpacing" => csv![column_spacing; 6],
+                            "NoteBodyStyle" => csv![note_body_style = match value {
+                                "0" => NoteBodyStyle::Stretch,
+                                "1" => NoteBodyStyle::CascadeFromTop,
+                                "2" => NoteBodyStyle::CascadeFromBottom,
+                                _ => continue,
+                            }; 7],
                             "Hit0" => miss_name.1 = value.to_owned(),
                             "Hit50" => hit50_name.1 = value.to_owned(),
                             "Hit100" => hit100_name.1 = value.to_owned(),
@@ -507,5 +527,6 @@ pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<Skin>
         column_line_width,
         hit_position,
         width_for_note_height_scale,
+        note_body_style,
     }))
 }
