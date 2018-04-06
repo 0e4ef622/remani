@@ -16,7 +16,11 @@ pub struct View {
     skin: Box<Skin>,
     draw_state: DrawState,
     chart: chart::Chart,
-    note_index: usize,
+    next_note_index: usize,
+    notes_on_screen_indices: Vec<usize>,
+    /// Indices of the notes in notes_on_screen that are actually below the screen and need to be
+    /// removed
+    notes_below_screen_indices: Vec<usize>,
 }
 
 impl View {
@@ -31,7 +35,9 @@ impl View {
             skin,
             draw_state,
             chart,
-            note_index: 0,
+            next_note_index: 0,
+            notes_on_screen_indices: Vec::with_capacity(128),
+            notes_below_screen_indices: Vec::with_capacity(128),
         }
     }
 
@@ -40,25 +46,49 @@ impl View {
         let skin = &self.skin;
         let draw_state = &self.draw_state;
         let chart = &self.chart;
-        let note_index = &mut self.note_index;
+        let next_note_index = &mut self.next_note_index;
+        let notes_on_screen_indices = &mut self.notes_on_screen_indices;
+        let notes_below_screen_indices = &mut self.notes_below_screen_indices;
 
         self.gl.draw(args.viewport(), |c, gl| {
             graphics::clear([0.0; 4], gl);
+            println!("{:?}", notes_on_screen_indices);
 
             skin.draw_track(draw_state, c.transform, gl, args.height as f64);
 
-            for note in &chart.notes[*note_index..] {
-                if note.time - time > 1.0 { break; }
+            let mut add_next_note_index = 0;
+
+            for (index, note) in chart.notes[*next_note_index..].iter().enumerate() {
+                if note.time - time > 1.0 / config.scroll_speed { break; }
+
+                notes_on_screen_indices.push(index + *next_note_index);
+                add_next_note_index += 1;
+            }
+            *next_note_index += add_next_note_index;
+
+            for (index, &note_index) in notes_on_screen_indices.iter().enumerate() {
+
+                let note = &chart.notes[note_index];
 
                 if let Some(end_time) = note.end_time {
-
+                    if end_time - time < 0.0 {
+                        notes_below_screen_indices.push(index);
+                        continue;
+                    }
+                    skin.draw_long_note(draw_state, c.transform, gl, args.height as f64, (note.time - time) * config.scroll_speed, (end_time - time) * config.scroll_speed, note.column);
                 } else {
-
-                    if note.time - time < 0.0 { *note_index += 1; continue; }
+                    if note.time - time < 0.0 {
+                        notes_below_screen_indices.push(index);
+                        continue;
+                    }
                     skin.draw_note(draw_state, c.transform, gl, args.height as f64, (note.time - time) * config.scroll_speed, note.column);
-
                 }
             }
+
+            for &index in notes_below_screen_indices.iter().rev() {
+                notes_on_screen_indices.swap_remove(index);
+            }
+            notes_below_screen_indices.clear();
 
             skin.draw_keys(draw_state, c.transform, gl, args.height as f64, &model.keys_down);
         });

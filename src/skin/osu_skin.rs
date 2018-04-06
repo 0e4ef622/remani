@@ -92,12 +92,62 @@ impl Skin for OsuSkin {
 
         let note_w = self.column_width[column_index] as f64 * scale;
         let note_h = self.width_for_note_height_scale * scale;
-        let note_x = scale * (self.column_start as f64 + self.column_width[0..column_index].iter().sum::<u16>() as f64 + self.column_spacing[0..column_index].iter().sum::<u16>() as f64);
+        let note_x = scale * (self.column_start as f64 +
+                              self.column_width[0..column_index].iter().sum::<u16>() as f64 +
+                              self.column_spacing[0..column_index].iter().sum::<u16>() as f64);
+
         let note_y = hit_p * (1.0 - pos) - note_h;
 
         let note = self.notes[column_index][0].deref();
         let note_img = Image::new().rect([note_x, note_y, note_w, note_h]);
         note_img.draw(note, draw_state, transform, gl);
+    }
+    fn draw_long_note(&self, draw_state: &DrawState, transform: math::Matrix2d, gl: &mut GlGraphics,
+                      stage_h: f64, pos: f64, end_pos: f64, column_index: usize) {
+
+        use graphics::Transformed;
+
+        let scale = stage_h / 480.0;
+        let scale2 = stage_h / 768.0; // long note body height when cascading is scaled with this
+        let hit_p = self.hit_position as f64 * scale;
+
+        let note_w = self.column_width[column_index] as f64 * scale;
+        let note_x = scale * (self.column_start as f64 +
+                              self.column_width[0..column_index].iter().sum::<u16>() as f64 +
+                              self.column_spacing[0..column_index].iter().sum::<u16>() as f64);
+        let bottom_y = if pos < 0.0 { hit_p } else {  hit_p * (1.0 - pos) };
+        let top_y = hit_p * (1.0 - end_pos);
+
+        let note_head = self.long_notes_head[column_index][0].deref();
+        let note_tail = self.long_notes_tail[column_index].as_ref().map(|v| v[0].deref());
+        let note_body = self.long_notes_body[column_index][0].deref();
+
+        let note_end_h = self.width_for_note_height_scale * scale;
+        let note_head_y = bottom_y - note_end_h;
+        let note_tail_y = top_y - note_end_h;
+
+        let note_head_img = Image::new().rect([note_x, note_head_y, note_w, note_end_h]);
+        let note_tail_img = Image::new().rect([note_x, note_tail_y, note_w, note_end_h]);
+
+        // TODO
+        // match self.note_body_style[column_index] {
+        //     NoteBodyStyle::Stretch => {
+                 let note_body_img = Image::new().rect([note_x, top_y, note_w, bottom_y - top_y]);
+                 note_body_img.draw(note_body, draw_state, transform, gl);
+        //     }
+        // }
+
+        if pos >= 0.0 {
+            note_head_img.draw(note_head, draw_state, transform, gl);
+        }
+
+        if let Some(note_tail) = note_tail {
+            note_tail_img.draw(note_tail, draw_state, transform, gl);
+        } else {
+            note_tail_img.src_rect([0.0, note_head.get_height() as f64,
+                                    note_head.get_width() as f64, -(note_head.get_height() as f64)])
+                         .draw(note_head, draw_state, transform, gl);
+        }
     }
     fn draw_track(&self, draw_state: &DrawState, transform: math::Matrix2d, gl: &mut GlGraphics, stage_h: f64) {
 
@@ -388,15 +438,10 @@ pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<Skin>
                         // 42,10,5,1337,4,8,2
                         macro_rules! csv {
                             ($var_name:ident; $count:expr) => {{
-                                for (i, value) in value.split(",").enumerate().take($count) {
-                                    $var_name[i] = value.parse().unwrap();
+                                for (i, v) in value.split(",").enumerate().take($count) {
+                                    $var_name[i] = v.parse().unwrap();
                                 }
-                            }};
-                            ($var_name:ident = $expr:expr; $count:expr) => {{
-                                for (i, value) in value.split(",").enumerate().take($count) {
-                                    $var_name[i] = $expr;
-                                }
-                            }};
+                            }}
                         }
                         match key {
                             "ColumnStart" => column_start = value.parse().unwrap(),
@@ -404,12 +449,14 @@ pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<Skin>
                             "ColumnWidth" => csv![column_width; 7],
                             "ColumnLineWidth" => csv![column_line_width; 8],
                             "ColumnSpacing" => csv![column_spacing; 6],
-                            "NoteBodyStyle" => csv![note_body_style = match value {
-                                "0" => NoteBodyStyle::Stretch,
-                                "1" => NoteBodyStyle::CascadeFromTop,
-                                "2" => NoteBodyStyle::CascadeFromBottom,
-                                _ => continue,
-                            }; 7],
+                            "NoteBodyStyle" => for (i, v) in value.split(",").enumerate().take(7) {
+                                note_body_style[i] = match v {
+                                    "0" => NoteBodyStyle::Stretch,
+                                    "1" => NoteBodyStyle::CascadeFromTop,
+                                    "2" => NoteBodyStyle::CascadeFromBottom,
+                                    _ => continue,
+                                }
+                            },
                             "Hit0" => miss_name.1 = value.to_owned(),
                             "Hit50" => hit50_name.1 = value.to_owned(),
                             "Hit100" => hit100_name.1 = value.to_owned(),
