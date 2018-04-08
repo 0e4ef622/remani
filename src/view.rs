@@ -52,7 +52,6 @@ impl View {
 
         self.gl.draw(args.viewport(), |c, gl| {
             graphics::clear([0.0; 4], gl);
-            println!("{:?}", notes_on_screen_indices);
 
             skin.draw_track(draw_state, c.transform, gl, args.height as f64);
 
@@ -69,7 +68,6 @@ impl View {
             for (index, &note_index) in notes_on_screen_indices.iter().enumerate() {
 
                 let note = &chart.notes[note_index];
-
                 if let Some(end_time) = note.end_time {
                     if end_time - time < 0.0 {
                         notes_below_screen_indices.push(index);
