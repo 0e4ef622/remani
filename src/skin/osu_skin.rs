@@ -141,7 +141,7 @@ impl OsuSkin {
         let note_x = scale * (self.column_start as f64 +
                               self.column_width[0..column_index].iter().sum::<u16>() as f64 +
                               self.column_spacing[0..column_index].iter().sum::<u16>() as f64);
-        let bottom_y = if pos < 0.0 { hit_p } else {  hit_p * (1.0 - pos) };
+        let bottom_y = if pos < 0.0 { hit_p } else { hit_p * (1.0 - pos) };
         let top_y = hit_p * (1.0 - end_pos);
 
         let note_head = self.long_notes_head[column_index][0].deref();
@@ -158,7 +158,7 @@ impl OsuSkin {
         // TODO
         // match self.note_body_style[column_index] {
         //     NoteBodyStyle::Stretch => {
-                 let note_body_img = Image::new().rect([note_x, top_y, note_w, bottom_y - top_y]);
+                 let note_body_img = Image::new().rect([note_x, top_y - note_end_h/2.0, note_w, bottom_y - top_y]);
                  note_body_img.draw(note_body, draw_state, transform, gl);
         //     },
         //     NoteBodyStyle::CascadeFromTop => {
