@@ -134,12 +134,14 @@ impl Skin for OsuSkin {
         //     NoteBodyStyle::Stretch => {
                  let note_body_img = Image::new().rect([note_x, top_y, note_w, bottom_y - top_y]);
                  note_body_img.draw(note_body, draw_state, transform, gl);
-        //     }
+        //     },
+        //     NoteBodyStyle::CascadeFromTop => {
+        //     },
+        //     NoteBodySty;e::CascadeFromBottom => {
+        //     },
         // }
 
-        if pos >= 0.0 {
-            note_head_img.draw(note_head, draw_state, transform, gl);
-        }
+        note_head_img.draw(note_head, draw_state, transform, gl);
 
         if let Some(note_tail) = note_tail {
             note_tail_img.draw(note_tail, draw_state, transform, gl);
