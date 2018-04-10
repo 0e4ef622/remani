@@ -75,10 +75,12 @@ pub fn from_path<P: AsRef<path::Path>>(path: P, config: &config::Config) -> Resu
 
 /// A skin. Should be returned by skin parsers.
 pub trait Skin {
-    /// Draw a note on the track. `pos` represents the y coordinate of the note, where 0 is on the
-    /// judgement line, and 1 is at the top of the screen
-    fn draw_note(&self, draw_state: &DrawState, transform: math::Matrix2d, gl: &mut GlGraphics, stage_height: f64, pos: f64, column_index: usize);
-    fn draw_long_note(&self, draw_state: &DrawState, transform: math::Matrix2d, gl: &mut GlGraphics, stage_height: f64, begin: f64, end: f64, column_index: usize);
-    fn draw_track(&self, draw_state: &DrawState, transform: math::Matrix2d, gl: &mut GlGraphics, stage_height: f64);
-    fn draw_keys(&self, draw_state: &DrawState, transform: math::Matrix2d, gl: &mut GlGraphics, stage_height: f64, pressed: &[bool]);
+    fn draw_play_scene(&self,
+                       draw_state: &DrawState,
+                       transform: math::Matrix2d,
+                       gl: &mut GlGraphics,
+                       stage_height: f64,
+                       keys_down: &[bool],
+                       // column index, start pos, end pos
+                       notes: &[(usize, f64, Option<f64>)]);
 }

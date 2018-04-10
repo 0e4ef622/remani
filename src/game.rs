@@ -44,7 +44,7 @@ pub fn start(config: Config) {
     let the_skin = skin::from_path(&config.skin_path, &config).unwrap();
 
     let mut model = Model::new();
-    let mut view = View::new(GlGraphics::new(opengl), the_skin, chart);
+    let mut view = View::new(GlGraphics::new(opengl), the_skin, &chart);
 
     let mut events = Events::new(EventSettings::new());
     let mut time = -config.offset;
@@ -83,5 +83,4 @@ pub fn start(config: Config) {
             view.render(&r, &config, &model, time);
         }
     }
-
 }

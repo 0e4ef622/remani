@@ -81,9 +81,35 @@ struct OsuSkin {
 
     // low priority
     // special_style: SpecialStyle,
+    // keys_under_notes: bool,
 }
 
+use std::iter;
+use std::slice;
+
 impl Skin for OsuSkin {
+    fn draw_play_scene(&self,
+                       draw_state: &DrawState,
+                       transform: math::Matrix2d,
+                       gl: &mut GlGraphics,
+                       stage_height: f64,
+                       keys_down: &[bool],
+                       // column index, start pos, end pos
+                       notes: &[(usize, f64, Option<f64>)]) {
+
+        self.draw_track(draw_state, transform, gl, stage_height);
+        for &(column, pos, end_pos) in notes {
+            if let Some(end_p) = end_pos {
+                self.draw_long_note(draw_state, transform, gl, stage_height, pos, end_p, column);
+            } else {
+                self.draw_note(draw_state, transform, gl, stage_height, pos, column);
+            }
+        }
+        self.draw_keys(draw_state, transform, gl, stage_height, keys_down);
+    }
+}
+
+impl OsuSkin {
     // TODO render animations
     fn draw_note(&self, draw_state: &DrawState, transform: math::Matrix2d, gl: &mut GlGraphics, stage_h: f64, pos: f64, column_index: usize) {
 

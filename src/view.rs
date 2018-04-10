@@ -11,26 +11,27 @@ use chart;
 use config::Config;
 
 /// Holds values and resources needed by the window to do drawing stuff
-pub struct View {
+pub struct View<'a> {
     pub gl: GlGraphics,
     skin: Box<Skin>,
     draw_state: DrawState,
-    chart: chart::Chart,
+    chart: &'a chart::Chart,
     next_note_index: usize,
     notes_on_screen_indices: Vec<usize>,
     /// Indices of the notes in notes_on_screen that are actually below the screen and need to be
     /// removed
     notes_below_screen_indices: Vec<usize>,
+    notes_pos: Vec<(usize, f64, Option<f64>)>,
 }
 
-impl View {
+impl<'a> View<'a> {
 
     /// Create a view with some hardcoded defaults and stuffs
-    pub fn new(gl: GlGraphics, skin: Box<Skin>, chart: chart::Chart) -> Self {
+    pub fn new(gl: GlGraphics, skin: Box<Skin>, chart: &chart::Chart) -> View {
         let gl = gl;
         let draw_state = DrawState::default();
 
-        Self {
+        View {
             gl,
             skin,
             draw_state,
@@ -38,6 +39,7 @@ impl View {
             next_note_index: 0,
             notes_on_screen_indices: Vec::with_capacity(128),
             notes_below_screen_indices: Vec::with_capacity(128),
+            notes_pos: Vec::with_capacity(128),
         }
     }
 
@@ -49,11 +51,10 @@ impl View {
         let next_note_index = &mut self.next_note_index;
         let notes_on_screen_indices = &mut self.notes_on_screen_indices;
         let notes_below_screen_indices = &mut self.notes_below_screen_indices;
+        let notes_pos = &mut self.notes_pos;
 
         self.gl.draw(args.viewport(), |c, gl| {
             graphics::clear([0.0; 4], gl);
-
-            skin.draw_track(draw_state, c.transform, gl, args.height as f64);
 
             let mut add_next_note_index = 0;
 
@@ -73,13 +74,11 @@ impl View {
                         notes_below_screen_indices.push(index);
                         continue;
                     }
-                    skin.draw_long_note(draw_state, c.transform, gl, args.height as f64, (note.time - time) * config.scroll_speed, (end_time - time) * config.scroll_speed, note.column);
                 } else {
                     if note.time - time < 0.0 {
                         notes_below_screen_indices.push(index);
                         continue;
                     }
-                    skin.draw_note(draw_state, c.transform, gl, args.height as f64, (note.time - time) * config.scroll_speed, note.column);
                 }
             }
 
@@ -87,8 +86,20 @@ impl View {
                 notes_on_screen_indices.swap_remove(index);
             }
             notes_below_screen_indices.clear();
+            notes_pos.clear();
+            notes_pos.extend(notes_on_screen_indices.iter().map(|&i| {
+                let note = &chart.notes[i];
+                let pos = (note.time - time) * config.scroll_speed;
+                let end_pos = note.end_time.map(|t| (t - time) * config.scroll_speed);
+                (note.column, pos, end_pos)
+            }));
 
-            skin.draw_keys(draw_state, c.transform, gl, args.height as f64, &model.keys_down);
+            skin.draw_play_scene(draw_state,
+                                 c.transform,
+                                 gl,
+                                 args.height as f64,
+                                 &model.keys_down,
+                                 &notes_pos[..]);
         });
 
     }
