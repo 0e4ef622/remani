@@ -3,7 +3,7 @@
 use std::time;
 use std::path::Path;
 
-use model::Model;
+use model::{ Model, Judgement };
 use view::View;
 use chart::Chart;
 use config::Config;
@@ -22,7 +22,7 @@ pub fn start(config: Config) {
 
     let opengl = OpenGL::V3_2;
 
-    let mut window: Window = WindowSettings::new("Remani", [1440, 900])
+    let mut window: Window = WindowSettings::new("Remani", [1024, 768])
                              .opengl(opengl)
                              .srgb(false)
                              .build()
@@ -43,7 +43,7 @@ pub fn start(config: Config) {
 
     let the_skin = skin::from_path(&config.skin_path, &config).unwrap();
 
-    let mut model = Model::new(&chart);
+    let mut model = Model::new(&chart, &config);
     let mut view = View::new(GlGraphics::new(opengl), the_skin, &chart);
 
     let mut events = Events::new(EventSettings::new());
@@ -74,15 +74,15 @@ pub fn start(config: Config) {
         }
 
         if let Some(u) = e.update_args() {
-            model.update(&u, time);
+            model.update(&u, time, |k| view.draw_judgement(k, Judgement::Miss));
         }
 
         if let Some(i) = e.press_args() {
-            model.press(&i, &config, time, |k| ());
+            model.press(&i, time, |k, j| view.draw_judgement(k, j));
         }
 
         if let Some(i) = e.release_args() {
-            model.release(&i, &config, time, |k| ());
+            model.release(&i, time, |k| ());
         }
 
         if let Some(r) = e.render_args() {

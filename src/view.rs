@@ -4,10 +4,10 @@ use piston::input::RenderArgs;
 use opengl_graphics::GlGraphics;
 use graphics;
 use graphics::draw_state::DrawState;
-use skin::Skin;
-use model::Model;
 
 use chart;
+use skin::Skin;
+use model::{ Model, Judgement };
 use config::Config;
 
 /// Holds values and resources needed by the window to do drawing stuff
@@ -45,7 +45,7 @@ impl<'a> View<'a> {
 
     /// Called when a render event occurs
     pub fn render(&mut self, args: &RenderArgs, config: &Config, model: &Model, time: f64) {
-        let skin = &self.skin;
+        let skin = &mut self.skin;
         let draw_state = &self.draw_state;
         let chart = &self.chart;
         let next_note_index = &mut self.next_note_index;
@@ -102,6 +102,10 @@ impl<'a> View<'a> {
                                  &notes_pos[..]);
         });
 
+    }
+
+    pub fn draw_judgement(&mut self, column: usize, judgement: Judgement) {
+        self.skin.draw_judgement(column, judgement);
     }
 
 }

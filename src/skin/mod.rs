@@ -11,6 +11,7 @@ use std::fmt;
 use std::path;
 
 use config;
+use model;
 
 mod osu_skin;
 
@@ -75,7 +76,7 @@ pub fn from_path<P: AsRef<path::Path>>(path: P, config: &config::Config) -> Resu
 
 /// A skin. Should be returned by skin parsers.
 pub trait Skin {
-    fn draw_play_scene(&self,
+    fn draw_play_scene(&mut self,
                        draw_state: &DrawState,
                        transform: math::Matrix2d,
                        gl: &mut GlGraphics,
@@ -83,4 +84,5 @@ pub trait Skin {
                        keys_down: &[bool],
                        // column index, start pos, end pos
                        notes: &[(usize, f64, Option<f64>)]);
+    fn draw_judgement(&mut self, column: usize, judgement: model::Judgement);
 }

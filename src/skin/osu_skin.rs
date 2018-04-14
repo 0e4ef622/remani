@@ -21,6 +21,7 @@ use std::error;
 use std::fmt;
 
 use skin::{ Skin, ParseError };
+use model::Judgement;
 
 #[derive(Copy, Clone, Debug)]
 enum NoteBodyStyle {
@@ -69,26 +70,29 @@ struct OsuSkin {
     column_spacing: [u16; 6],
     column_line_width: [u16; 8],
     hit_position: u16,
+    score_position: u16,
     width_for_note_height_scale: f64,
     note_body_style: [NoteBodyStyle; 7],
 
     // TODO
     // lighting_n_width: [u16; 7],
     // lighting_l_width: [u16; 7],
-    // score_position: u16,
     // combo_position: u16,
     // judgement_line: bool,
 
     // low priority
     // special_style: SpecialStyle,
     // keys_under_notes: bool,
+
+    /// judgement, frame #
+    judgement: (Option<Judgement>, usize),
 }
 
 use std::iter;
 use std::slice;
 
 impl Skin for OsuSkin {
-    fn draw_play_scene(&self,
+    fn draw_play_scene(&mut self,
                        draw_state: &DrawState,
                        transform: math::Matrix2d,
                        gl: &mut GlGraphics,
@@ -106,6 +110,39 @@ impl Skin for OsuSkin {
             }
         }
         self.draw_keys(draw_state, transform, gl, stage_height, keys_down);
+
+        // Draw judgement
+        if let (Some(judgement), frame) = self.judgement {
+            let tx = match judgement {
+                Judgement::Miss => self.miss[0].deref(),
+                Judgement::Bad => self.hit50[0].deref(),
+                Judgement::Good => self.hit200[0].deref(),
+                Judgement::Perfect => self.hit300[0].deref(),
+            };
+
+            let scale = stage_height / 480.0;
+            let scale2 = stage_height / 768.0;
+            let score_p = self.hit_position as f64 * scale;
+            let stage_width = (self.column_width.iter().sum::<u16>() as f64 + self.column_spacing.iter().sum::<u16>() as f64) * scale;
+            let column_start = self.column_start as f64 * scale;
+
+            let tx_w = tx.get_width() as f64 * scale2;
+            let tx_h = tx.get_height() as f64 * scale2;
+            let tx_x = stage_width / 2.0 - tx_w / 2.0 + column_start;
+            let tx_y = self.score_position as f64 * scale - tx_h / 2.0;
+
+            let img = Image::new().rect([tx_x, tx_y, tx_w, tx_h]);
+            img.draw(tx, draw_state, transform, gl);
+
+            self.judgement.1 += 1;
+            if self.judgement.1 >= 7 {
+                self.judgement = (None, 0);
+            }
+        }
+    }
+
+    fn draw_judgement(&mut self, _column: usize, judgement: Judgement) {
+        self.judgement = (Some(judgement), 0);
     }
 }
 
@@ -177,6 +214,7 @@ impl OsuSkin {
                          .draw(note_head, draw_state, transform, gl);
         }
     }
+
     fn draw_track(&self, draw_state: &DrawState, transform: math::Matrix2d, gl: &mut GlGraphics, stage_h: f64) {
 
         let scale = stage_h / 480.0;
@@ -207,6 +245,7 @@ impl OsuSkin {
             stage_b_img.draw(stage_bottom.deref(), draw_state, transform, gl);
         }
     }
+
     fn draw_keys(&self, draw_state: &DrawState, transform: math::Matrix2d, gl: &mut GlGraphics, stage_h: f64, pressed: &[bool]) {
 
         let scale = stage_h / 480.0;
@@ -223,6 +262,9 @@ impl OsuSkin {
         }
     }
 
+    fn draw_miss(&self, draw_state: &DrawState, transform: math::Matrix2d, gl: &mut GlGraphics, stage_h: f64) {
+
+    }
 }
 
 #[derive(Debug)]
@@ -423,6 +465,7 @@ pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<Skin>
     let mut column_line_width = [2; 8];
     let mut column_spacing = [0; 6];
     let mut hit_position = 402;
+    let mut score_position = 240; // idk TODO
     let mut note_body_style = [NoteBodyStyle::CascadeFromTop; 7];
 
     // parse skin.ini
@@ -474,6 +517,7 @@ pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<Skin>
                         match key {
                             "ColumnStart" => column_start = value.parse().unwrap(),
                             "HitPosition" => hit_position = value.parse().unwrap(),
+                            "ScorePosition" => score_position = value.parse().unwrap(),
                             "ColumnWidth" => csv![column_width; 7],
                             "ColumnLineWidth" => csv![column_line_width; 8],
                             "ColumnSpacing" => csv![column_spacing; 6],
@@ -601,7 +645,9 @@ pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<Skin>
         column_spacing,
         column_line_width,
         hit_position,
+        score_position,
         width_for_note_height_scale,
         note_body_style,
+        judgement: (None, 0),
     }))
 }

@@ -7,10 +7,19 @@ use piston::input::{ UpdateArgs, Button };
 use config::Config;
 use chart::Chart;
 
+#[derive(Copy, Clone)]
+pub enum Judgement {
+    Perfect,
+    Good,
+    Bad,
+    Miss,
+}
+
 /// Holds game states needed by the logic and renderer. Also does timing judgements.
-pub struct Model<'a> {
+pub struct Model<'a, 'b> {
     pub keys_down: [bool; 7],
     chart: &'a Chart,
+    config: &'b Config,
 
     /// Contains the index of the first note that is 1 second ahead of the current time.
     current_note_index: usize,
@@ -25,13 +34,14 @@ pub struct Model<'a> {
     long_notes_held: [Option<usize>; 7],
 }
 
-impl<'a> Model<'a> {
+impl<'a, 'b> Model<'a, 'b> {
 
     /// Create a model for the game controller
-    pub fn new(chart: &Chart) -> Model {
+    pub fn new(chart: &'a Chart, config: &'b Config) -> Model<'a, 'b> {
         Model {
             keys_down: [false; 7],
             chart,
+            config,
             current_note_index: 0,
             next_notes: [VecDeque::with_capacity(32),
                          VecDeque::with_capacity(32),
@@ -45,7 +55,7 @@ impl<'a> Model<'a> {
     }
 
     /// Called when an update event occurs
-    pub fn update(&mut self, args: &UpdateArgs, time: f64) {
+    pub fn update<F: FnMut(usize)>(&mut self, args: &UpdateArgs, time: f64, mut miss_callback: F) {
         // how many notes should be removed from the front of each vecdeque
         let mut to_be_removed = [0; 7];
 
@@ -56,12 +66,12 @@ impl<'a> Model<'a> {
                 let note = &self.chart.notes[note_index];
                 if let Some(end_time) = note.end_time {
 
-                    if end_time - time < -1.0 {
-                        println!("Miss");
+                    if end_time - time < -0.3 {
+                        miss_callback(note_index);
                         to_be_removed[column] += 1;
                     }
-                } else if note.time - time < -1.0 {
-                    println!("Miss");
+                } else if note.time - time < -0.3 {
+                    miss_callback(note_index);
                     to_be_removed[column] += 1;
                 }
             }
@@ -80,29 +90,34 @@ impl<'a> Model<'a> {
     }
 
     /// Called when a press event occurs
-    pub fn press<F: FnMut(usize)>(&mut self, args: &Button, config: &Config, time: f64, mut callback: F) {
+    pub fn press<F: FnMut(usize, Judgement)>(&mut self, args: &Button, time: f64, mut callback: F) {
 
         let next_notes = &mut self.next_notes;
         let chart = self.chart;
 
-        config.key_bindings.iter().enumerate().zip(self.keys_down.iter_mut())
+        self.config.key_bindings.iter().enumerate().zip(self.keys_down.iter_mut())
             .for_each(|((key_index, key_binding), key_down)| {
                 if *args == *key_binding && !*key_down {
                     if let Some(&note_index) = next_notes[key_index].get(0) {
+
                         let note = &chart.notes[note_index];
-                        if (note.time - time).abs() < 0.2 {
-                            println!("Nice");
-                        }
+
+                        let judgement = if (note.time - time).abs() < 0.1 {
+                            Judgement::Perfect
+                        } else {
+                            Judgement::Miss
+                        };
+                        callback(key_index, judgement);
+
                         next_notes[key_index].pop_front();
                     }
-                    callback(key_index);
                     *key_down = true;
                 }
             });
     }
 
-    pub fn release<F: FnMut(usize)>(&mut self, args: &Button, config: &Config, time: f64, mut callback: F) {
-        config.key_bindings.iter().enumerate().zip(self.keys_down.iter_mut())
+    pub fn release<F: FnMut(usize)>(&mut self, args: &Button, time: f64, mut callback: F) {
+        self.config.key_bindings.iter().enumerate().zip(self.keys_down.iter_mut())
             .for_each(|((key_index, key_binding), key_down)| {
                 if *args == *key_binding {
                     callback(key_index);
