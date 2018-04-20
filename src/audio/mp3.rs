@@ -2,10 +2,9 @@ use simplemad;
 use audio::MusicStream;
 
 use std::io;
-use std::vec;
 use std::iter::Peekable;
 
-use simplemad::{ Decoder, SimplemadError, Frame, MadFixed32 };
+use simplemad::{ Decoder, SimplemadError, MadFixed32 };
 
 /// Lazy iterator over audio samples from an MP3
 struct MP3Samples<R: io::Read + Send> {

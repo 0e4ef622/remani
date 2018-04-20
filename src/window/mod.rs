@@ -6,7 +6,6 @@ use config::Config;
 use chart::Chart;
 
 use audio;
-use skin;
 
 mod game;
 
@@ -31,7 +30,6 @@ struct Stuff {
 }
 
 pub fn start(config: Config) {
-    // oh boy
 
     use piston::window::WindowSettings;
     use piston::event_loop::{ Events,  EventSettings };
@@ -63,8 +61,6 @@ pub fn start(config: Config) {
     let mut stuff = Stuff {
         current_scene: Scene::Game(game::GameScene::new(chart, &config, &audio)),
     };
-
-    let the_skin = skin::from_path(&config.skin_path, &config).unwrap();
 
     let mut events = Events::new(EventSettings::new());
     while let Some(e) = events.next(&mut window) {

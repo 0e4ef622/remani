@@ -2,6 +2,7 @@
 
 #[cfg(feature="mp3")]
 mod mp3;
+
 mod resample;
 
 use std::sync::mpsc;
@@ -135,7 +136,7 @@ impl fmt::Display for AudioThreadError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             AudioThreadError::NoOutputDevice => write!(f, "No output device found"),
-            AudioThreadError::DefaultFormatError(ref e) => write!(f, "Error requesting stream format"),
+            AudioThreadError::DefaultFormatError(_) => write!(f, "Error requesting stream format"),
             AudioThreadError::OutputStreamCreationError(ref e) => write!(f, "Error building audio stream: {}", e),
         }
     }
@@ -145,7 +146,7 @@ impl error::Error for AudioThreadError {
     fn cause(&self) -> Option<&error::Error> {
         match *self {
             AudioThreadError::NoOutputDevice => None,
-            AudioThreadError::DefaultFormatError(ref e) => None,
+            AudioThreadError::DefaultFormatError(_) => None,
             AudioThreadError::OutputStreamCreationError(ref e) => Some(e),
         }
     }
@@ -268,7 +269,7 @@ pub fn start_audio_thread() -> Result<Audio<f32>, AudioThreadError> {
 }
 
 use std::fs::File;
-use std::path::{ Path, PathBuf };
+use std::path::Path;
 use std::ffi;
 use std::io;
 

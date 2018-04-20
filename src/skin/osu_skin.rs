@@ -88,9 +88,6 @@ struct OsuSkin {
     judgement: (Option<Judgement>, usize),
 }
 
-use std::iter;
-use std::slice;
-
 impl Skin for OsuSkin {
     fn draw_play_scene(&mut self,
                        draw_state: &DrawState,
@@ -153,8 +150,6 @@ impl OsuSkin {
     }
     fn draw_long_note(&self, draw_state: &DrawState, transform: math::Matrix2d, gl: &mut GlGraphics,
                       stage_h: f64, pos: f64, end_pos: f64, column_index: usize) {
-
-        use graphics::Transformed;
 
         let scale = stage_h / 480.0;
         let scale2 = stage_h / 768.0; // long note body height when cascading is scaled with this

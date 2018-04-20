@@ -19,7 +19,7 @@ pub struct Resample<S: cpal::Sample> {
 impl<S: cpal::Sample> Iterator for Resample<S> {
     type Item = f32;
     fn next(&mut self) -> Option<f32> {
-        let mut return_value = Some(0.0);
+        let return_value;
         if self.previous_values.len() < self.num_channels && self.next_values.len() < self.num_channels {
             let next_sample = self.samples.next().unwrap();
             self.previous_values.push(next_sample);
