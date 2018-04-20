@@ -9,15 +9,14 @@ extern crate cpal;
 #[cfg(feature="mp3")]
 extern crate simplemad;
 
-mod model;
-mod view;
 mod chart;
 mod skin;
 mod config;
-mod game;
 mod audio;
+mod window;
+mod judgement;
 
 fn main() {
     let config = config::get_config();
-    game::start(config);
+    window::start(config);
 }

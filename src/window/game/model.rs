@@ -6,20 +6,11 @@ use piston::input::{ UpdateArgs, Button };
 
 use config::Config;
 use chart::Chart;
-
-#[derive(Copy, Clone)]
-pub enum Judgement {
-    Perfect,
-    Good,
-    Bad,
-    Miss,
-}
+use judgement::Judgement;
 
 /// Holds game states needed by the logic and renderer. Also does timing judgements.
-pub struct Model<'a, 'b> {
+pub struct Model {
     pub keys_down: [bool; 7],
-    chart: &'a Chart,
-    config: &'b Config,
 
     /// Contains the index of the first note that is 1 second ahead of the current time.
     current_note_index: usize,
@@ -34,14 +25,12 @@ pub struct Model<'a, 'b> {
     long_notes_held: [Option<usize>; 7],
 }
 
-impl<'a, 'b> Model<'a, 'b> {
+impl Model {
 
     /// Create a model for the game controller
-    pub fn new(chart: &'a Chart, config: &'b Config) -> Model<'a, 'b> {
+    pub fn new() -> Model {
         Model {
             keys_down: [false; 7],
-            chart,
-            config,
             current_note_index: 0,
             next_notes: [VecDeque::with_capacity(32),
                          VecDeque::with_capacity(32),
@@ -55,7 +44,7 @@ impl<'a, 'b> Model<'a, 'b> {
     }
 
     /// Called when an update event occurs
-    pub fn update<F: FnMut(usize)>(&mut self, args: &UpdateArgs, time: f64, mut miss_callback: F) {
+    pub fn update<F: FnMut(usize)>(&mut self, args: &UpdateArgs, chart: &Chart, time: f64, mut miss_callback: F) {
         // how many notes should be removed from the front of each vecdeque
         let mut to_be_removed = [0; 7];
 
@@ -63,7 +52,7 @@ impl<'a, 'b> Model<'a, 'b> {
 
             for &note_index in note_vec {
 
-                let note = &self.chart.notes[note_index];
+                let note = &chart.notes[note_index];
                 if let Some(end_time) = note.end_time {
 
                     if end_time - time < -0.3 {
@@ -83,19 +72,18 @@ impl<'a, 'b> Model<'a, 'b> {
             }
         }
 
-        while self.chart.notes[self.current_note_index].time - time < 1.0 {
-            self.next_notes[self.chart.notes[self.current_note_index].column].push_back(self.current_note_index);
+        while chart.notes[self.current_note_index].time - time < 1.0 {
+            self.next_notes[chart.notes[self.current_note_index].column].push_back(self.current_note_index);
             self.current_note_index += 1;
         }
     }
 
     /// Called when a press event occurs
-    pub fn press<F: FnMut(usize, Judgement)>(&mut self, args: &Button, time: f64, mut callback: F) {
+    pub fn press<F: FnMut(usize, Judgement)>(&mut self, args: &Button, config: &Config, chart: &Chart, time: f64, mut callback: F) {
 
         let next_notes = &mut self.next_notes;
-        let chart = self.chart;
 
-        self.config.key_bindings.iter().enumerate().zip(self.keys_down.iter_mut())
+        config.key_bindings.iter().enumerate().zip(self.keys_down.iter_mut())
             .for_each(|((key_index, key_binding), key_down)| {
                 if *args == *key_binding && !*key_down {
                     if let Some(&note_index) = next_notes[key_index].get(0) {
@@ -116,8 +104,8 @@ impl<'a, 'b> Model<'a, 'b> {
             });
     }
 
-    pub fn release<F: FnMut(usize)>(&mut self, args: &Button, time: f64, mut callback: F) {
-        self.config.key_bindings.iter().enumerate().zip(self.keys_down.iter_mut())
+    pub fn release<F: FnMut(usize)>(&mut self, args: &Button, config: &Config, time: f64, mut callback: F) {
+        config.key_bindings.iter().enumerate().zip(self.keys_down.iter_mut())
             .for_each(|((key_index, key_binding), key_down)| {
                 if *args == *key_binding {
                     callback(key_index);

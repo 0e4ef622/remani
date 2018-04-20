@@ -21,7 +21,7 @@ use std::error;
 use std::fmt;
 
 use skin::{ Skin, ParseError };
-use model::Judgement;
+use judgement::Judgement;
 
 #[derive(Copy, Clone, Debug)]
 enum NoteBodyStyle {
@@ -112,27 +112,13 @@ impl Skin for OsuSkin {
         self.draw_keys(draw_state, transform, gl, stage_height, keys_down);
 
         // Draw judgement
-        if let (Some(judgement), frame) = self.judgement {
-            let tx = match judgement {
-                Judgement::Miss => self.miss[0].deref(),
-                Judgement::Bad => self.hit50[0].deref(),
-                Judgement::Good => self.hit200[0].deref(),
-                Judgement::Perfect => self.hit300[0].deref(),
+        if let (Some(judgement), _) = self.judgement {
+            match judgement {
+                Judgement::Miss => self.draw_miss(draw_state, transform, gl, stage_height),
+                Judgement::Bad => (), // TODO
+                Judgement::Good => (),
+                Judgement::Perfect => self.draw_perfect(draw_state, transform, gl, stage_height),
             };
-
-            let scale = stage_height / 480.0;
-            let scale2 = stage_height / 768.0;
-            let score_p = self.hit_position as f64 * scale;
-            let stage_width = (self.column_width.iter().sum::<u16>() as f64 + self.column_spacing.iter().sum::<u16>() as f64) * scale;
-            let column_start = self.column_start as f64 * scale;
-
-            let tx_w = tx.get_width() as f64 * scale2;
-            let tx_h = tx.get_height() as f64 * scale2;
-            let tx_x = stage_width / 2.0 - tx_w / 2.0 + column_start;
-            let tx_y = self.score_position as f64 * scale - tx_h / 2.0;
-
-            let img = Image::new().rect([tx_x, tx_y, tx_w, tx_h]);
-            img.draw(tx, draw_state, transform, gl);
 
             self.judgement.1 += 1;
             if self.judgement.1 >= 7 {
@@ -262,8 +248,40 @@ impl OsuSkin {
         }
     }
 
-    fn draw_miss(&self, draw_state: &DrawState, transform: math::Matrix2d, gl: &mut GlGraphics, stage_h: f64) {
+    fn draw_perfect(&self, draw_state: &DrawState, transform: math::Matrix2d, gl: &mut GlGraphics, stage_h: f64) {
+        let tx = self.hit300g[0].deref();
 
+        let scale = stage_h / 480.0;
+        let scale2 = stage_h / 768.0;
+        let score_p = self.hit_position as f64 * scale;
+        let stage_width = (self.column_width.iter().sum::<u16>() as f64 + self.column_spacing.iter().sum::<u16>() as f64) * scale;
+        let column_start = self.column_start as f64 * scale;
+
+        let tx_w = tx.get_width() as f64 * scale2 / 1.5;
+        let tx_h = tx.get_height() as f64 * scale2 / 1.5;
+        let tx_x = stage_width / 2.0 - tx_w / 2.0 + column_start;
+        let tx_y = self.score_position as f64 * scale - tx_h / 2.0;
+
+        let img = Image::new().rect([tx_x, tx_y, tx_w, tx_h]);
+        img.draw(tx, draw_state, transform, gl);
+    }
+
+    fn draw_miss(&self, draw_state: &DrawState, transform: math::Matrix2d, gl: &mut GlGraphics, stage_h: f64) {
+        let tx = self.miss[0].deref();
+
+        let scale = stage_h / 480.0;
+        let scale2 = stage_h / 768.0;
+        let score_p = self.hit_position as f64 * scale;
+        let stage_width = (self.column_width.iter().sum::<u16>() as f64 + self.column_spacing.iter().sum::<u16>() as f64) * scale;
+        let column_start = self.column_start as f64 * scale;
+
+        let tx_w = tx.get_width() as f64 * scale2;
+        let tx_h = tx.get_height() as f64 * scale2;
+        let tx_x = stage_width / 2.0 - tx_w / 2.0 + column_start;
+        let tx_y = self.score_position as f64 * scale - tx_h / 2.0;
+
+        let img = Image::new().rect([tx_x, tx_y, tx_w, tx_h]);
+        img.draw(tx, draw_state, transform, gl);
     }
 }
 

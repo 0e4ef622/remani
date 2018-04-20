@@ -2,20 +2,20 @@
 
 use piston::input::RenderArgs;
 use opengl_graphics::GlGraphics;
-use graphics;
 use graphics::draw_state::DrawState;
+use graphics;
+
+use skin::Skin;
+use super::Model;
+use config::Config;
+use judgement::Judgement;
 
 use chart;
-use skin::Skin;
-use model::{ Model, Judgement };
-use config::Config;
 
 /// Holds values and resources needed by the window to do drawing stuff
-pub struct View<'a> {
-    pub gl: GlGraphics,
+pub struct View {
     skin: Box<Skin>,
     draw_state: DrawState,
-    chart: &'a chart::Chart,
     next_note_index: usize,
     notes_on_screen_indices: Vec<usize>,
     /// Indices of the notes in notes_on_screen that are actually below the screen and need to be
@@ -24,18 +24,14 @@ pub struct View<'a> {
     notes_pos: Vec<(usize, f64, Option<f64>)>,
 }
 
-impl<'a> View<'a> {
+impl View {
 
     /// Create a view with some hardcoded defaults and stuffs
-    pub fn new(gl: GlGraphics, skin: Box<Skin>, chart: &chart::Chart) -> View {
-        let gl = gl;
+    pub fn new(skin: Box<Skin>) -> View {
         let draw_state = DrawState::default();
-
         View {
-            gl,
             skin,
             draw_state,
-            chart,
             next_note_index: 0,
             notes_on_screen_indices: Vec::with_capacity(128),
             notes_below_screen_indices: Vec::with_capacity(128),
@@ -44,16 +40,15 @@ impl<'a> View<'a> {
     }
 
     /// Called when a render event occurs
-    pub fn render(&mut self, args: &RenderArgs, config: &Config, model: &Model, time: f64) {
+    pub fn render(&mut self, gl: &mut GlGraphics, args: &RenderArgs, config: &Config, chart: &chart::Chart, model: &Model, time: f64) {
         let skin = &mut self.skin;
         let draw_state = &self.draw_state;
-        let chart = &self.chart;
         let next_note_index = &mut self.next_note_index;
         let notes_on_screen_indices = &mut self.notes_on_screen_indices;
         let notes_below_screen_indices = &mut self.notes_below_screen_indices;
         let notes_pos = &mut self.notes_pos;
 
-        self.gl.draw(args.viewport(), |c, gl| {
+        gl.draw(args.viewport(), |c, gl| {
             graphics::clear([0.0; 4], gl);
 
             let mut add_next_note_index = 0;

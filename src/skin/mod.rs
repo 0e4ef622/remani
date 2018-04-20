@@ -11,7 +11,7 @@ use std::fmt;
 use std::path;
 
 use config;
-use model;
+use judgement::Judgement;
 
 mod osu_skin;
 
@@ -84,5 +84,5 @@ pub trait Skin {
                        keys_down: &[bool],
                        // column index, start pos, end pos
                        notes: &[(usize, f64, Option<f64>)]);
-    fn draw_judgement(&mut self, column: usize, judgement: model::Judgement);
+    fn draw_judgement(&mut self, column: usize, judgement: Judgement);
 }
