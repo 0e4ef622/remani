@@ -159,13 +159,15 @@ impl OsuSkin {
         let note_x = scale * (self.column_start as f64 +
                               self.column_width[0..column_index].iter().sum::<u16>() as f64 +
                               self.column_spacing[0..column_index].iter().sum::<u16>() as f64);
-        let bottom_y = if pos < 0.0 { hit_p } else { hit_p * (1.0 - pos) };
+        let real_bottom_y = hit_p * (1.0 - pos);
+        let bottom_y = if pos < 0.0 { hit_p } else { real_bottom_y };
         let top_y = hit_p * (1.0 - end_pos);
 
         let note_head = self.long_notes_head[column_index][0].deref();
         let note_tail = self.long_notes_tail[column_index].as_ref().map(|v| v[0].deref());
         let note_body = self.long_notes_body[column_index][0].deref();
 
+        let note_body_h = note_body.get_height() as f64 * scale2;
         let note_end_h = self.width_for_note_height_scale * scale;
         let note_head_y = bottom_y - note_end_h;
         let note_tail_y = top_y - note_end_h;
@@ -179,43 +181,53 @@ impl OsuSkin {
                 note_body_img.draw(note_body, draw_state, transform, gl);
             },
             NoteBodyStyle::CascadeFromTop => {
-                let mut rect = [note_x, top_y - note_end_h/2.0, note_w, note_body.get_height() as f64];
+                let mut rect = [note_x, top_y - note_end_h/2.0, note_w, note_body_h];
                 let mut i = 0.0;
-                while i < bottom_y - top_y {
-                    let mut note_body_img = Image::new();
-                    if i + note_body.get_height() as f64 >= bottom_y - top_y {
-                        let mut mod_rect = rect.clone();
-                        mod_rect[3] = bottom_y - top_y - i;
-                        let src_rect = [0.0, 0.0, note_body.get_width() as f64, mod_rect[3]];
-                        note_body_img = note_body_img.src_rect(src_rect).rect(mod_rect);
-                        note_body_img.draw(note_body, draw_state, transform, gl);
-                    } else {
-                        note_body_img = note_body_img.rect(rect);
-                        note_body_img.draw(note_body, draw_state, transform, gl);
-                    }
-                    rect[1] += note_body.get_height() as f64;
-                    i += note_body.get_height() as f64;
+                let mut note_body_img = Image::new();
+                while i < bottom_y - top_y - note_body_h {
+                    note_body_img = note_body_img.rect(rect);
+                    note_body_img.draw(note_body, draw_state, transform, gl);
+                    rect[1] += note_body_h;
+                    i += note_body_h;
                 }
+                let mut mod_rect = rect.clone();
+                mod_rect[3] = bottom_y - top_y - i;
+                let src_rect = [0.0, 0.0, note_body.get_width() as f64, mod_rect[3]];
+                note_body_img = note_body_img.src_rect(src_rect).rect(mod_rect);
+                note_body_img.draw(note_body, draw_state, transform, gl);
             },
             NoteBodyStyle::CascadeFromBottom => {
-                let mut rect = [note_x, bottom_y - note_end_h*2.0 - (note_body.get_height() as f64) / 2.0, note_w, note_body.get_height() as f64];
-                let mut i = bottom_y - top_y;
-                while i + note_body.get_height() as f64 > 0.0 {
-                    let mut note_body_img = Image::new();
-                    if i <= 0.0 {
-                        let mut mod_rect = rect.clone();
-                        mod_rect[1] = top_y - note_end_h/2.0;
-                        mod_rect[3] = note_body.get_height() as f64 + i;
-                        let src_rect = [0.0, -i, note_body.get_width() as f64, note_body.get_height() as f64 + i];
-                        note_body_img = note_body_img.src_rect(src_rect).rect(mod_rect);
-                        note_body_img.draw(note_body, draw_state, transform, gl);
-                    } else {
-                        note_body_img = note_body_img.rect(rect);
-                        note_body_img.draw(note_body, draw_state, transform, gl);
-                    }
-                    rect[1] -= note_body.get_height() as f64;
-                    i -= note_body.get_height() as f64;
+                let mut rect = [note_x, top_y - note_end_h/2.0, note_w, note_body_h];
+                let mut i = 0.0;
+                let mut note_body_img = Image::new();
+
+                let offset = (real_bottom_y - top_y) % note_body_h;
+
+                let mut mod_rect = rect.clone();
+                mod_rect[3] = offset;
+                let src_rect = [0.0, offset / scale2, note_body.get_width() as f64, -(mod_rect[3] / scale2)];
+                note_body_img = note_body_img.src_rect(src_rect).rect(mod_rect);
+                note_body_img.draw(note_body, draw_state, transform, gl);
+
+                note_body_img = Image::new();
+
+                rect[1] += offset;
+                i = offset;
+
+                let upside_down_rect = [0.0, note_body.get_height() as f64, note_body.get_width() as f64, -(note_body.get_height() as f64)];
+
+                while i < bottom_y - top_y - note_body_h {
+                    note_body_img = note_body_img.src_rect(upside_down_rect).rect(rect);
+                    note_body_img.draw(note_body, draw_state, transform, gl);
+                    rect[1] += note_body_h;
+                    i += note_body_h;
                 }
+
+                mod_rect = rect.clone();
+                mod_rect[3] = bottom_y - top_y - i;
+                let src_rect = [0.0, note_body.get_height() as f64, note_body.get_width() as f64, -mod_rect[3]];
+                note_body_img = note_body_img.src_rect(src_rect).rect(mod_rect);
+                note_body_img.draw(note_body, draw_state, transform, gl);
             },
         }
 
