@@ -15,6 +15,7 @@ use config::Config;
 use judgement::Judgement;
 use self::model::Model;
 use self::view::View;
+use super::Window;
 
 use audio;
 use skin;
@@ -53,7 +54,7 @@ impl GameScene {
     }
 
     /// Called everytime there is a window event
-    pub fn event(&mut self, e: piston::input::Event, config: &Config, audio: &audio::Audio<f32>, gl: &mut GlGraphics) {
+    pub(super) fn event(&mut self, e: piston::input::Event, config: &Config, audio: &audio::Audio<f32>, window: &mut Window) {
 
         if self.music.is_some() {
             audio.play_music(self.music.take().unwrap());
@@ -98,7 +99,7 @@ impl GameScene {
         }
 
         if let Some(r) = e.render_args() {
-            self.view.render(gl, &r, config, &self.chart, &self.model, self.time);
+            self.view.render(&mut window.gl, &r, config, &self.chart, &self.model, self.time);
         }
     }
 }

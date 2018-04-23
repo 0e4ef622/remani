@@ -17,16 +17,23 @@ enum Scene {
 
 use piston;
 impl Scene {
-    pub fn event(&mut self, e: piston::input::Event, cfg: &Config, audio: &audio::Audio<f32>, gl: &mut GlGraphics) {
+    pub fn event(&mut self, e: piston::input::Event, cfg: &Config, audio: &audio::Audio<f32>, window: &mut Window) {
         match *self {
-            Scene::Game(ref mut s) => s.event(e, cfg, audio, gl),
+            Scene::Game(ref mut s) => s.event(e, cfg, audio, window),
             _ => (),
         }
     }
 }
 
-struct Stuff {
-    current_scene: Scene,
+struct Window {
+    gl: GlGraphics,
+    next_scene: Option<Scene>,
+}
+
+impl Window {
+    fn change_scene(&mut self, next_scene: Scene) {
+        self.next_scene = Some(next_scene);
+    }
 }
 
 pub fn start(config: Config) {
@@ -38,7 +45,7 @@ pub fn start(config: Config) {
 
     let opengl = OpenGL::V3_2;
 
-    let mut window: GlutinWindow = WindowSettings::new("Remani", [1024, 768])
+    let mut glutin_window: GlutinWindow = WindowSettings::new("Remani", [1024, 768])
                              .opengl(opengl)
                              .srgb(false)
                              .build()
@@ -58,12 +65,18 @@ pub fn start(config: Config) {
         },
     };
 
-    let mut stuff = Stuff {
-        current_scene: Scene::Game(game::GameScene::new(chart, &config, &audio)),
+    let mut window = Window {
+        gl,
+        next_scene: None,
     };
+    let mut current_scene = Scene::Game(game::GameScene::new(chart, &config, &audio));
 
     let mut events = Events::new(EventSettings::new());
-    while let Some(e) = events.next(&mut window) {
-        stuff.current_scene.event(e, &config, &audio, &mut gl);
+    while let Some(e) = events.next(&mut glutin_window) {
+        current_scene.event(e, &config, &audio, &mut window);
+
+        if window.next_scene.is_some() {
+            current_scene = window.next_scene.take().unwrap();
+        }
     }
 }
