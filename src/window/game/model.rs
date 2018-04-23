@@ -1,4 +1,4 @@
-//! A module that handles window update events
+//! A module that handles window update and key press/release events
 
 use std::collections::VecDeque;
 

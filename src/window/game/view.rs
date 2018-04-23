@@ -1,4 +1,4 @@
-//! A module that handles window render events
+//! A module that handles window render events for the game scene
 
 use piston::input::RenderArgs;
 use opengl_graphics::GlGraphics;

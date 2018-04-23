@@ -1,3 +1,5 @@
+//! Load MP3 files
+
 use simplemad;
 use audio::MusicStream;
 

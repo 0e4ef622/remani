@@ -32,7 +32,7 @@ pub struct GameScene {
 }
 
 impl GameScene {
-    /// Allocate everything
+    /// Allocate and initialize everything
     pub fn new(chart: Chart, config: &Config, audio: &audio::Audio<f32>) -> GameScene {
 
         let music = audio::music_from_path(Path::new("test/test_chart").join(&chart.music_path), audio.format()).unwrap();

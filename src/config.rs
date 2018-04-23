@@ -14,7 +14,7 @@ pub struct Config {
     pub offset: f64,
 }
 
-/// Load configuration from a file
+/// Load configuration from a file except that part isn't implemented yet. TODO
 pub fn get_config() -> Config {
     use piston::input::keyboard::Key;
     use piston::input::Button::Keyboard;

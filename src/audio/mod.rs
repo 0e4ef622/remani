@@ -20,8 +20,9 @@ use cpal::Sample;
 
 pub type EffectStream<S: cpal::Sample> = Arc<Vec<S>>;
 
-/// A lazy iterator over audio samples
+/// A struct that encapsulates a lazy iterator over audio samples with metadata.
 pub struct MusicStream<S: cpal::Sample> {
+    /// An interleaved iterator of samples
     samples: Box<Iterator<Item = S> + Send>,
     channel_count: u8,
     sample_rate: u32,
@@ -180,6 +181,8 @@ pub fn start_audio_thread() -> Result<Audio<f32>, AudioThreadError> {
 
     let channel_count = format.channels as usize;
     let sample_rate = format.sample_rate.0;
+
+    // Spawn the audio thread
     thread::spawn(move || {
 
         let mut effects: VecDeque<Peekable<ArcIter<f32>>> = VecDeque::with_capacity(128);
@@ -192,10 +195,11 @@ pub fn start_audio_thread() -> Result<Audio<f32>, AudioThreadError> {
         // hopefully u64 is big enough and no one tries to play a 3 million year 192kHz audio file
         let mut current_music_frame_index: u64 = 0;
 
+        // Audio loop
         event_loop.run(move |_, data| {
             while let Ok(effect) = effect_rx.try_recv() {
                 effects.push_back(effect.peekable());
-                // do things
+                // TODO do things
             }
             while let Ok(m) = music_rx.try_recv() {
                 music = m;
