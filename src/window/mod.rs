@@ -8,9 +8,10 @@ use chart::Chart;
 use audio;
 
 mod game;
+mod main_menu;
 
 enum Scene {
-    MainMenu,
+    MainMenu(main_menu::MainMenu),
     SongSelect,
     Game(game::GameScene),
 }
@@ -19,7 +20,8 @@ use piston;
 impl Scene {
     pub fn event(&mut self, e: piston::input::Event, cfg: &Config, audio: &audio::Audio<f32>, window: &mut Window) {
         match *self {
-            Scene::Game(ref mut s) => s.event(e, cfg, audio, window),
+            Scene::Game(ref mut scene)     => scene.event(e, cfg, audio, window),
+            Scene::MainMenu(ref mut scene) => scene.event(e, cfg, audio, window),
             _ => (),
         }
     }
@@ -51,11 +53,6 @@ pub fn start(config: Config) {
                              .build()
                              .expect("Could not create window");
     let mut gl = GlGraphics::new(opengl);
-    // test
-    let chart = match Chart::from_path("test/test_chart/test.osu") {
-        Ok(x) => x,
-        Err(e) => { println!("{}", e); panic!(); },
-    };
 
     let audio = match audio::start_audio_thread() {
         Ok(a) => a,
@@ -69,7 +66,7 @@ pub fn start(config: Config) {
         gl,
         next_scene: None,
     };
-    let mut current_scene = Scene::Game(game::GameScene::new(chart, &config, &audio));
+    let mut current_scene = Scene::MainMenu(main_menu::MainMenu::new());
 
     let mut events = Events::new(EventSettings::new());
     while let Some(e) = events.next(&mut glutin_window) {
