@@ -16,11 +16,15 @@ use chart;
 pub struct View {
     skin: Box<Skin>,
     draw_state: DrawState,
+
+    /// Index of the next note that isn't on the screen yet
     next_note_index: usize,
     notes_on_screen_indices: Vec<usize>,
     /// Indices of the notes in notes_on_screen that are actually below the screen and need to be
     /// removed
     notes_below_screen_indices: Vec<usize>,
+
+    /// (index, start_pos, end_pos)
     notes_pos: Vec<(usize, f64, Option<f64>)>,
 }
 

@@ -55,6 +55,7 @@ impl Model {
                 let note = &chart.notes[note_index];
                 if let Some(end_time) = note.end_time {
 
+                    // TODO dont hardcode timing windows
                     if end_time - time < -0.3 {
                         miss_callback(note_index);
                         to_be_removed[column] += 1;
@@ -90,6 +91,7 @@ impl Model {
 
                         let note = &chart.notes[note_index];
 
+                        // TODO dont hardcode timing windows
                         let judgement = if (note.time - time).abs() < 0.1 {
                             Judgement::Perfect
                         } else {
