@@ -19,6 +19,8 @@ pub struct View {
 
     /// Index of the next note that isn't on the screen yet
     next_note_index: usize,
+    current_timing_point_index: usize,
+
     notes_on_screen_indices: Vec<usize>,
     /// Indices of the notes in notes_on_screen that are actually below the screen and need to be
     /// removed
@@ -37,6 +39,7 @@ impl View {
             skin,
             draw_state,
             next_note_index: 0,
+            current_timing_point_index: 0,
             notes_on_screen_indices: Vec::with_capacity(128),
             notes_below_screen_indices: Vec::with_capacity(128),
             notes_pos: Vec::with_capacity(128),
@@ -51,6 +54,7 @@ impl View {
         let notes_on_screen_indices = &mut self.notes_on_screen_indices;
         let notes_below_screen_indices = &mut self.notes_below_screen_indices;
         let notes_pos = &mut self.notes_pos;
+        let current_timing_point_index = &mut self.current_timing_point_index;
 
         gl.draw(args.viewport(), |c, gl| {
             graphics::clear([0.0; 4], gl);
@@ -58,7 +62,9 @@ impl View {
             let mut add_next_note_index = 0;
 
             for (index, note) in chart.notes[*next_note_index..].iter().enumerate() {
-                if note.time - time > 1.0 / config.scroll_speed { break; }
+
+                let note_pos = calc_pos(time, note.time, chart, config.scroll_speed, *current_timing_point_index);
+                if note_pos > 1.0 { break; }
 
                 notes_on_screen_indices.push(index + *next_note_index);
                 add_next_note_index += 1;
@@ -81,6 +87,8 @@ impl View {
                 }
             }
 
+            // TODO manage self.current_timing_point_index
+
             for &index in notes_below_screen_indices.iter().rev() {
                 notes_on_screen_indices.swap_remove(index);
             }
@@ -88,8 +96,10 @@ impl View {
             notes_pos.clear();
             notes_pos.extend(notes_on_screen_indices.iter().map(|&i| {
                 let note = &chart.notes[i];
-                let pos = (note.time - time) * config.scroll_speed;
-                let end_pos = note.end_time.map(|t| (t - time) * config.scroll_speed);
+
+                let pos = calc_pos(time, note.time, chart, config.scroll_speed, *current_timing_point_index);
+                let end_pos = note.end_time.map(|t| calc_pos(time, t, chart, config.scroll_speed, *current_timing_point_index));
+
                 (note.column, pos, end_pos)
             }));
 
@@ -106,5 +116,13 @@ impl View {
     pub fn draw_judgement(&mut self, column: usize, judgement: Judgement) {
         self.skin.draw_judgement(column, judgement);
     }
+}
 
+/// Given the time in seconds from the start of the song, calculate the position, taking into
+/// account SV changes. Return value is an f64 between 0.0 and 1.0, 0.0 being at the judgement
+/// line, and 1.0 being at the top of the stage.
+///
+/// Used to calculate note position.
+fn calc_pos(current_time: f64, time: f64, chart: &chart::Chart, scroll_speed: f64, current_timing_point_index: usize) -> f64 {
+    (time - current_time) * scroll_speed
 }
