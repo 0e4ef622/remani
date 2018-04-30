@@ -31,7 +31,7 @@ enum NoteBodyStyle {
 }
 
 /// Holds skin data, such as note images and what not.
-struct OsuSkin {
+struct OsuSkinTextures {
     miss: Rc<Vec<Rc<Texture>>>,
     hit50: Rc<Vec<Rc<Texture>>>,
     hit100: Rc<Vec<Rc<Texture>>>,
@@ -63,7 +63,9 @@ struct OsuSkin {
     stage_left: Rc<Texture>,
     stage_right: Rc<Texture>,
     stage_bottom: Option<Rc<Vec<Rc<Texture>>>>,
+}
 
+struct OsuSkinConfig {
     /// Various information related to how to draw components.
     column_start: u16,
     column_width: [u16; 7],
@@ -83,6 +85,11 @@ struct OsuSkin {
     // low priority
     // special_style: SpecialStyle,
     // keys_under_notes: bool,
+}
+
+struct OsuSkin {
+    textures: OsuSkinTextures,
+    config: OsuSkinConfig,
 
     /// judgement, frame #
     judgement: (Option<Judgement>, usize),
@@ -134,17 +141,17 @@ impl OsuSkin {
     fn draw_note(&self, draw_state: &DrawState, transform: math::Matrix2d, gl: &mut GlGraphics, stage_h: f64, pos: f64, column_index: usize) {
 
         let scale = stage_h / 480.0;
-        let hit_p = self.hit_position as f64 * scale;
+        let hit_p = self.config.hit_position as f64 * scale;
 
-        let note_w = self.column_width[column_index] as f64 * scale;
-        let note_h = self.width_for_note_height_scale * scale;
-        let note_x = scale * (self.column_start as f64 +
-                              self.column_width[0..column_index].iter().sum::<u16>() as f64 +
-                              self.column_spacing[0..column_index].iter().sum::<u16>() as f64);
+        let note_w = self.config.column_width[column_index] as f64 * scale;
+        let note_h = self.config.width_for_note_height_scale * scale;
+        let note_x = scale * (self.config.column_start as f64 +
+                              self.config.column_width[0..column_index].iter().sum::<u16>() as f64 +
+                              self.config.column_spacing[0..column_index].iter().sum::<u16>() as f64);
 
         let note_y = hit_p * (1.0 - pos) - note_h;
 
-        let note = self.notes[column_index][0].deref();
+        let note = self.textures.notes[column_index][0].deref();
         let note_img = Image::new().rect([note_x, note_y, note_w, note_h]);
         note_img.draw(note, draw_state, transform, gl);
     }
@@ -153,29 +160,29 @@ impl OsuSkin {
 
         let scale = stage_h / 480.0;
         let scale2 = stage_h / 768.0; // long note body height when cascading is scaled with this
-        let hit_p = self.hit_position as f64 * scale;
+        let hit_p = self.config.hit_position as f64 * scale;
 
-        let note_w = self.column_width[column_index] as f64 * scale;
-        let note_x = scale * (self.column_start as f64 +
-                              self.column_width[0..column_index].iter().sum::<u16>() as f64 +
-                              self.column_spacing[0..column_index].iter().sum::<u16>() as f64);
+        let note_w = self.config.column_width[column_index] as f64 * scale;
+        let note_x = scale * (self.config.column_start as f64 +
+                              self.config.column_width[0..column_index].iter().sum::<u16>() as f64 +
+                              self.config.column_spacing[0..column_index].iter().sum::<u16>() as f64);
         let real_bottom_y = hit_p * (1.0 - pos);
         let bottom_y = if pos < 0.0 { hit_p } else { real_bottom_y };
         let top_y = hit_p * (1.0 - end_pos);
 
-        let note_head = self.long_notes_head[column_index][0].deref();
-        let note_tail = self.long_notes_tail[column_index].as_ref().map(|v| v[0].deref());
-        let note_body = self.long_notes_body[column_index][0].deref();
+        let note_head = self.textures.long_notes_head[column_index][0].deref();
+        let note_tail = self.textures.long_notes_tail[column_index].as_ref().map(|v| v[0].deref());
+        let note_body = self.textures.long_notes_body[column_index][0].deref();
 
         let note_body_h = note_body.get_height() as f64 * scale2;
-        let note_end_h = self.width_for_note_height_scale * scale;
+        let note_end_h = self.config.width_for_note_height_scale * scale;
         let note_head_y = bottom_y - note_end_h;
         let note_tail_y = top_y - note_end_h;
 
         let note_head_img = Image::new().rect([note_x, note_head_y, note_w, note_end_h]);
         let note_tail_img = Image::new().rect([note_x, note_tail_y, note_w, note_end_h]);
 
-        match self.note_body_style[column_index] {
+        match self.config.note_body_style[column_index] {
             NoteBodyStyle::Stretch => {
                 let note_body_img = Image::new()
                     .src_rect([0.0, 0.0, note_body.get_width() as f64, ((bottom_y - top_y)/(real_bottom_y - top_y)*(note_body.get_height() as f64))])
@@ -298,21 +305,21 @@ impl OsuSkin {
         // height of 768. .-.
         let scale2 = stage_h / 768.0;
 
-        let column_width_sum = (self.column_width.iter().sum::<u16>() as f64 + self.column_spacing.iter().sum::<u16>() as f64) * scale;
-        let column_start = self.column_start as f64 * scale;
-        let stage_hint_height = self.stage_hint[0].get_height() as f64 * scale;
-        let stage_l_width = self.stage_left.get_width() as f64 * scale2;
-        let stage_r_width = self.stage_right.get_width() as f64 * scale2;
+        let column_width_sum = (self.config.column_width.iter().sum::<u16>() as f64 + self.config.column_spacing.iter().sum::<u16>() as f64) * scale;
+        let column_start = self.config.column_start as f64 * scale;
+        let stage_hint_height = self.textures.stage_hint[0].get_height() as f64 * scale;
+        let stage_l_width = self.textures.stage_left.get_width() as f64 * scale2;
+        let stage_r_width = self.textures.stage_right.get_width() as f64 * scale2;
 
         let stage_l_img = Image::new().rect([column_start - stage_l_width , 0.0, stage_l_width, stage_h]);
         let stage_r_img = Image::new().rect([column_start + column_width_sum, 0.0, stage_r_width, stage_h]);
-        let stage_hint_img = Image::new().rect([column_start, self.hit_position as f64 * scale - stage_hint_height / 2.0, column_width_sum, stage_hint_height]);
+        let stage_hint_img = Image::new().rect([column_start, self.config.hit_position as f64 * scale - stage_hint_height / 2.0, column_width_sum, stage_hint_height]);
 
-        stage_hint_img.draw(self.stage_hint[0].deref(), draw_state, transform, gl);
-        stage_l_img.draw(self.stage_left.deref(), draw_state, transform, gl);
-        stage_r_img.draw(self.stage_right.deref(), draw_state, transform, gl);
+        stage_hint_img.draw(self.textures.stage_hint[0].deref(), draw_state, transform, gl);
+        stage_l_img.draw(self.textures.stage_left.deref(), draw_state, transform, gl);
+        stage_r_img.draw(self.textures.stage_right.deref(), draw_state, transform, gl);
 
-        if let Some(ref v) = self.stage_bottom {
+        if let Some(ref v) = self.textures.stage_bottom {
             let stage_bottom = &v[0];
             let stage_b_width = stage_bottom.get_width() as f64 * scale;
             let stage_b_height = stage_bottom.get_height() as f64 * scale;
@@ -327,10 +334,12 @@ impl OsuSkin {
         let scale2 = stage_h / 768.0;
 
         for (i, key_pressed) in pressed.iter().enumerate() {
-            let key_texture: &Texture = if *key_pressed { self.keys_d[i].as_ref() } else { self.keys[i].as_ref() };
-            let key_width = self.column_width[i] as f64 * scale;
+            let key_texture: &Texture = if *key_pressed { self.textures.keys_d[i].as_ref() } else { self.textures.keys[i].as_ref() };
+            let key_width = self.config.column_width[i] as f64 * scale;
             let key_height = key_texture.get_height() as f64 * scale2;
-            let key_x = scale * (self.column_start as f64 + self.column_width[0..i].iter().sum::<u16>() as f64 + self.column_spacing[0..i].iter().sum::<u16>() as f64);
+            let key_x = scale * (self.config.column_start as f64 +
+                                 self.config.column_width[0..i].iter().sum::<u16>() as f64 +
+                                 self.config.column_spacing[0..i].iter().sum::<u16>() as f64);
             let key_y = stage_h - key_height;
             let key_img = Image::new().rect([key_x, key_y, key_width, key_height]);
             key_img.draw(key_texture, draw_state, transform, gl);
@@ -338,36 +347,36 @@ impl OsuSkin {
     }
 
     fn draw_perfect(&self, draw_state: &DrawState, transform: math::Matrix2d, gl: &mut GlGraphics, stage_h: f64) {
-        let tx = self.hit300g[0].deref();
+        let tx = self.textures.hit300g[0].deref();
 
         let scale = stage_h / 480.0;
         let scale2 = stage_h / 768.0;
-        let score_p = self.hit_position as f64 * scale;
-        let stage_width = (self.column_width.iter().sum::<u16>() as f64 + self.column_spacing.iter().sum::<u16>() as f64) * scale;
-        let column_start = self.column_start as f64 * scale;
+        let score_p = self.config.hit_position as f64 * scale;
+        let stage_width = (self.config.column_width.iter().sum::<u16>() as f64 + self.config.column_spacing.iter().sum::<u16>() as f64) * scale;
+        let column_start = self.config.column_start as f64 * scale;
 
         let tx_w = tx.get_width() as f64 * scale2 / 1.5;
         let tx_h = tx.get_height() as f64 * scale2 / 1.5;
         let tx_x = stage_width / 2.0 - tx_w / 2.0 + column_start;
-        let tx_y = self.score_position as f64 * scale - tx_h / 2.0;
+        let tx_y = self.config.score_position as f64 * scale - tx_h / 2.0;
 
         let img = Image::new().rect([tx_x, tx_y, tx_w, tx_h]);
         img.draw(tx, draw_state, transform, gl);
     }
 
     fn draw_miss(&self, draw_state: &DrawState, transform: math::Matrix2d, gl: &mut GlGraphics, stage_h: f64) {
-        let tx = self.miss[0].deref();
+        let tx = self.textures.miss[0].deref();
 
         let scale = stage_h / 480.0;
         let scale2 = stage_h / 768.0;
-        let score_p = self.hit_position as f64 * scale;
-        let stage_width = (self.column_width.iter().sum::<u16>() as f64 + self.column_spacing.iter().sum::<u16>() as f64) * scale;
-        let column_start = self.column_start as f64 * scale;
+        let score_p = self.config.hit_position as f64 * scale;
+        let stage_width = (self.config.column_width.iter().sum::<u16>() as f64 + self.config.column_spacing.iter().sum::<u16>() as f64) * scale;
+        let column_start = self.config.column_start as f64 * scale;
 
         let tx_w = tx.get_width() as f64 * scale2;
         let tx_h = tx.get_height() as f64 * scale2;
         let tx_x = stage_width / 2.0 - tx_w / 2.0 + column_start;
-        let tx_y = self.score_position as f64 * scale - tx_h / 2.0;
+        let tx_y = self.config.score_position as f64 * scale - tx_h / 2.0;
 
         let img = Image::new().rect([tx_x, tx_y, tx_w, tx_h]);
         img.draw(tx, draw_state, transform, gl);
@@ -731,30 +740,35 @@ pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<Skin>
     }
     let width_for_note_height_scale =  smallest_note_height / smallest_note_width * *column_width.iter().min().unwrap() as f64;
     Ok(Box::new(OsuSkin {
-        miss,
-        hit50,
-        hit100,
-        hit200,
-        hit300,
-        hit300g,
-        keys,
-        keys_d,
-        notes,
-        long_notes_head,
-        long_notes_body,
-        long_notes_tail,
-        stage_hint,
-        stage_left,
-        stage_right,
-        stage_bottom,
-        column_start,
-        column_width,
-        column_spacing,
-        column_line_width,
-        hit_position,
-        score_position,
-        width_for_note_height_scale,
-        note_body_style,
+        textures: OsuSkinTextures {
+            miss,
+            hit50,
+            hit100,
+            hit200,
+            hit300,
+            hit300g,
+            keys,
+            keys_d,
+            notes,
+            long_notes_head,
+            long_notes_body,
+            long_notes_tail,
+            stage_hint,
+            stage_left,
+            stage_right,
+            stage_bottom,
+        },
+
+        config: OsuSkinConfig {
+            column_start,
+            column_width,
+            column_spacing,
+            column_line_width,
+            hit_position,
+            score_position,
+            width_for_note_height_scale,
+            note_body_style,
+        },
         judgement: (None, 0),
     }))
 }
