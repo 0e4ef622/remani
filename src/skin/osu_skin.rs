@@ -7,6 +7,7 @@ use opengl_graphics::GlGraphics;
 use graphics::image::Image;
 use graphics::draw_state::DrawState;
 use graphics::math;
+use graphics::Transformed;
 use texture::TextureSettings;
 use texture::ImageSize;
 use std::ops::Deref;
@@ -19,6 +20,7 @@ use std::collections::HashMap;
 use std::path;
 use std::error;
 use std::fmt;
+use std::time;
 
 use skin::{ Skin, ParseError };
 use judgement::Judgement;
@@ -87,12 +89,17 @@ struct OsuSkinConfig {
     // keys_under_notes: bool,
 }
 
+struct OsuAnimStates {
+    keys_last_down_time: [Option<time::Instant>; 7],
+}
+
 struct OsuSkin {
     textures: OsuSkinTextures,
     config: OsuSkinConfig,
+    anim_states: OsuAnimStates,
 
-    /// judgement, frame #
-    judgement: (Option<Judgement>, usize),
+    /// judgement, time of first frame
+    judgement: Option<(Judgement, time::Instant)>,
 }
 
 impl Skin for OsuSkin {
@@ -116,23 +123,33 @@ impl Skin for OsuSkin {
         self.draw_keys(draw_state, transform, gl, stage_height, keys_down);
 
         // Draw judgement
-        if let (Some(judgement), _) = self.judgement {
-            match judgement {
-                Judgement::Miss => self.draw_miss(draw_state, transform, gl, stage_height),
-                Judgement::Bad => (), // TODO
-                Judgement::Good => (),
-                Judgement::Perfect => self.draw_perfect(draw_state, transform, gl, stage_height),
-            };
+        if let Some((judgement, time)) = self.judgement {
+            let elapsed = time.elapsed();
 
-            self.judgement.1 += 1;
-            if self.judgement.1 >= 7 {
-                self.judgement = (None, 0);
+            if elapsed <= time::Duration::from_millis(200) {
+
+                // the "burst" animation
+                let scale = if elapsed <= time::Duration::from_millis(50) {
+                    1.5 - elapsed.subsec_nanos() as f64 / 50_000_000.0 / 2.0
+                } else if elapsed <= time::Duration::from_millis(160) {
+                    1.0
+                } else {
+                    1.0 - (elapsed.subsec_nanos() - 160_000_000) as f64 / 150_000_000.0
+                };
+                match judgement {
+                    Judgement::Miss => self.draw_miss(draw_state, transform, gl, stage_height),
+                    Judgement::Bad => (), // TODO
+                    Judgement::Good => (),
+                    Judgement::Perfect => self.draw_perfect(draw_state, transform, scale, gl, stage_height, elapsed),
+                };
+            } else {
+                self.judgement = None;
             }
         }
     }
 
     fn draw_judgement(&mut self, _column: usize, judgement: Judgement) {
-        self.judgement = (Some(judgement), 0);
+        self.judgement = Some((judgement, time::Instant::now()));
     }
 }
 
@@ -346,8 +363,12 @@ impl OsuSkin {
         }
     }
 
-    fn draw_perfect(&self, draw_state: &DrawState, transform: math::Matrix2d, gl: &mut GlGraphics, stage_h: f64) {
-        let tx = self.textures.hit300g[0].deref();
+    fn draw_perfect(&self, draw_state: &DrawState, transform: math::Matrix2d, size_scale: f64, gl: &mut GlGraphics, stage_h: f64, elapsed_time: time::Duration) {
+        let elapsed = elapsed_time.as_secs() as f64 + elapsed_time.subsec_nanos() as f64 / 1_000_000_000.0;
+        //let frame = ((elapsed % (self.textures.hit300g.len() as f64 / 60.0)) / 60.0) as usize;
+        let frame = (elapsed * 30.0) as usize % self.textures.hit300g.len();
+
+        let tx = self.textures.hit300g[frame].deref();
 
         let scale = stage_h / 480.0;
         let scale2 = stage_h / 768.0;
@@ -355,8 +376,8 @@ impl OsuSkin {
         let stage_width = (self.config.column_width.iter().sum::<u16>() as f64 + self.config.column_spacing.iter().sum::<u16>() as f64) * scale;
         let column_start = self.config.column_start as f64 * scale;
 
-        let tx_w = tx.get_width() as f64 * scale2 / 1.5;
-        let tx_h = tx.get_height() as f64 * scale2 / 1.5;
+        let tx_w = tx.get_width() as f64 * scale2 / 1.5 * size_scale;
+        let tx_h = tx.get_height() as f64 * scale2 / 1.5 * size_scale;
         let tx_x = stage_width / 2.0 - tx_w / 2.0 + column_start;
         let tx_y = self.config.score_position as f64 * scale - tx_h / 2.0;
 
@@ -580,6 +601,7 @@ pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<Skin>
     let mut column_width = [30; 7];
     let mut column_line_width = [2; 8];
     let mut column_spacing = [0; 6];
+    let mut colour_light = [[255, 255, 255]; 7];
     let mut hit_position = 402;
     let mut score_position = 240; // idk TODO
     let mut note_body_style = [NoteBodyStyle::CascadeFromTop; 7];
@@ -624,19 +646,21 @@ pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<Skin>
                         // for values that look like
                         // 42,10,5,1337,4,8,2
                         macro_rules! csv {
-                            ($var_name:ident; $count:expr) => {{
+                            ($default:expr; $count:expr) => {{
+                                let mut a = $default;
                                 for (i, v) in value.split(",").enumerate().take($count) {
-                                    $var_name[i] = v.parse().unwrap();
+                                    a[i] = v.parse().unwrap();
                                 }
+                                a
                             }}
                         }
                         match key {
                             "ColumnStart" => column_start = value.parse().unwrap(),
                             "HitPosition" => hit_position = value.parse().unwrap(),
                             "ScorePosition" => score_position = value.parse().unwrap(),
-                            "ColumnWidth" => csv![column_width; 7],
-                            "ColumnLineWidth" => csv![column_line_width; 8],
-                            "ColumnSpacing" => csv![column_spacing; 6],
+                            "ColumnWidth" => column_width = csv![column_width; 7],
+                            "ColumnLineWidth" => column_line_width = csv![column_line_width; 8],
+                            "ColumnSpacing" => column_spacing = csv![column_spacing; 6],
                             "NoteBodyStyle" => for (i, v) in value.split(",").enumerate().take(7) {
                                 note_body_style[i] = match v {
                                     "0" => NoteBodyStyle::Stretch,
@@ -655,6 +679,15 @@ pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<Skin>
                             "StageLeft" => stage_left_name.1 = value.to_owned(),
                             "StageRight" => stage_right_name.1 = value.to_owned(),
                             "StageBottom" => stage_bottom_name.1 = value.to_owned(),
+
+                            "ColourLight1" => colour_light[0] = csv![colour_light[0]; 3],
+                            "ColourLight2" => colour_light[1] = csv![colour_light[1]; 3],
+                            "ColourLight3" => colour_light[2] = csv![colour_light[2]; 3],
+                            "ColourLight4" => colour_light[3] = csv![colour_light[3]; 3],
+                            "ColourLight5" => colour_light[4] = csv![colour_light[4]; 3],
+                            "ColourLight6" => colour_light[5] = csv![colour_light[5]; 3],
+                            "ColourLight7" => colour_light[6] = csv![colour_light[6]; 3],
+
                             k => enumerate_match! { k,
                                 "KeyImage", "" => keys_name = value.to_owned(), (0, [0 1 2 3 4 5 6]),
                                 "KeyImage", "D" => keys_d_name = value.to_owned(), (0, [0 1 2 3 4 5 6]),
@@ -759,6 +792,10 @@ pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<Skin>
             stage_bottom,
         },
 
+        anim_states: OsuAnimStates {
+            keys_last_down_time: [None; 7],
+        },
+
         config: OsuSkinConfig {
             column_start,
             column_width,
@@ -769,6 +806,6 @@ pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<Skin>
             width_for_note_height_scale,
             note_body_style,
         },
-        judgement: (None, 0),
+        judgement: None,
     }))
 }
