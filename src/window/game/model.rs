@@ -73,7 +73,7 @@ impl Model {
             }
         }
 
-        while chart.notes[self.current_note_index].time - time < 1.0 {
+        while self.current_note_index < chart.notes.len() && chart.notes[self.current_note_index].time - time < 1.0 {
             self.next_notes[chart.notes[self.current_note_index].column].push_back(self.current_note_index);
             self.current_note_index += 1;
         }
