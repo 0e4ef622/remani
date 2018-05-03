@@ -151,6 +151,14 @@ impl Skin for OsuSkin {
     fn draw_judgement(&mut self, _column: usize, judgement: Judgement) {
         self.judgement = Some((judgement, time::Instant::now()));
     }
+
+    fn key_down(&mut self, column: usize) {
+        // TODO
+    }
+
+    fn key_up(&mut self, column: usize) {
+        // TODO
+    }
 }
 
 impl OsuSkin {

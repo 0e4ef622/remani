@@ -85,4 +85,6 @@ pub trait Skin {
                        // column index, start pos, end pos
                        notes: &[(usize, f64, Option<f64>)]);
     fn draw_judgement(&mut self, column: usize, judgement: Judgement);
+    fn key_down(&mut self, column: usize);
+    fn key_up(&mut self, column: usize);
 }

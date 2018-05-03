@@ -91,11 +91,18 @@ impl GameScene {
 
         if let Some(i) = e.press_args() {
             let view = &mut self.view;
-            self.model.press(&i, config, &self.chart, self.time, |k, j| view.draw_judgement(k, j));
+            self.model.press(&i, config, &self.chart, self.time, |k, j| {
+
+                if let Some(j) = j {
+                    view.draw_judgement(k, j);
+                }
+                view.key_down(k);
+            });
         }
 
         if let Some(i) = e.release_args() {
-            self.model.release(&i, config, self.time, |k| ());
+            let view = &mut self.view;
+            self.model.release(&i, config, self.time, |k| view.key_up(k));
         }
 
         if let Some(r) = e.render_args() {

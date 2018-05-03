@@ -116,6 +116,14 @@ impl View {
     pub fn draw_judgement(&mut self, column: usize, judgement: Judgement) {
         self.skin.draw_judgement(column, judgement);
     }
+
+    pub fn key_down(&mut self, column: usize) {
+        self.skin.key_down(column);
+    }
+
+    pub fn key_up(&mut self, column: usize) {
+        self.skin.key_up(column);
+    }
 }
 
 /// Given the time in seconds from the start of the song, calculate the position, taking into

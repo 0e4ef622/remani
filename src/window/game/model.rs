@@ -80,28 +80,29 @@ impl Model {
     }
 
     /// Called when a press event occurs
-    pub fn press<F: FnMut(usize, Judgement)>(&mut self, args: &Button, config: &Config, chart: &Chart, time: f64, mut callback: F) {
+    pub fn press<F: FnMut(usize, Option<Judgement>)>(&mut self, args: &Button, config: &Config, chart: &Chart, time: f64, mut callback: F) {
 
         let next_notes = &mut self.next_notes;
 
         config.key_bindings.iter().enumerate().zip(self.keys_down.iter_mut())
             .for_each(|((key_index, key_binding), key_down)| {
                 if *args == *key_binding && !*key_down {
-                    if let Some(&note_index) = next_notes[key_index].get(0) {
+                    let judgement = if let Some(&note_index) = next_notes[key_index].get(0) {
 
                         let note = &chart.notes[note_index];
+                        next_notes[key_index].pop_front();
 
                         // TODO dont hardcode timing windows
-                        let judgement = if (note.time - time).abs() < 0.1 {
-                            Judgement::Perfect
+                        if (note.time - time).abs() < 0.1 {
+                            Some(Judgement::Perfect)
                         } else {
-                            Judgement::Miss
-                        };
-                        callback(key_index, judgement);
+                            Some(Judgement::Miss)
+                        }
+                    } else { None };
 
-                        next_notes[key_index].pop_front();
-                    }
                     *key_down = true;
+
+                    callback(key_index, judgement);
                 }
             });
     }
