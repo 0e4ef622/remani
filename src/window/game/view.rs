@@ -124,5 +124,44 @@ impl View {
 ///
 /// Used to calculate note position.
 fn calc_pos(current_time: f64, time: f64, chart: &chart::Chart, scroll_speed: f64, current_timing_point_index: usize) -> f64 {
-    (time - current_time) * scroll_speed
+    let mut iterator = chart.timing_points[current_timing_point_index..].iter()
+        .take_while(|tp| tp.offset < time)
+        .filter(|tp| tp.is_sv())
+        .peekable();
+
+    let mut last_tp = None;
+    while iterator.peek().is_some() {
+        if iterator.peek().unwrap().offset < current_time {
+            last_tp = Some(iterator.next().unwrap());
+        } else {
+            break;
+        }
+    }
+
+    let mut pos = 0.0;
+
+    let value = if let Some(tp) = last_tp {
+        tp.value.unwrap()
+    } else { 1.0 };
+
+    if let Some(tp) = iterator.peek() {
+
+        pos = (tp.offset - current_time) * value;
+
+    } else {
+        return (time - current_time) * value * scroll_speed;
+    }
+
+    while let Some(tp) = iterator.next() {
+
+        let value = tp.value.unwrap();
+
+        if let Some(ntp) = iterator.peek() {
+            pos += (ntp.offset - tp.offset) * value;
+        } else { // if last
+            pos += (time - tp.offset) * value;
+            break;
+        }
+    }
+    pos * scroll_speed
 }

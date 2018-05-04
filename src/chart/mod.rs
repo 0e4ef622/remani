@@ -37,12 +37,38 @@ pub enum TimingPointValue {
     SV(f64),
 }
 
+impl TimingPointValue {
+
+    pub fn unwrap(&self) -> f64 {
+        match *self {
+            TimingPointValue::SV(v) => v,
+            TimingPointValue::BPM(v) => v,
+        }
+    }
+}
+
 /// Represents either an SV change or a BPM change
 #[derive(Debug)]
 pub struct TimingPoint {
     /// The offset from the start of the song, in seconds.
     pub offset: f64,
     pub value: TimingPointValue,
+}
+
+impl TimingPoint {
+    pub fn is_bpm(&self) -> bool {
+        match self.value {
+            TimingPointValue::BPM(_) => true,
+            _ => false,
+        }
+    }
+
+    pub fn is_sv(&self) -> bool {
+        match self.value {
+            TimingPointValue::SV(_) => true,
+            _ => false,
+        }
+    }
 }
 
 /// The error type from parsing
