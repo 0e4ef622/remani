@@ -78,6 +78,8 @@ struct OsuSkinConfig {
     width_for_note_height_scale: f64,
     note_body_style: [NoteBodyStyle; 7],
 
+    colour_light: [[u8; 3]; 7],
+
     // TODO
     // lighting_n_width: [u16; 7],
     // lighting_l_width: [u16; 7],
@@ -813,6 +815,7 @@ pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<Skin>
             score_position,
             width_for_note_height_scale,
             note_body_style,
+            colour_light,
         },
         judgement: None,
     }))
