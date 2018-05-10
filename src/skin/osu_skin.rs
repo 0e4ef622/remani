@@ -60,6 +60,9 @@ struct OsuSkinTextures {
     /// The long notes' tails' images.
     long_notes_tail: [Option<Rc<Vec<Rc<Texture>>>>; 7],
 
+    /// The stage light animation images
+    stage_light: Rc<Vec<Rc<Texture>>>,
+
     /// The stage components.
     stage_hint: Rc<Vec<Rc<Texture>>>,
     stage_left: Rc<Texture>,
@@ -155,11 +158,11 @@ impl Skin for OsuSkin {
     }
 
     fn key_down(&mut self, column: usize) {
-        // TODO
+        self.anim_states.keys_last_down_time[column] = None;
     }
 
     fn key_up(&mut self, column: usize) {
-        // TODO
+        self.anim_states.keys_last_down_time[column] = Some(time::Instant::now());
     }
 }
 
@@ -370,6 +373,20 @@ impl OsuSkin {
             let key_y = stage_h - key_height;
             let key_img = Image::new().rect([key_x, key_y, key_width, key_height]);
             key_img.draw(key_texture, draw_state, transform, gl);
+
+            if self.anim_states.keys_last_down_time[i] != None {
+                let current_time = time::Instant::now();
+                let elapsed_time = current_time - self.anim_states.keys_last_down_time[i].unwrap();
+                let elapsed_time_secs = elapsed_time.as_secs() as f64 + elapsed_time.subsec_nanos() as f64 / 1_000_000_000.0;
+                let frame = (elapsed_time_secs * 30.0) as usize;
+                if frame < self.textures.stage_light.len() {
+                    let stage_light_img = Image::new().rect([key_x, 0.0, key_width, key_y]);
+                    stage_light_img.draw(self.textures.stage_light[frame].as_ref(), draw_state, transform, gl);
+                }
+            } else if *key_pressed {
+                let stage_light_img = Image::new().rect([key_x, 0.0, key_width, key_y]);
+                stage_light_img.draw(self.textures.stage_light[0].as_ref(), draw_state, transform, gl);
+            }
         }
     }
 
@@ -575,6 +592,7 @@ pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<Skin>
     let mut hit200_name = double!("mania-hit200");
     let mut hit300_name = double!("mania-hit300");
     let mut hit300g_name = double!("mania-hit300g");
+    let mut stage_light_name = double!("mania-stage-light");
 
     let mut keys_name = pat![double!("mania-key1"),
                              double!("mania-key2"),
@@ -689,6 +707,7 @@ pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<Skin>
                             "StageLeft" => stage_left_name.1 = value.to_owned(),
                             "StageRight" => stage_right_name.1 = value.to_owned(),
                             "StageBottom" => stage_bottom_name.1 = value.to_owned(),
+                            "StageLight" => stage_light_name.1 = value.to_owned(),
 
                             "ColourLight1" => colour_light[0] = csv![colour_light[0]; 3],
                             "ColourLight2" => colour_light[1] = csv![colour_light[1]; 3],
@@ -721,6 +740,7 @@ pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<Skin>
     let hit200 = load_texture_anim(&mut cache, dir, default_dir, &hit200_name, &texture_settings)?;
     let hit300 = load_texture_anim(&mut cache, dir, default_dir, &hit300_name, &texture_settings)?;
     let hit300g = load_texture_anim(&mut cache, dir, default_dir, &hit300g_name, &texture_settings)?;
+    let stage_light = load_texture_anim(&mut cache, dir, default_dir, &stage_light_name, &texture_settings)?;
     let keys = [load_texture(&mut cache, dir, default_dir, &keys_name[0], &texture_settings)?,
                 load_texture(&mut cache, dir, default_dir, &keys_name[1], &texture_settings)?,
                 load_texture(&mut cache, dir, default_dir, &keys_name[2], &texture_settings)?,
@@ -790,6 +810,7 @@ pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<Skin>
             hit200,
             hit300,
             hit300g,
+            stage_light,
             keys,
             keys_d,
             notes,
