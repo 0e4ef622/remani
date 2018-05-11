@@ -137,6 +137,8 @@ fn calc_pos(current_time: f64, time: f64, chart: &chart::Chart, scroll_speed: f6
         .filter(|tp| tp.is_sv())
         .peekable();
 
+    // TODO BPM changes also affect SV
+
     let mut last_tp = None;
     while iterator.peek().is_some() {
         if iterator.peek().unwrap().offset < current_time {

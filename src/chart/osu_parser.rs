@@ -2,6 +2,7 @@
 
 use std::io;
 use std::path::PathBuf;
+use std::cmp::Ordering;
 
 use chart;
 use chart::{ Chart, ChartParser, ParseError };
@@ -396,9 +397,59 @@ impl IncompleteChart {
                                 offset: t.offset,
                                 value: t.value,
                             }).collect::<Vec<_>>();
+
+        let notes = self.hit_objects.into_iter().map(HitObject::to_note).collect::<Vec<_>>();
+
+        let last_note_time = match notes.last() {
+            Some(n) => n.end_time.unwrap_or(n.time),
+            None => return Err(
+                ParseError::Parse(String::from("Chart has no notes"), None)),
+        };
+
+        let primary_bpm = {
+
+            // from beginning of song to the last note
+            // sum of lengths of each bpm section
+            let mut bpm_sums = Vec::new();
+            let mut tp_iter = timing_points.iter().filter(|tp| tp.is_bpm()).take_while(|tp| tp.offset < last_note_time).peekable();
+
+            if let Some(first_tp) = tp_iter.peek() {
+                bpm_sums.push((first_tp.value.unwrap(), first_tp.offset));
+            }
+
+            while let Some(tp) = tp_iter.next() {
+                let length = tp_iter.peek().map(|t| t.offset).unwrap_or(last_note_time) - tp.offset;
+
+                // rust pls fix borrow checker
+                // if let Some(bpm_sum) = bpm_sums.iter_mut().find(|&&mut (bpm, _)| bpm == tp.value.unwrap()) {
+                //     bpm_sum.1 += length;
+                // } else {
+                //     bpm_sums.push((tp.value.unwrap(), length));
+                // }
+
+                if !{ if let Some(bpm_sum) = bpm_sums.iter_mut().find(|&&mut (bpm, _)| bpm == tp.value.unwrap()) {
+                        bpm_sum.1 += length;
+                        true
+                    } else {
+                        false
+                    }} { // im dying
+                    bpm_sums.push((tp.value.unwrap(), length));
+                }
+
+            }
+
+            // find the bpm that the song is at for the longest time, defaulting to 150 bpm if for
+            // some reason that fails (FIXME?)
+            bpm_sums.iter().max_by(|(_, sum1), (_, sum2)| sum1.partial_cmp(sum2).unwrap_or(Ordering::Equal))
+                .map(|t| t.0).unwrap_or(150.0)
+        };
+
+        println!("{}", primary_bpm);
+
         Ok(Chart {
-            notes: self.hit_objects.into_iter().map(HitObject::to_note).collect(),
-            timing_points: timing_points,
+            notes,
+            timing_points,
+            primary_bpm,
             creator: self.creator,
             artist: self.artist,
             artist_unicode: self.artist_unicode,
