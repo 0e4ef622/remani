@@ -378,10 +378,16 @@ impl OsuSkin {
                 let current_time = time::Instant::now();
                 let elapsed_time = current_time - self.anim_states.keys_last_down_time[i].unwrap();
                 let elapsed_time_secs = elapsed_time.as_secs() as f64 + elapsed_time.subsec_nanos() as f64 / 1_000_000_000.0;
-                let frame = (elapsed_time_secs * 30.0) as usize;
+                let fframe = elapsed_time_secs * 30.0;
+                let frame = fframe as usize;
                 if frame < self.textures.stage_light.len() {
-                    let stage_light_img = Image::new().rect([key_x, 0.0, key_width, key_y]);
+                    let stage_light_height = self.textures.stage_light[frame].get_height() as f64 * scale2;
+                    let stage_light_img = Image::new().rect([key_x, key_y - stage_light_height, key_width, stage_light_height]);
                     stage_light_img.draw(self.textures.stage_light[frame].as_ref(), draw_state, transform, gl);
+                } else if frame < 3 {
+                    let stage_light_height = self.textures.stage_light[self.textures.stage_light.len()-1].get_height() as f64 * scale2;
+                    let stage_light_img = Image::new().rect([key_x, key_y - stage_light_height, key_width, stage_light_height]).color([1.0, 1.0, 1.0, 1.0-fframe as f32/3.0]);
+                    stage_light_img.draw(self.textures.stage_light[self.textures.stage_light.len()-1].as_ref(), draw_state, transform, gl);
                 }
             } else if *key_pressed {
                 let stage_light_img = Image::new().rect([key_x, 0.0, key_width, key_y]);
