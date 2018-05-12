@@ -123,7 +123,7 @@ pub struct Chart {
     pub timing_points: Vec<TimingPoint>,
 
     /// The bpm for most of the song
-    primary_bpm: f64,
+    pub primary_bpm: f64,
 
     /// The creator of the chart
     pub creator: Option<String>,
