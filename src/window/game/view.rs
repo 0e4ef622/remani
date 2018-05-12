@@ -134,15 +134,31 @@ impl View {
 fn calc_pos(current_time: f64, time: f64, chart: &chart::Chart, scroll_speed: f64, current_timing_point_index: usize) -> f64 {
     let mut iterator = chart.timing_points[current_timing_point_index..].iter()
         .take_while(|tp| tp.offset < time)
-        .filter(|tp| tp.is_sv())
         .peekable();
 
     // TODO BPM changes also affect SV
 
-    let mut last_tp = None;
+    let mut last_sv_tp = None;
+    let mut last_bpm_tp = { // it should be the first timing point, but if it's not, the map is still playable
+        match chart.timing_points.first() {
+            Some(tp) if tp.is_bpm() => Some(tp),
+            Some(_) => None,
+            None => {
+                eprintln!("Osu chart has no timing points!");
+                None
+            }
+        }
+    };
+    // get the last timing point before the current time, if one exists.
     while iterator.peek().is_some() {
         if iterator.peek().unwrap().offset < current_time {
-            last_tp = Some(iterator.next().unwrap());
+            let tp = iterator.next().unwrap();
+            if tp.is_sv() {
+                last_sv_tp = Some(tp);
+            } else {
+                last_sv_tp = None;
+                last_bpm_tp = Some(tp);
+            }
         } else {
             break;
         }
@@ -150,21 +166,24 @@ fn calc_pos(current_time: f64, time: f64, chart: &chart::Chart, scroll_speed: f6
 
     let mut pos = 0.0;
 
-    let value = if let Some(tp) = last_tp {
-        tp.value.unwrap()
-    } else { 1.0 };
+    let value = last_bpm_tp.map(|t| t.value.unwrap() / chart.primary_bpm).unwrap_or(1.0) *
+                last_sv_tp.map(|t| t.value.unwrap()).unwrap_or(1.0);
 
     if let Some(tp) = iterator.peek() {
-
         pos = (tp.offset - current_time) * value;
-
     } else {
         return (time - current_time) * value * scroll_speed;
     }
 
     while let Some(tp) = iterator.next() {
 
-        let value = tp.value.unwrap();
+        let value = if tp.is_sv() {
+            last_bpm_tp.map(|t| t.value.unwrap() / chart.primary_bpm).unwrap_or(1.0) *
+            tp.value.unwrap()
+        } else { // bpm timing point
+            last_bpm_tp = Some(tp);
+            tp.value.unwrap() / chart.primary_bpm
+        };
 
         if let Some(ntp) = iterator.peek() {
             pos += (ntp.offset - tp.offset) * value;
