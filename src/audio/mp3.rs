@@ -16,6 +16,9 @@ struct MP3Samples<R: io::Read + Send> {
 
     /// What channel the next sample should come from
     current_channel: usize,
+
+    /// Whether the end of the file has been reached yet.
+    eof: bool,
 }
 
 impl<R: io::Read + Send> MP3Samples<R> {
@@ -25,6 +28,7 @@ impl<R: io::Read + Send> MP3Samples<R> {
             current_samples: None,
             current_samples_index: 0,
             current_channel: 0,
+            eof: false,
         }
     }
 }
@@ -32,7 +36,9 @@ impl<R: io::Read + Send> MP3Samples<R> {
 impl<R: io::Read + Send> Iterator for MP3Samples<R> {
     type Item = f32;
     fn next(&mut self) -> Option<f32> {
-        if self.current_samples.is_none() || self.current_samples_index == self.current_samples.as_ref().unwrap()[0].len() {
+        if self.eof {
+            return None;
+        } else if self.current_samples.is_none() || self.current_samples_index == self.current_samples.as_ref().unwrap()[0].len() {
             loop {
                 match self.decoder.next().unwrap() {
                     Ok(f) => {
@@ -51,6 +57,7 @@ impl<R: io::Read + Send> Iterator for MP3Samples<R> {
                     },
 
                     Err(SimplemadError::EOF) => {
+                        self.eof = false;
                         return None;
                     },
                 }
