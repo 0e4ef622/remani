@@ -21,9 +21,16 @@ impl<S: cpal::Sample> Iterator for Resample<S> {
     fn next(&mut self) -> Option<f32> {
         let return_value;
         if self.previous_values.len() < self.num_channels && self.next_values.len() < self.num_channels {
-            let next_sample = self.samples.next().unwrap();
+            let next_sample = match self.samples.next() {
+                Some(s) => s,
+                None => return None,
+            };
+            let next_next_sample = match self.samples.peek() {
+                Some(s) => *s,
+                None => return None,
+            };
             self.previous_values.push(next_sample);
-            self.next_values.push(*self.samples.peek().unwrap());
+            self.next_values.push(next_next_sample);
             return_value = Some(next_sample.to_f32());
         } else {
             if self.channel_offset == 0 {
@@ -32,7 +39,11 @@ impl<S: cpal::Sample> Iterator for Resample<S> {
                     self.sampling_offset -= self.to_sample_rate;
                     for n in 0..self.num_channels {
                         self.previous_values[n] = self.next_values[n];
-                        self.next_values[n] = self.samples.next().unwrap();
+                        let next_sample = match self.samples.next() {
+                            Some(s) => s,
+                            None => return None,
+                        };
+                        self.next_values[n] = next_sample;
                     }
                 }
             }

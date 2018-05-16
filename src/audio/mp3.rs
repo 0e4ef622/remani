@@ -40,24 +40,23 @@ impl<R: io::Read + Send> Iterator for MP3Samples<R> {
             return None;
         } else if self.current_samples.is_none() || self.current_samples_index == self.current_samples.as_ref().unwrap()[0].len() {
             loop {
-                match self.decoder.next().unwrap() {
-                    Ok(f) => {
-                        self.current_samples = Some(f.samples);
-                        self.current_samples_index = 0;
-                        self.current_channel = 0;
-                        break;
-                    }
-
-                    Err(SimplemadError::Mad(e)) => {
-                        eprintln!("{:?}", e);
+                match self.decoder.next() {
+                    Some(r) => match r {
+                        Ok(f) => {
+                            self.current_samples = Some(f.samples);
+                            self.current_samples_index = 0;
+                            self.current_channel = 0;
+                            break;
+                        },
+                        Err(SimplemadError::Mad(e)) => eprintln!("libmad err: {:?}", e),
+                        Err(SimplemadError::Read(e)) => eprintln!("mp3 read err: {}", e),
+                        Err(SimplemadError::EOF) => {
+                            self.eof = true;
+                            return None;
+                        },
                     },
-
-                    Err(SimplemadError::Read(e)) => {
-                        eprintln!("{}", e);
-                    },
-
-                    Err(SimplemadError::EOF) => {
-                        self.eof = false;
+                    None => {
+                        self.eof = true;
                         return None;
                     },
                 }
