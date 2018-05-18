@@ -76,11 +76,21 @@ impl View {
                 let note = &chart.notes[note_index];
                 if let Some(end_time) = note.end_time {
                     if end_time - time < 0.0 {
+
+                        // TODO only display hit animation if the player successfully hits the note
+                        skin.long_note_hit_anim_stop(note.column);
                         notes_below_screen_indices.push(index);
                         continue;
                     }
                 } else {
                     if note.time - time < 0.0 {
+
+                        // TODO only display hit animation if the player successfully hits the note
+                        if note.end_time.is_none() {
+                            skin.single_note_hit_anim(note.column);
+                        } else {
+                            skin.long_note_hit_anim_start(note.column);
+                        }
                         notes_below_screen_indices.push(index);
                         continue;
                     }
