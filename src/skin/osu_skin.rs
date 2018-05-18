@@ -41,6 +41,12 @@ struct OsuSkinTextures {
     hit300: Rc<Vec<Rc<Texture>>>,
     hit300g: Rc<Vec<Rc<Texture>>>,
 
+    /// The animation played when a single note is pressed
+    lighting_n: Rc<Vec<Rc<Texture>>>,
+
+    /// The animation played when a long note is pressed
+    lighting_l: Rc<Vec<Rc<Texture>>>,
+
     /// The images virtual keys under the judgement line.
     keys: [Rc<Texture>; 7],
 
@@ -609,6 +615,8 @@ pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<Skin>
     let mut hit300_name = double!("mania-hit300");
     let mut hit300g_name = double!("mania-hit300g");
     let mut stage_light_name = double!("mania-stage-light");
+    let mut lighting_n_name = double!("lightingN");
+    let mut lighting_l_name = double!("lightingL");
 
     let mut keys_name = pat![double!("mania-key1"),
                              double!("mania-key2"),
@@ -724,6 +732,8 @@ pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<Skin>
                             "StageRight" => stage_right_name.1 = value.to_owned(),
                             "StageBottom" => stage_bottom_name.1 = value.to_owned(),
                             "StageLight" => stage_light_name.1 = value.to_owned(),
+                            "LightingN" => lighting_n_name.1 = value.to_owned(),
+                            "LightingL" => lighting_l_name.1 = value.to_owned(),
 
                             "ColourLight1" => colour_light[0] = csv![colour_light[0]; 3],
                             "ColourLight2" => colour_light[1] = csv![colour_light[1]; 3],
@@ -757,6 +767,8 @@ pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<Skin>
     let hit300 = load_texture_anim(&mut cache, dir, default_dir, &hit300_name, &texture_settings)?;
     let hit300g = load_texture_anim(&mut cache, dir, default_dir, &hit300g_name, &texture_settings)?;
     let stage_light = load_texture_anim(&mut cache, dir, default_dir, &stage_light_name, &texture_settings)?;
+    let lighting_n = load_texture_anim(&mut cache, dir, default_dir, &lighting_n_name, &texture_settings)?;
+    let lighting_l = load_texture_anim(&mut cache, dir, default_dir, &lighting_l_name, &texture_settings)?;
     let keys = [load_texture(&mut cache, dir, default_dir, &keys_name[0], &texture_settings)?,
                 load_texture(&mut cache, dir, default_dir, &keys_name[1], &texture_settings)?,
                 load_texture(&mut cache, dir, default_dir, &keys_name[2], &texture_settings)?,
@@ -827,6 +839,8 @@ pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<Skin>
             hit300,
             hit300g,
             stage_light,
+            lighting_n,
+            lighting_l,
             keys,
             keys_d,
             notes,
