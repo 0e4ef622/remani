@@ -32,6 +32,7 @@ enum NoteBodyStyle {
     CascadeFromBottom,
 }
 
+#[derive(Copy, Clone, Debug)]
 enum HitAnimState {
     SingleNote(time::Instant),
     LongNote(time::Instant),
@@ -874,6 +875,7 @@ pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<Skin>
 
         anim_states: OsuAnimStates {
             keys_last_down_time: [None; 7],
+            hit_anim: [HitAnimState::None; 7],
         },
 
         config: OsuSkinConfig {
