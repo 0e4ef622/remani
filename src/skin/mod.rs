@@ -87,4 +87,10 @@ pub trait Skin {
     fn draw_judgement(&mut self, column: usize, judgement: Judgement);
     fn key_down(&mut self, column: usize);
     fn key_up(&mut self, column: usize);
+    fn single_note_hit_anim(&mut self, column: usize) { }
+    fn long_note_hit_anim_start(&mut self, column: usize) {
+        self.single_note_hit_anim(column);
+    }
+    fn long_note_hit_anim_stop(&mut self, column: usize) {
+    }
 }

@@ -32,6 +32,12 @@ enum NoteBodyStyle {
     CascadeFromBottom,
 }
 
+enum HitAnimState {
+    SingleNote(time::Instant),
+    LongNote(time::Instant),
+    None,
+}
+
 /// Holds skin data, such as note images and what not.
 struct OsuSkinTextures {
     miss: Rc<Vec<Rc<Texture>>>,
@@ -102,6 +108,7 @@ struct OsuSkinConfig {
 
 struct OsuAnimStates {
     keys_last_down_time: [Option<time::Instant>; 7],
+    hit_anim: [HitAnimState; 7],
 }
 
 struct OsuSkin {
@@ -169,6 +176,18 @@ impl Skin for OsuSkin {
 
     fn key_up(&mut self, column: usize) {
         self.anim_states.keys_last_down_time[column] = Some(time::Instant::now());
+    }
+
+    fn single_note_hit_anim(&mut self, column: usize) {
+        self.anim_states.hit_anim[column] = HitAnimState::SingleNote(time::Instant::now());
+    }
+
+    fn long_note_hit_anim_start(&mut self, column: usize) {
+        self.anim_states.hit_anim[column] = HitAnimState::LongNote(time::Instant::now());
+    }
+
+    fn long_note_hit_anim_stop(&mut self, column: usize) {
+        self.anim_states.hit_anim[column] = HitAnimState::None;
     }
 }
 
