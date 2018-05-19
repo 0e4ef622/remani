@@ -140,6 +140,7 @@ impl Skin for OsuSkin {
             }
         }
         self.draw_keys(draw_state, transform, gl, stage_height, keys_down);
+        self.draw_hit_anims(draw_state, transform, gl, stage_height);
 
         // Draw judgement
         if let Some((judgement, time)) = self.judgement {
@@ -169,6 +170,20 @@ impl Skin for OsuSkin {
 
     fn draw_judgement(&mut self, _column: usize, judgement: Judgement) {
         self.judgement = Some((judgement, time::Instant::now()));
+    }
+
+    fn draw_hit_anims(&mut self, draw_state: &DrawState, transform: math::Matrix2d, gl: &mut GlGraphics, stage_height: f64) {
+        for hit_anim in self.anim_states.hit_anim.iter() {
+            match hit_anim {
+                HitAnimState::SingleNote(time) => {
+                    // draw single note hit animation
+                },
+                HitAnimState::LongNote(time) => {
+                    // draw long note hit animation
+                },
+                HitAnimState::None => (),
+            }
+        }
     }
 
     fn key_down(&mut self, column: usize) {
