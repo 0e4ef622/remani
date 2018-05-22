@@ -85,7 +85,6 @@ impl View {
 
                         skin.long_note_hit_anim_start(note.column);
                         long_notes_held[note.column] = true;
-                        println!("wat");
 
                     } else if end_time - time < 0.0 {
 
