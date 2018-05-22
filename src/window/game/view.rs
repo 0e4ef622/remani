@@ -28,6 +28,9 @@ pub struct View {
 
     /// (index, start_pos, end_pos)
     notes_pos: Vec<(usize, f64, Option<f64>)>,
+
+    // TODO get rid of this (related to display hit animation if the player successfully hits the note)
+    long_notes_held: [bool; 7],
 }
 
 impl View {
@@ -43,6 +46,7 @@ impl View {
             notes_on_screen_indices: Vec::with_capacity(128),
             notes_below_screen_indices: Vec::with_capacity(128),
             notes_pos: Vec::with_capacity(128),
+            long_notes_held: [false; 7],
         }
     }
 
@@ -55,6 +59,7 @@ impl View {
         let notes_below_screen_indices = &mut self.notes_below_screen_indices;
         let notes_pos = &mut self.notes_pos;
         let current_timing_point_index = &mut self.current_timing_point_index;
+        let long_notes_held = &mut self.long_notes_held;
 
         gl.draw(args.viewport(), |c, gl| {
             graphics::clear([0.0; 4], gl);
@@ -75,22 +80,26 @@ impl View {
 
                 let note = &chart.notes[note_index];
                 if let Some(end_time) = note.end_time {
-                    if end_time - time < 0.0 {
+
+                    if note.time - time < 0.0 && !long_notes_held[note.column] {
+
+                        skin.long_note_hit_anim_start(note.column);
+                        long_notes_held[note.column] = true;
+                        println!("wat");
+
+                    } else if end_time - time < 0.0 {
 
                         // TODO only display hit animation if the player successfully hits the note
                         skin.long_note_hit_anim_stop(note.column);
                         notes_below_screen_indices.push(index);
+                        long_notes_held[note.column] = false;
                         continue;
                     }
                 } else {
                     if note.time - time < 0.0 {
 
                         // TODO only display hit animation if the player successfully hits the note
-                        if note.end_time.is_none() {
-                            skin.single_note_hit_anim(note.column);
-                        } else {
-                            skin.long_note_hit_anim_start(note.column);
-                        }
+                        skin.single_note_hit_anim(note.column);
                         notes_below_screen_indices.push(index);
                         continue;
                     }
