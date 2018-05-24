@@ -476,20 +476,13 @@ impl OsuSkin {
     }
 
     fn draw_hit_anims(&mut self, draw_state: &DrawState, transform: math::Matrix2d, gl: &mut GlGraphics, stage_height: f64) {
+        let scale = stage_height / 480.0;
+        let scale2 = stage_height / 768.0;
+
+        let hit_p = self.config.hit_position as f64 * scale;
+
         for (i, hit_anim) in self.anim_states.hit_anim.iter_mut().enumerate() {
-
-// horrible code
-//
-//
-//
-
-
-
-
-            let scale = stage_height / 480.0;
-            let scale2 = stage_height / 768.0;
-            let hit_p = self.config.hit_position as f64 * scale;
-
+            let mut hit_position = 402;
             let key_texture: &Texture = self.textures.keys_d[i].as_ref();
             let key_width = self.config.column_width[i] as f64 * scale;
             let key_height = key_texture.get_height() as f64 * scale2;
@@ -497,15 +490,6 @@ impl OsuSkin {
                                  self.config.column_width[0..i].iter().sum::<u16>() as f64 +
                                  self.config.column_spacing[0..i].iter().sum::<u16>() as f64);
             let key_y = stage_height - key_height;
-
-
-
-
-//
-//
-//
-//
-// end horrible
 
             match hit_anim {
                 HitAnimState::SingleNote(time) => {
