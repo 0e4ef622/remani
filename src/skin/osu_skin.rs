@@ -6,6 +6,7 @@ use opengl_graphics::Texture;
 use opengl_graphics::GlGraphics;
 use graphics::image::Image;
 use graphics::draw_state::DrawState;
+use graphics::draw_state;
 use graphics::math;
 use graphics::Transformed;
 use texture::TextureSettings;
@@ -141,7 +142,7 @@ impl Skin for OsuSkin {
             }
         }
         self.draw_keys(draw_state, transform, gl, stage_height, keys_down);
-        self.draw_hit_anims(draw_state, transform, gl, stage_height);
+        self.draw_hit_anims(&DrawState::default().blend(draw_state::Blend::Add), transform, gl, stage_height);
 
         // Draw judgement
         if let Some((judgement, time)) = self.judgement {
