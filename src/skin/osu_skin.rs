@@ -173,64 +173,6 @@ impl Skin for OsuSkin {
         self.judgement = Some((judgement, time::Instant::now()));
     }
 
-    fn draw_hit_anims(&mut self, draw_state: &DrawState, transform: math::Matrix2d, gl: &mut GlGraphics, stage_height: f64) {
-        for (i, hit_anim) in self.anim_states.hit_anim.iter_mut().enumerate() {
-
-// horrible code
-//
-//
-//
-
-
-
-
-            let scale = stage_height / 480.0;
-            let scale2 = stage_height / 768.0;
-            let hit_p = self.config.hit_position as f64 * scale;
-
-            let key_texture: &Texture = self.textures.keys_d[i].as_ref();
-            let key_width = self.config.column_width[i] as f64 * scale;
-            let key_height = key_texture.get_height() as f64 * scale2;
-            let key_x = scale * (self.config.column_start as f64 +
-                                 self.config.column_width[0..i].iter().sum::<u16>() as f64 +
-                                 self.config.column_spacing[0..i].iter().sum::<u16>() as f64);
-            let key_y = stage_height - key_height;
-
-
-
-
-//
-//
-//
-//
-// end horrible
-
-            match hit_anim {
-                HitAnimState::SingleNote(time) => {
-                    let frame = (time.elapsed().as_secs() as f64 + time.elapsed().subsec_nanos() as f64 / 1000_000_000.0) * 60.0;
-                    let uframe = frame as usize;
-                    if uframe > self.textures.lighting_n.len() - 1 {
-                        *hit_anim = HitAnimState::None;
-                        continue;
-                    }
-                    let hit_w = self.textures.lighting_n[uframe].get_width() as f64;
-                    let hit_h = self.textures.lighting_n[uframe].get_height() as f64;
-                    let hit_img = Image::new().rect([key_x - hit_w / 2.0 + key_width / 2.0, hit_p - hit_h / 2.0, hit_w, hit_h]);
-                    hit_img.draw(self.textures.lighting_n[uframe].deref(), draw_state, transform, gl);
-                },
-                HitAnimState::LongNote(time) => {
-                    let frame = (time.elapsed().as_secs() as f64 + time.elapsed().subsec_nanos() as f64 / 1000_000_000.0) * 60.0;
-                    let uframe = frame as usize % self.textures.lighting_l.len();
-                    let hit_w = self.textures.lighting_l[uframe].get_width() as f64;
-                    let hit_h = self.textures.lighting_l[uframe].get_height() as f64;
-                    let hit_img = Image::new().rect([key_x - hit_w / 2.0 + key_width / 2.0, hit_p - hit_h / 2.0, hit_w, hit_h]);
-                    hit_img.draw(self.textures.lighting_l[uframe].deref(), draw_state, transform, gl);
-                },
-                HitAnimState::None => (),
-            }
-        }
-    }
-
     fn key_down(&mut self, column: usize) {
         self.anim_states.keys_last_down_time[column] = None;
     }
@@ -530,6 +472,64 @@ impl OsuSkin {
 
         let img = Image::new().rect([tx_x, tx_y, tx_w, tx_h]);
         img.draw(tx, draw_state, transform, gl);
+    }
+
+    fn draw_hit_anims(&mut self, draw_state: &DrawState, transform: math::Matrix2d, gl: &mut GlGraphics, stage_height: f64) {
+        for (i, hit_anim) in self.anim_states.hit_anim.iter_mut().enumerate() {
+
+// horrible code
+//
+//
+//
+
+
+
+
+            let scale = stage_height / 480.0;
+            let scale2 = stage_height / 768.0;
+            let hit_p = self.config.hit_position as f64 * scale;
+
+            let key_texture: &Texture = self.textures.keys_d[i].as_ref();
+            let key_width = self.config.column_width[i] as f64 * scale;
+            let key_height = key_texture.get_height() as f64 * scale2;
+            let key_x = scale * (self.config.column_start as f64 +
+                                 self.config.column_width[0..i].iter().sum::<u16>() as f64 +
+                                 self.config.column_spacing[0..i].iter().sum::<u16>() as f64);
+            let key_y = stage_height - key_height;
+
+
+
+
+//
+//
+//
+//
+// end horrible
+
+            match hit_anim {
+                HitAnimState::SingleNote(time) => {
+                    let frame = (time.elapsed().as_secs() as f64 + time.elapsed().subsec_nanos() as f64 / 1000_000_000.0) * 60.0;
+                    let uframe = frame as usize;
+                    if uframe > self.textures.lighting_n.len() - 1 {
+                        *hit_anim = HitAnimState::None;
+                        continue;
+                    }
+                    let hit_w = self.textures.lighting_n[uframe].get_width() as f64;
+                    let hit_h = self.textures.lighting_n[uframe].get_height() as f64;
+                    let hit_img = Image::new().rect([key_x - hit_w / 2.0 + key_width / 2.0, hit_p - hit_h / 2.0, hit_w, hit_h]);
+                    hit_img.draw(self.textures.lighting_n[uframe].deref(), draw_state, transform, gl);
+                },
+                HitAnimState::LongNote(time) => {
+                    let frame = (time.elapsed().as_secs() as f64 + time.elapsed().subsec_nanos() as f64 / 1000_000_000.0) * 60.0;
+                    let uframe = frame as usize % self.textures.lighting_l.len();
+                    let hit_w = self.textures.lighting_l[uframe].get_width() as f64;
+                    let hit_h = self.textures.lighting_l[uframe].get_height() as f64;
+                    let hit_img = Image::new().rect([key_x - hit_w / 2.0 + key_width / 2.0, hit_p - hit_h / 2.0, hit_w, hit_h]);
+                    hit_img.draw(self.textures.lighting_l[uframe].deref(), draw_state, transform, gl);
+                },
+                HitAnimState::None => (),
+            }
+        }
     }
 }
 

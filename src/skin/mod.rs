@@ -84,7 +84,6 @@ pub trait Skin {
                        // column index, start pos, end pos
                        notes: &[(usize, f64, Option<f64>)]);
     fn draw_judgement(&mut self, column: usize, judgement: Judgement);
-    fn draw_hit_anims(&mut self, draw_state: &DrawState, transform: math::Matrix2d, gl: &mut GlGraphics, stage_height: f64);
     fn key_down(&mut self, column: usize);
     fn key_up(&mut self, column: usize);
     fn single_note_hit_anim(&mut self, column: usize) { }
