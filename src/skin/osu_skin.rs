@@ -483,13 +483,10 @@ impl OsuSkin {
 
         for (i, hit_anim) in self.anim_states.hit_anim.iter_mut().enumerate() {
             let mut hit_position = 402;
-            let key_texture: &Texture = self.textures.keys_d[i].as_ref();
             let key_width = self.config.column_width[i] as f64 * scale;
-            let key_height = key_texture.get_height() as f64 * scale2;
-            let key_x = scale * (self.config.column_start as f64 +
+            let hit_x = scale * (self.config.column_start as f64 +
                                  self.config.column_width[0..i].iter().sum::<u16>() as f64 +
                                  self.config.column_spacing[0..i].iter().sum::<u16>() as f64);
-            let key_y = stage_height - key_height;
 
             match hit_anim {
                 HitAnimState::SingleNote(time) => {
@@ -499,17 +496,17 @@ impl OsuSkin {
                         *hit_anim = HitAnimState::None;
                         continue;
                     }
-                    let hit_w = self.textures.lighting_n[uframe].get_width() as f64;
-                    let hit_h = self.textures.lighting_n[uframe].get_height() as f64;
-                    let hit_img = Image::new().rect([key_x - hit_w / 2.0 + key_width / 2.0, hit_p - hit_h / 2.0, hit_w, hit_h]);
+                    let hit_w = self.textures.lighting_n[uframe].get_width() as f64 * scale2;
+                    let hit_h = self.textures.lighting_n[uframe].get_height() as f64 * scale2;
+                    let hit_img = Image::new().rect([hit_x - hit_w / 2.0 + key_width / 2.0, hit_p - hit_h / 2.0, hit_w, hit_h]);
                     hit_img.draw(self.textures.lighting_n[uframe].deref(), draw_state, transform, gl);
                 },
                 HitAnimState::LongNote(time) => {
                     let frame = (time.elapsed().as_secs() as f64 + time.elapsed().subsec_nanos() as f64 / 1000_000_000.0) * 60.0;
                     let uframe = frame as usize % self.textures.lighting_l.len();
-                    let hit_w = self.textures.lighting_l[uframe].get_width() as f64;
-                    let hit_h = self.textures.lighting_l[uframe].get_height() as f64;
-                    let hit_img = Image::new().rect([key_x - hit_w / 2.0 + key_width / 2.0, hit_p - hit_h / 2.0, hit_w, hit_h]);
+                    let hit_w = self.textures.lighting_l[uframe].get_width() as f64 * scale2;
+                    let hit_h = self.textures.lighting_n[uframe].get_height() as f64 * scale2;
+                    let hit_img = Image::new().rect([hit_x - hit_w / 2.0 + key_width / 2.0, hit_p - hit_h / 2.0, hit_w, hit_h]);
                     hit_img.draw(self.textures.lighting_l[uframe].deref(), draw_state, transform, gl);
                 },
                 HitAnimState::None => (),
