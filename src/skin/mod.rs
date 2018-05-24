@@ -77,7 +77,6 @@ pub fn from_path<P: AsRef<path::Path>>(path: P, config: &config::Config) -> Resu
 /// A skin. Should be returned by skin parsers.
 pub trait Skin {
     fn draw_play_scene(&mut self,
-                       draw_state: &DrawState,
                        transform: math::Matrix2d,
                        gl: &mut GlGraphics,
                        stage_height: f64,

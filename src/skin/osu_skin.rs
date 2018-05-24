@@ -123,13 +123,14 @@ struct OsuSkin {
 
 impl Skin for OsuSkin {
     fn draw_play_scene(&mut self,
-                       draw_state: &DrawState,
                        transform: math::Matrix2d,
                        gl: &mut GlGraphics,
                        stage_height: f64,
                        keys_down: &[bool],
                        // column index, start pos, end pos
                        notes: &[(usize, f64, Option<f64>)]) {
+
+        let draw_state = &DrawState::default();
 
         self.draw_track(draw_state, transform, gl, stage_height);
         for &(column, pos, end_pos) in notes {

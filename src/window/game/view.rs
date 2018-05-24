@@ -2,7 +2,6 @@
 
 use piston::input::RenderArgs;
 use opengl_graphics::GlGraphics;
-use graphics::draw_state::DrawState;
 use graphics;
 
 use skin::Skin;
@@ -15,7 +14,6 @@ use chart;
 /// Holds values and resources needed by the window to do drawing stuff
 pub struct View {
     skin: Box<Skin>,
-    draw_state: DrawState,
 
     /// Index of the next note that isn't on the screen yet
     next_note_index: usize,
@@ -37,10 +35,8 @@ impl View {
 
     /// Create a view with some hardcoded defaults and stuffs
     pub fn new(skin: Box<Skin>) -> View {
-        let draw_state = DrawState::default();
         View {
             skin,
-            draw_state,
             next_note_index: 0,
             current_timing_point_index: 0,
             notes_on_screen_indices: Vec::with_capacity(128),
@@ -53,7 +49,6 @@ impl View {
     /// Called when a render event occurs
     pub fn render(&mut self, gl: &mut GlGraphics, args: &RenderArgs, config: &Config, chart: &chart::Chart, model: &Model, time: f64) {
         let skin = &mut self.skin;
-        let draw_state = &self.draw_state;
         let next_note_index = &mut self.next_note_index;
         let notes_on_screen_indices = &mut self.notes_on_screen_indices;
         let notes_below_screen_indices = &mut self.notes_below_screen_indices;
@@ -121,8 +116,7 @@ impl View {
                 (note.column, pos, end_pos)
             }));
 
-            skin.draw_play_scene(draw_state,
-                                 c.transform,
+            skin.draw_play_scene(c.transform,
                                  gl,
                                  args.height as f64,
                                  &model.keys_down,
