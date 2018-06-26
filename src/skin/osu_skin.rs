@@ -8,7 +8,6 @@ use graphics::image::Image;
 use graphics::draw_state::DrawState;
 use graphics::draw_state;
 use graphics::math;
-use graphics::Transformed;
 use texture::TextureSettings;
 use texture::ImageSize;
 use std::ops::Deref;
@@ -266,7 +265,6 @@ impl OsuSkin {
             },
             NoteBodyStyle::CascadeFromBottom => {
                 let mut rect = [note_x, top_y - note_end_h/2.0, note_w, note_body_h];
-                let mut i = 0.0;
                 let mut note_body_img = Image::new();
 
                 let offset = (real_bottom_y - top_y) % note_body_h;
@@ -280,7 +278,7 @@ impl OsuSkin {
                 note_body_img = Image::new();
 
                 rect[1] += offset;
-                i = offset;
+                let mut i = offset;
 
                 let upside_down_rect = [0.0, note_body.get_height() as f64, note_body.get_width() as f64, -(note_body.get_height() as f64)];
 
@@ -444,7 +442,6 @@ impl OsuSkin {
 
         let scale = stage_h / 480.0;
         let scale2 = stage_h / 768.0;
-        let score_p = self.config.hit_position as f64 * scale;
         let stage_width = (self.config.column_width.iter().sum::<u16>() as f64 + self.config.column_spacing.iter().sum::<u16>() as f64) * scale;
         let column_start = self.config.column_start as f64 * scale;
 
@@ -462,7 +459,6 @@ impl OsuSkin {
 
         let scale = stage_h / 480.0;
         let scale2 = stage_h / 768.0;
-        let score_p = self.config.hit_position as f64 * scale;
         let stage_width = (self.config.column_width.iter().sum::<u16>() as f64 + self.config.column_spacing.iter().sum::<u16>() as f64) * scale;
         let column_start = self.config.column_start as f64 * scale;
 
@@ -482,7 +478,6 @@ impl OsuSkin {
         let hit_p = self.config.hit_position as f64 * scale;
 
         for (i, hit_anim) in self.anim_states.hit_anim.iter_mut().enumerate() {
-            let mut hit_position = 402;
             let key_width = self.config.column_width[i] as f64 * scale;
             let hit_x = scale * (self.config.column_start as f64 +
                                  self.config.column_width[0..i].iter().sum::<u16>() as f64 +
@@ -498,12 +493,12 @@ impl OsuSkin {
                         // also pls fix borrow checker this is safe i swear
                         //*hit_anim = HitAnimState::None;
                         set_hit_anim_state_none = true;
-                        continue;
+                    } else {
+                        let hit_w = self.textures.lighting_n[uframe].get_width() as f64 * scale2;
+                        let hit_h = self.textures.lighting_n[uframe].get_height() as f64 * scale2;
+                        let hit_img = Image::new().rect([hit_x - hit_w / 2.0 + key_width / 2.0, hit_p - hit_h / 2.0, hit_w, hit_h]);
+                        hit_img.draw(self.textures.lighting_n[uframe].deref(), draw_state, transform, gl);
                     }
-                    let hit_w = self.textures.lighting_n[uframe].get_width() as f64 * scale2;
-                    let hit_h = self.textures.lighting_n[uframe].get_height() as f64 * scale2;
-                    let hit_img = Image::new().rect([hit_x - hit_w / 2.0 + key_width / 2.0, hit_p - hit_h / 2.0, hit_w, hit_h]);
-                    hit_img.draw(self.textures.lighting_n[uframe].deref(), draw_state, transform, gl);
                 },
                 HitAnimState::LongNote(time) => {
                     let frame = (time.elapsed().as_secs() as f64 + time.elapsed().subsec_nanos() as f64 / 1000_000_000.0) * 60.0;

@@ -44,7 +44,7 @@ impl Model {
     }
 
     /// Called when an update event occurs
-    pub fn update<F: FnMut(usize)>(&mut self, args: &UpdateArgs, chart: &Chart, time: f64, mut miss_callback: F) {
+    pub fn update<F: FnMut(usize)>(&mut self, _args: &UpdateArgs, chart: &Chart, time: f64, mut miss_callback: F) {
         // how many notes should be removed from the front of each vecdeque
         let mut to_be_removed = [0; 7];
 
@@ -107,7 +107,7 @@ impl Model {
             });
     }
 
-    pub fn release<F: FnMut(usize)>(&mut self, args: &Button, config: &Config, time: f64, mut callback: F) {
+    pub fn release<F: FnMut(usize)>(&mut self, args: &Button, config: &Config, _time: f64, mut callback: F) {
         config.key_bindings.iter().enumerate().zip(self.keys_down.iter_mut())
             .for_each(|((key_index, key_binding), key_down)| {
                 if *args == *key_binding {

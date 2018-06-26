@@ -5,7 +5,7 @@ use opengl_graphics::Texture;
 use graphics::image::Image;
 use graphics::draw_state::DrawState;
 use texture::{ TextureSettings, ImageSize };
-use piston::input::{ RenderEvent, UpdateEvent, PressEvent, MouseCursorEvent, Button };
+use piston::input::{ RenderEvent, PressEvent, MouseCursorEvent, Button };
 
 use super::{ Window, Scene };
 use super::game;

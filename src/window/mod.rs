@@ -3,7 +3,6 @@
 use opengl_graphics::GlGraphics;
 
 use config::Config;
-use chart::Chart;
 
 use audio;
 
@@ -52,7 +51,7 @@ pub fn start(config: Config) {
                              .srgb(false)
                              .build()
                              .expect("Could not create window");
-    let mut gl = GlGraphics::new(opengl);
+    let gl = GlGraphics::new(opengl);
 
     let audio = match audio::start_audio_thread() {
         Ok(a) => a,

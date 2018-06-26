@@ -4,7 +4,6 @@ use std::time;
 use std::path::Path;
 
 use piston;
-use opengl_graphics::GlGraphics;
 use piston::input::{ RenderEvent, UpdateEvent, PressEvent, ReleaseEvent };
 
 mod model;
