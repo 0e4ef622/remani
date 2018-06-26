@@ -69,8 +69,7 @@ impl<R: io::Read + Send> Iterator for MP3Samples<R> {
             self.current_samples_index += 1;
         }
 
-        // TODO maybe not multiply?
-        Some(sample * 5.0)
+        Some(sample)
     }
 }
 
