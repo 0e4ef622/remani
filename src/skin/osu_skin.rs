@@ -465,7 +465,7 @@ impl OsuSkin {
                     let frame = (time.elapsed().as_secs() as f64 + time.elapsed().subsec_nanos() as f64 / 1000_000_000.0) * 60.0;
                     let uframe = frame as usize % self.textures.lighting_l.len();
                     let hit_w = self.textures.lighting_l[uframe].get_width() as f64 * scale2;
-                    let hit_h = self.textures.lighting_n[uframe].get_height() as f64 * scale2;
+                    let hit_h = self.textures.lighting_l[uframe].get_height() as f64 * scale2;
                     let hit_img = Image::new().rect([hit_x - hit_w / 2.0 + key_width / 2.0, hit_p - hit_h / 2.0, hit_w, hit_h]);
                     hit_img.draw(self.textures.lighting_l[uframe].deref(), draw_state, transform, gl);
                 },
