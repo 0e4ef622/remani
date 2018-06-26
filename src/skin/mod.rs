@@ -20,7 +20,7 @@ pub enum ParseError {
     /// IO error
     Io(String, io::Error),
     /// Parsing error
-    Parse(String, Option<Box<error::Error>>),
+    Parse(String, Option<Box<dyn error::Error>>),
     UnknownFormat,
     InvalidFile,
     ImageError(String, image::ImageError),
@@ -55,7 +55,7 @@ impl error::Error for ParseError {
             ParseError::ImageError(_, _) => "Error reading image",
         }
     }
-    fn cause(&self) -> Option<&error::Error> {
+    fn cause(&self) -> Option<&dyn error::Error> {
         use std::ops::Deref;
         match *self {
             ParseError::Io(_, ref e) => Some(e),
@@ -69,7 +69,7 @@ impl error::Error for ParseError {
 /// Parse from a directory specified by the path.
 ///
 /// For now, the osu parser is assumed.
-pub fn from_path<P: AsRef<path::Path>>(path: P, config: &config::Config) -> Result<Box<Skin>, ParseError> {
+pub fn from_path<P: AsRef<path::Path>>(path: P, config: &config::Config) -> Result<Box<dyn Skin>, ParseError> {
     osu_skin::from_path(path.as_ref(), &config.default_osu_skin_path)
 }
 

@@ -501,7 +501,7 @@ impl error::Error for OsuSkinParseError {
             OsuSkinParseError::NoDefaultTexture(_) => "No default texture found",
         }
     }
-    fn cause(&self) -> Option<&error::Error> {
+    fn cause(&self) -> Option<&dyn error::Error> {
         Some(self)
     }
 }
@@ -615,7 +615,7 @@ fn load_texture(cache: &mut HashMap<String, Rc<Vec<Rc<Texture>>>>,
     Err(OsuSkinParseError::NoDefaultTexture(String::from(names.0)).into())
 }
 
-pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<Skin>, ParseError> {
+pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<dyn Skin>, ParseError> {
     let config_path = dir.join(path::Path::new("skin.ini"));
 
     let texture_settings = TextureSettings::new();

@@ -1,3 +1,5 @@
+#![deny(bare_trait_objects)]
+
 extern crate piston;
 extern crate texture;
 extern crate glutin_window;

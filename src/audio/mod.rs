@@ -23,7 +23,7 @@ pub type EffectStream<S: cpal::Sample> = Arc<Vec<S>>;
 /// A struct that encapsulates a lazy iterator over audio samples with metadata.
 pub struct MusicStream<S: cpal::Sample> {
     /// An interleaved iterator of samples
-    samples: Box<Iterator<Item = S> + Send>,
+    samples: Box<dyn Iterator<Item = S> + Send>,
     channel_count: u8,
     sample_rate: u32,
 }
@@ -144,7 +144,7 @@ impl fmt::Display for AudioThreadError {
 }
 
 impl error::Error for AudioThreadError {
-    fn cause(&self) -> Option<&error::Error> {
+    fn cause(&self) -> Option<&dyn error::Error> {
         match *self {
             AudioThreadError::NoOutputDevice => None,
             AudioThreadError::DefaultFormatError(_) => None,
@@ -311,7 +311,7 @@ impl error::Error for AudioLoadError {
             AudioLoadError::Decode(_) => "Decode error",
         }
     }
-    fn cause(&self) -> Option<&error::Error> {
+    fn cause(&self) -> Option<&dyn error::Error> {
         match *self {
             AudioLoadError::Io(ref e) => Some(e),
             AudioLoadError::Decode(_) => None

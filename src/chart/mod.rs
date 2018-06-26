@@ -77,7 +77,7 @@ pub enum ParseError {
     /// IO error
     Io(String, io::Error),
     /// Parsing error
-    Parse(String, Option<Box<error::Error>>),
+    Parse(String, Option<Box<dyn error::Error>>),
     UnknownFormat,
     InvalidFile,
     EOL,
@@ -106,7 +106,7 @@ impl error::Error for ParseError {
             ParseError::EOL => "Unexpected end of line",
         }
     }
-    fn cause(&self) -> Option<&error::Error> {
+    fn cause(&self) -> Option<&dyn error::Error> {
         use std::ops::Deref;
         match *self {
             ParseError::Io(_, ref e) => Some(e),

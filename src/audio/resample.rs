@@ -6,7 +6,7 @@ use std::iter::Peekable;
 
 /// Resample a MusicStream using linear interpolation
 pub struct Resample<S: cpal::Sample> {
-    samples: Peekable<Box<Iterator<Item=S> + Send>>,
+    samples: Peekable<Box<dyn Iterator<Item=S> + Send>>,
     num_channels: usize,
     from_sample_rate: u32,
     to_sample_rate: u32,

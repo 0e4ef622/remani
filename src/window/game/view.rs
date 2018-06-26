@@ -13,7 +13,7 @@ use chart;
 
 /// Holds values and resources needed by the window to do drawing stuff
 pub struct View {
-    skin: Box<Skin>,
+    skin: Box<dyn Skin>,
 
     /// Index of the next note that isn't on the screen yet
     next_note_index: usize,
@@ -34,7 +34,7 @@ pub struct View {
 impl View {
 
     /// Create a view with some hardcoded defaults and stuffs
-    pub fn new(skin: Box<Skin>) -> View {
+    pub fn new(skin: Box<dyn Skin>) -> View {
         View {
             skin,
             next_note_index: 0,
