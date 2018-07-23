@@ -368,9 +368,9 @@ impl OsuSkin {
             let sl_size = self.textures.stage_light.len();
             let stage_light_height = self.textures.stage_light[sl_size-1].get_height() as f64 * scale2;
 
-            if self.anim_states.keys_last_down_time[i] != None {
+            if let Some(last_down_time) = self.anim_states.keys_last_down_time[i] {
                 let current_time = time::Instant::now();
-                let elapsed_time = current_time - self.anim_states.keys_last_down_time[i].unwrap();
+                let elapsed_time = current_time - last_down_time;
                 let elapsed_time_secs = elapsed_time.as_secs() as f64 + elapsed_time.subsec_nanos() as f64 / 1_000_000_000.0;
                 let fframe: f32 = elapsed_time_secs as f32 * 30.0;
                 let frame = fframe as usize;
@@ -539,6 +539,8 @@ fn texture_from_path<T: AsRef<path::Path>>(path: T, texture_settings: &TextureSe
 }
 
 /// Load an animatable skin element's textures
+///
+/// This function takes the basename and tries different paths until it finds one that exists
 fn load_texture_anim(cache: &mut HashMap<String, Rc<Vec<Rc<Texture>>>>,
                 dir: &path::Path,
                 default_dir: &path::Path,
@@ -587,6 +589,8 @@ fn load_texture_anim(cache: &mut HashMap<String, Rc<Vec<Rc<Texture>>>>,
 }
 
 /// Load a skin element's texture
+///
+/// This function takes the basename and tries different paths until it finds one that exists
 fn load_texture(cache: &mut HashMap<String, Rc<Vec<Rc<Texture>>>>,
                 dir: &path::Path,
                 default_dir: &path::Path,
@@ -683,30 +687,49 @@ pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<dyn S
 
     // parse skin.ini
     if config_path.exists() {
-        let config_file = File::open(config_path).unwrap();
+        let config_file = File::open(config_path).map_err(|e| ParseError::Io(String::from("Error opening config file"), e))?;
         let config_reader = BufReader::new(&config_file);
         let mut section = String::from("General");
         let mut keys: u8 = 0;
-        for l in config_reader.lines() {
-            let line = l.unwrap().to_string().clone().to_owned().trim().to_owned();
+        for (line_number, l) in config_reader.lines().enumerate() {
+            let line = l.map_err(|e| ParseError::Io(String::from("Error reading config file"), e))?;
+            let line = line.trim();
+
+            // section declarations look like [section name]
             if line.starts_with("[") && line.ends_with("]") {
-                section = line.clone();
-                section = section[1..section.len()-1].to_string();
+                section = line[1..line.len()-1].to_string();
                 continue;
             }
+
+            // comment line or empty line
             if line.starts_with("//") || line == "" {
                 continue;
             }
 
+            // key: value
             let mut line_parts = line.splitn(2, ":");
+
+            // parse but with some error handling
+            macro_rules! parse {
+                ($value:ident) => {
+                    match $value.parse() {
+                        Ok(o) => o,
+                        Err(e) => {
+                            remani_warn!("Malformed value in line {} of skin.ini ({}), ignoring", line_number, e);
+                            continue;
+                        }
+                    }
+                }
+            }
 
             let key = if let Some(k) = line_parts.next() { k.trim() } else { continue; };
             let value = if let Some(v) = line_parts.next() { v.trim() } else { continue; };
             match key {
-                "Keys" => keys = value.parse().unwrap(),
+                "Keys" => keys = parse!(value),
                 _ => {
-                    if keys == 7 {
+                    if keys == 7 && section == "Mania" {
                         // fancy macros
+                        // used to match stuff like KeyImage{0..6}H more easily
                         macro_rules! enumerate_match {
                             ($key:ident, $($prefix:expr, $suffix:expr => $varname:ident = $value:expr, ($baseidx:expr, [ $($idx:expr)* ]),)*) => {
                                 match $key {
@@ -724,15 +747,15 @@ pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<dyn S
                             ($default:expr; $count:expr) => {{
                                 let mut a = $default;
                                 for (i, v) in value.split(",").enumerate().take($count) {
-                                    a[i] = v.parse().unwrap();
+                                    a[i] = parse!(v);
                                 }
                                 a
                             }}
                         }
                         match key {
-                            "ColumnStart" => column_start = value.parse().unwrap(),
-                            "HitPosition" => hit_position = value.parse().unwrap(),
-                            "ScorePosition" => score_position = value.parse().unwrap(),
+                            "ColumnStart" => column_start = parse!(value),
+                            "HitPosition" => hit_position = parse!(value),
+                            "ScorePosition" => score_position = parse!(value),
                             "ColumnWidth" => column_width = csv![column_width; 7],
                             "ColumnLineWidth" => column_line_width = csv![column_line_width; 8],
                             "ColumnSpacing" => column_spacing = csv![column_spacing; 6],

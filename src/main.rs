@@ -11,6 +11,14 @@ extern crate cpal;
 #[cfg(feature="mp3")]
 extern crate simplemad;
 
+macro_rules! remani_warn {
+    ($fmt:expr) => (println!(concat!("WARNING: ", $fmt)));
+    ($fmt:expr, $($arg:tt)*) => {
+        println!(concat!("WARNING: ", $fmt), $($arg)*)
+    };
+}
+
+
 mod chart;
 mod skin;
 mod config;

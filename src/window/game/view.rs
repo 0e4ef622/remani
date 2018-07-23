@@ -156,7 +156,7 @@ fn calc_pos(current_time: f64, time: f64, chart: &chart::Chart, scroll_speed: f6
             Some(tp) if tp.is_bpm() => Some(tp),
             Some(_) => None,
             None => {
-                eprintln!("Osu chart has no timing points!");
+                remani_warn!("Osu chart has no timing points!");
                 None
             }
         }

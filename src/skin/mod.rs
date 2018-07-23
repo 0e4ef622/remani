@@ -68,7 +68,7 @@ impl error::Error for ParseError {
 
 /// Parse from a directory specified by the path.
 ///
-/// For now, the osu parser is assumed.
+/// For now, the osu parser is assumed (TODO).
 pub fn from_path<P: AsRef<path::Path>>(path: P, config: &config::Config) -> Result<Box<dyn Skin>, ParseError> {
     osu_skin::from_path(path.as_ref(), &config.default_osu_skin_path)
 }

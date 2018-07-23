@@ -444,8 +444,6 @@ impl IncompleteChart {
                 .map(|t| t.0).unwrap_or(150.0)
         };
 
-        println!("{}", primary_bpm);
-
         Ok(Chart {
             notes,
             timing_points,
