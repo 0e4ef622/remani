@@ -46,7 +46,7 @@ pub fn start(config: Config) {
 
     let opengl = OpenGL::V3_2;
 
-    let mut glutin_window: GlutinWindow = WindowSettings::new("Remani", [1024, 768])
+    let mut glutin_window: GlutinWindow = WindowSettings::new("Remani", config.resolution)
                              .opengl(opengl)
                              .srgb(false)
                              .build()

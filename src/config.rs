@@ -12,6 +12,7 @@ pub struct Config {
     /// Timing offset, in seconds. Applies to visual and timing judgement. Positive means you have
     /// to hit later, and vice versa.
     pub offset: f64,
+    pub resolution: [u32; 2],
 }
 
 /// Load configuration from a file except that part isn't implemented yet. TODO
@@ -35,5 +36,6 @@ pub fn get_config() -> Config {
         skin_path: path::PathBuf::from("test/test_skin"),
         scroll_speed: 1.3,
         offset: 0.1,
+        resolution: [1024, 768],
     }
 }
