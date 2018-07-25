@@ -414,26 +414,26 @@ impl IncompleteChart {
             let mut tp_iter = timing_points.iter().filter(|tp| tp.is_bpm()).take_while(|tp| tp.offset < last_note_time).peekable();
 
             if let Some(first_tp) = tp_iter.peek() {
-                bpm_sums.push((first_tp.value.unwrap(), first_tp.offset));
+                bpm_sums.push((first_tp.value.inner(), first_tp.offset));
             }
 
             while let Some(tp) = tp_iter.next() {
                 let length = tp_iter.peek().map(|t| t.offset).unwrap_or(last_note_time) - tp.offset;
 
                 // rust pls fix borrow checker
-                // if let Some(bpm_sum) = bpm_sums.iter_mut().find(|&&mut (bpm, _)| bpm == tp.value.unwrap()) {
+                // if let Some(bpm_sum) = bpm_sums.iter_mut().find(|&&mut (bpm, _)| bpm == tp.value.inner()) {
                 //     bpm_sum.1 += length;
                 // } else {
-                //     bpm_sums.push((tp.value.unwrap(), length));
+                //     bpm_sums.push((tp.value.inner(), length));
                 // }
 
-                if !{ if let Some(bpm_sum) = bpm_sums.iter_mut().find(|&&mut (bpm, _)| bpm == tp.value.unwrap()) {
+                if !{ if let Some(bpm_sum) = bpm_sums.iter_mut().find(|&&mut (bpm, _)| bpm == tp.value.inner()) {
                         bpm_sum.1 += length;
                         true
                     } else {
                         false
                     }} { // im dying
-                    bpm_sums.push((tp.value.unwrap(), length));
+                    bpm_sums.push((tp.value.inner(), length));
                 }
 
             }

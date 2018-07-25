@@ -39,7 +39,7 @@ pub enum TimingPointValue {
 
 impl TimingPointValue {
 
-    pub fn unwrap(&self) -> f64 {
+    pub fn inner(&self) -> f64 {
         match *self {
             TimingPointValue::SV(v) => v,
             TimingPointValue::BPM(v) => v,

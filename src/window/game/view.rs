@@ -176,8 +176,8 @@ fn calc_pos(current_time: f64, time: f64, chart: &chart::Chart, scroll_speed: f6
 
     let mut pos: f64;
 
-    let value = last_bpm_tp.map(|t| t.value.unwrap() / chart.primary_bpm).unwrap_or(1.0) *
-                last_sv_tp.map(|t| t.value.unwrap()).unwrap_or(1.0);
+    let value = last_bpm_tp.map(|t| t.value.inner() / chart.primary_bpm).unwrap_or(1.0) *
+                last_sv_tp.map(|t| t.value.inner()).unwrap_or(1.0);
 
     if let Some(tp) = iterator.peek() {
         pos = (tp.offset - current_time) * value;
@@ -188,11 +188,11 @@ fn calc_pos(current_time: f64, time: f64, chart: &chart::Chart, scroll_speed: f6
     while let Some(tp) = iterator.next() {
 
         let value = if tp.is_sv() {
-            last_bpm_tp.map(|t| t.value.unwrap() / chart.primary_bpm).unwrap_or(1.0) *
-            tp.value.unwrap()
+            last_bpm_tp.map(|t| t.value.inner() / chart.primary_bpm).unwrap_or(1.0) *
+            tp.value.inner()
         } else { // bpm timing point
             last_bpm_tp = Some(tp);
-            tp.value.unwrap() / chart.primary_bpm
+            tp.value.inner() / chart.primary_bpm
         };
 
         if let Some(ntp) = iterator.peek() {
