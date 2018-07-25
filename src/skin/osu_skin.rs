@@ -1,5 +1,7 @@
 //! Osu skin directory parser module
 
+// TODO add support for hd textures
+
 use image;
 
 use opengl_graphics::Texture;
@@ -374,14 +376,6 @@ impl OsuSkin {
                 let elapsed_time_secs = elapsed_time.as_secs() as f64 + elapsed_time.subsec_nanos() as f64 / 1_000_000_000.0;
                 let fframe: f32 = elapsed_time_secs as f32 * 30.0;
                 let frame = fframe as usize;
-                /* if frame < self.textures.stage_light.len() {
-                    let color = [self.config.colour_light[i][0] as f32 / 255.0,
-                                 self.config.colour_light[i][1] as f32 / 255.0,
-                                 self.config.colour_light[i][2] as f32 / 255.0, 1.0];
-                    let stage_light_height = self.textures.stage_light[frame].get_height() as f64 * scale2;
-                    let stage_light_img = Image::new().rect([key_x, key_y - stage_light_height, key_width, stage_light_height]).color(color);
-                    stage_light_img.draw(self.textures.stage_light[frame].as_ref(), draw_state, transform, gl);
-                } else */
                 if frame < 3 {
                     color[3] -= fframe/3.0;
                     let stage_light_img = Image::new().rect([key_x, key_y - stage_light_height, key_width, stage_light_height]).color(color);
@@ -396,7 +390,6 @@ impl OsuSkin {
 
     fn draw_perfect(&self, draw_state: &DrawState, transform: math::Matrix2d, size_scale: f64, gl: &mut GlGraphics, stage_h: f64, elapsed_time: time::Duration) {
         let elapsed = elapsed_time.as_secs() as f64 + elapsed_time.subsec_nanos() as f64 / 1_000_000_000.0;
-        //let frame = ((elapsed % (self.textures.hit300g.len() as f64 / 60.0)) / 60.0) as usize;
         let frame = (elapsed * 30.0) as usize % self.textures.hit300g.len();
 
         let tx = self.textures.hit300g[frame].deref();

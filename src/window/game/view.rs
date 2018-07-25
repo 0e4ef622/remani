@@ -148,10 +148,8 @@ fn calc_pos(current_time: f64, time: f64, chart: &chart::Chart, scroll_speed: f6
         .take_while(|tp| tp.offset < time)
         .peekable();
 
-    // TODO BPM changes also affect SV
-
-    let mut last_sv_tp = None;
-    let mut last_bpm_tp = { // it should be the first timing point, but if it's not, the map is still playable
+    let mut last_sv_tp: Option<&chart::TimingPoint> = None;
+    let mut last_bpm_tp: Option<&chart::TimingPoint> = { // it should be the first timing point, but if it's not, the map is still playable
         match chart.timing_points.first() {
             Some(tp) if tp.is_bpm() => Some(tp),
             Some(_) => None,
