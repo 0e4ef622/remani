@@ -707,7 +707,7 @@ pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<dyn S
         let config_reader = BufReader::new(&config_file);
         let mut section = String::from("General");
         let mut keys: u8 = 0;
-        for (line_number, l) in config_reader.lines().enumerate() {
+        for (line_number, l) in config_reader.lines().enumerate().map(|(n,l)| (n+1,l)) {
             let line = l.map_err(|e| ParseError::Io(String::from("Error reading config file"), e))?;
             let line = line.trim();
 
