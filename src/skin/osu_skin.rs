@@ -23,6 +23,7 @@ use std::path;
 use std::error;
 use std::fmt;
 use std::time;
+use std::str;
 
 use skin::{ Skin, ParseError };
 use judgement::Judgement;
@@ -32,6 +33,27 @@ enum NoteBodyStyle {
     Stretch,
     CascadeFromTop,
     CascadeFromBottom,
+}
+
+impl str::FromStr for NoteBodyStyle {
+    type Err = NoteBodyStyleParseError;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "0" => Ok(NoteBodyStyle::Stretch),
+            "1" => Ok(NoteBodyStyle::CascadeFromTop),
+            "2" => Ok(NoteBodyStyle::CascadeFromBottom),
+            _ => Err(NoteBodyStyleParseError),
+        }
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
+struct NoteBodyStyleParseError;
+
+impl fmt::Display for NoteBodyStyleParseError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Invalid NoteBodyStyle variant")
+    }
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -724,11 +746,25 @@ pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<dyn S
                     if keys == 7 && section == "Mania" {
                         // fancy macros
                         // used to match stuff like KeyImage{0..6}H more easily
+                        // only works with properties that specify images because of structural reasons
+                        macro_rules! enumerate_match_image {
+                            ($key:ident, $($prefix:expr, $suffix:expr => $varname:ident = $value:expr, ($baseidx:expr, [ $($idx:expr)* ]),)*
+                             ==
+                             $wildcard:ident => $wildcard_expr:expr) => {
+                                match $key {
+                                    $($(
+                                    concat!(concat!($prefix, stringify!($idx)), $suffix) => $varname[$idx - $baseidx].1 = $value,
+                                    )*)*
+                                    $wildcard => $wildcard_expr,
+                                }
+                            }
+                        }
+
                         macro_rules! enumerate_match {
                             ($key:ident, $($prefix:expr, $suffix:expr => $varname:ident = $value:expr, ($baseidx:expr, [ $($idx:expr)* ]),)*) => {
                                 match $key {
                                     $($(
-                                    concat!(concat!($prefix, stringify!($idx)), $suffix) => $varname[$idx - $baseidx].1 = $value,
+                                    concat!(concat!($prefix, stringify!($idx)), $suffix) => $varname[$idx - $baseidx] = $value,
                                     )*)*
                                     _ => (),
                                 }
@@ -740,10 +776,15 @@ pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<dyn S
                         macro_rules! csv {
                             ($default:expr; $count:expr) => {{
                                 let mut a = $default;
+                                let mut n = 0;
                                 for (i, v) in value.split(",").enumerate().take($count) {
                                     a[i] = parse!(v);
+                                    n = i;
                                 }
-                                a
+                                if n < $count - 1 {
+                                    remani_warn!("Malformed value in line {} of skin.ini (not enough fields), ignoring", line_number);
+                                    continue;
+                                } else { a }
                             }}
                         }
                         match key {
@@ -753,14 +794,7 @@ pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<dyn S
                             "ColumnWidth" => column_width = csv![column_width; 7],
                             "ColumnLineWidth" => column_line_width = csv![column_line_width; 8],
                             "ColumnSpacing" => column_spacing = csv![column_spacing; 6],
-                            "NoteBodyStyle" => for (i, v) in value.split(",").enumerate().take(7) {
-                                note_body_style[i] = match v {
-                                    "0" => NoteBodyStyle::Stretch,
-                                    "1" => NoteBodyStyle::CascadeFromTop,
-                                    "2" => NoteBodyStyle::CascadeFromBottom,
-                                    _ => continue,
-                                }
-                            },
+                            "NoteBodyStyle" => note_body_style = [parse!(value); 7],
                             "Hit0" => miss_name.1 = value.to_owned(),
                             "Hit50" => hit50_name.1 = value.to_owned(),
                             "Hit100" => hit100_name.1 = value.to_owned(),
@@ -775,21 +809,18 @@ pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<dyn S
                             "LightingN" => lighting_n_name.1 = value.to_owned(),
                             "LightingL" => lighting_l_name.1 = value.to_owned(),
 
-                            "ColourLight1" => colour_light[0] = csv![colour_light[0]; 3],
-                            "ColourLight2" => colour_light[1] = csv![colour_light[1]; 3],
-                            "ColourLight3" => colour_light[2] = csv![colour_light[2]; 3],
-                            "ColourLight4" => colour_light[3] = csv![colour_light[3]; 3],
-                            "ColourLight5" => colour_light[4] = csv![colour_light[4]; 3],
-                            "ColourLight6" => colour_light[5] = csv![colour_light[5]; 3],
-                            "ColourLight7" => colour_light[6] = csv![colour_light[6]; 3],
-
-                            k => enumerate_match! { k,
+                            k => enumerate_match_image! { k,
                                 "KeyImage", "" => keys_name = value.to_owned(), (0, [0 1 2 3 4 5 6]),
                                 "KeyImage", "D" => keys_d_name = value.to_owned(), (0, [0 1 2 3 4 5 6]),
                                 "NoteImage", "" => notes_name = value.to_owned(), (0, [0 1 2 3 4 5 6]),
                                 "NoteImage", "H" => lns_head_name = value.to_owned(), (0, [0 1 2 3 4 5 6]),
                                 "NoteImage", "L" => lns_body_name = value.to_owned(), (0, [0 1 2 3 4 5 6]),
                                 "NoteImage", "T" => lns_tail_name = value.to_owned(), (0, [0 1 2 3 4 5 6]),
+                                == // for disambiguation purposes :P
+                                k => enumerate_match! { k,
+                                    "ColourLight", "" => colour_light = csv![[0; 3]; 3], (1, [1 2 3 4 5 6 7]),
+                                    "NoteBodyStyle", "" => note_body_style = parse!(value), (0, [0 1 2 3 4 5 6]),
+                                }
                             },
                         }
                     }
