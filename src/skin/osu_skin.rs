@@ -550,15 +550,6 @@ fn load_texture_anim(cache: &mut HashMap<String, Rc<Vec<Rc<Texture>>>>,
                 return Ok(Rc::clone(texture));
             }
 
-            path = $dir.join($name + ".png");
-            if path.exists() {
-                // help
-                let texture = Rc::new(texture_from_path(&path, texture_settings)?);
-                let anim = Rc::new(vec![texture]);
-                cache.insert($name, Rc::clone(&anim));
-                return Ok(anim);
-            }
-
             path = $dir.join($name + "-0.png");
             if path.exists() {
                 textures.push(Rc::new(texture_from_path(&path, texture_settings)?));
@@ -573,6 +564,16 @@ fn load_texture_anim(cache: &mut HashMap<String, Rc<Vec<Rc<Texture>>>>,
                 cache.insert($name, Rc::clone(&anim));
                 return Ok(anim);
             }
+
+            path = $dir.join($name + ".png");
+            if path.exists() {
+                // help
+                let texture = Rc::new(texture_from_path(&path, texture_settings)?);
+                let anim = Rc::new(vec![texture]);
+                cache.insert($name, Rc::clone(&anim));
+                return Ok(anim);
+            }
+
         )*}
     }
 
