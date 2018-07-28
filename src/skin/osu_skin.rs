@@ -4,14 +4,15 @@
 
 use image;
 
-use opengl_graphics::Texture;
-use opengl_graphics::GlGraphics;
 use graphics::image::Image;
 use graphics::draw_state::DrawState;
 use graphics::draw_state;
 use graphics::math;
+use graphics::Graphics;
 use texture::TextureSettings;
 use texture::ImageSize;
+use texture::CreateTexture;
+use texture::Format;
 use std::ops::Deref;
 
 use std::io::BufReader;
@@ -64,47 +65,47 @@ enum HitAnimState {
 }
 
 /// Holds skin data, such as note images and what not.
-struct OsuSkinTextures {
-    miss: Rc<Vec<Rc<Texture>>>,
-    hit50: Rc<Vec<Rc<Texture>>>,
-    hit100: Rc<Vec<Rc<Texture>>>,
-    hit200: Rc<Vec<Rc<Texture>>>,
-    hit300: Rc<Vec<Rc<Texture>>>,
-    hit300g: Rc<Vec<Rc<Texture>>>,
+struct OsuSkinTextures<T> {
+    miss: Rc<Vec<Rc<T>>>,
+    hit50: Rc<Vec<Rc<T>>>,
+    hit100: Rc<Vec<Rc<T>>>,
+    hit200: Rc<Vec<Rc<T>>>,
+    hit300: Rc<Vec<Rc<T>>>,
+    hit300g: Rc<Vec<Rc<T>>>,
 
     /// The animation played when a single note is pressed
-    lighting_n: Rc<Vec<Rc<Texture>>>,
+    lighting_n: Rc<Vec<Rc<T>>>,
 
     /// The animation played when a long note is pressed
-    lighting_l: Rc<Vec<Rc<Texture>>>,
+    lighting_l: Rc<Vec<Rc<T>>>,
 
     /// The images virtual keys under the judgement line.
-    keys: [Rc<Texture>; 7],
+    keys: [Rc<T>; 7],
 
     /// The images of the virtual keys under the judgement line when the
     /// corresponding key on the keyboard is pressed.
-    keys_d: [Rc<Texture>; 7],
+    keys_d: [Rc<T>; 7],
 
     /// The notes' images.
-    notes: [Rc<Vec<Rc<Texture>>>; 7],
+    notes: [Rc<Vec<Rc<T>>>; 7],
 
     /// The long notes' ends' images.
-    long_notes_head: [Rc<Vec<Rc<Texture>>>; 7],
+    long_notes_head: [Rc<Vec<Rc<T>>>; 7],
 
     /// The long notes' bodies' images.
-    long_notes_body: [Rc<Vec<Rc<Texture>>>; 7],
+    long_notes_body: [Rc<Vec<Rc<T>>>; 7],
 
     /// The long notes' tails' images.
-    long_notes_tail: [Option<Rc<Vec<Rc<Texture>>>>; 7],
+    long_notes_tail: [Option<Rc<Vec<Rc<T>>>>; 7],
 
     /// The stage light animation images
-    stage_light: Rc<Vec<Rc<Texture>>>,
+    stage_light: Rc<Vec<Rc<T>>>,
 
     /// The stage components.
-    stage_hint: Rc<Vec<Rc<Texture>>>,
-    stage_left: Rc<Texture>,
-    stage_right: Rc<Texture>,
-    stage_bottom: Option<Rc<Vec<Rc<Texture>>>>,
+    stage_hint: Rc<Vec<Rc<T>>>,
+    stage_left: Rc<T>,
+    stage_right: Rc<T>,
+    stage_bottom: Option<Rc<Vec<Rc<T>>>>,
 }
 
 struct OsuSkinConfig {
@@ -136,8 +137,8 @@ struct OsuAnimStates {
     hit_anim: [HitAnimState; 7],
 }
 
-struct OsuSkin {
-    textures: OsuSkinTextures,
+struct OsuSkin<G: Graphics> {
+    textures: OsuSkinTextures<G::Texture>,
     config: OsuSkinConfig,
     anim_states: OsuAnimStates,
 
@@ -145,10 +146,10 @@ struct OsuSkin {
     judgement: Option<(Judgement, time::Instant)>,
 }
 
-impl Skin for OsuSkin {
+impl<G: Graphics> Skin<G> for OsuSkin<G> {
     fn draw_play_scene(&mut self,
                        transform: math::Matrix2d,
-                       gl: &mut GlGraphics,
+                       g: &mut G,
                        stage_height: f64,
                        keys_down: &[bool],
                        // column index, start pos, end pos
@@ -156,16 +157,17 @@ impl Skin for OsuSkin {
 
         let draw_state = &DrawState::default();
 
-        self.draw_track(draw_state, transform, gl, stage_height);
+        self.draw_track(draw_state, transform, g, stage_height);
         for &(column, pos, end_pos) in notes {
             if let Some(end_p) = end_pos {
-                self.draw_long_note(draw_state, transform, gl, stage_height, pos, end_p, column);
+                self.draw_long_note(draw_state, transform, g, stage_height, pos, end_p, column);
             } else {
-                self.draw_note(draw_state, transform, gl, stage_height, pos, column);
+                self.draw_note(draw_state, transform, g, stage_height, pos, column);
             }
         }
-        self.draw_keys(draw_state, transform, gl, stage_height, keys_down);
-        self.draw_hit_anims(&DrawState::default().blend(draw_state::Blend::Add), transform, gl, stage_height);
+        self.draw_keys(draw_state, transform, g, stage_height, keys_down);
+        // TODO the weird fade in/out thing osu does
+        self.draw_hit_anims(&DrawState::default().blend(draw_state::Blend::Add), transform, g, stage_height);
 
         // Draw judgement
         if let Some((judgement, time)) = self.judgement {
@@ -182,10 +184,10 @@ impl Skin for OsuSkin {
                     1.0 - (elapsed.subsec_nanos() - 160_000_000) as f64 / 150_000_000.0
                 };
                 match judgement {
-                    Judgement::Miss => self.draw_miss(draw_state, transform, gl, stage_height),
+                    Judgement::Miss => self.draw_miss(draw_state, transform, g, stage_height),
                     Judgement::Bad => (), // TODO
                     Judgement::Good => (),
-                    Judgement::Perfect => self.draw_perfect(draw_state, transform, scale, gl, stage_height, elapsed),
+                    Judgement::Perfect => self.draw_perfect(draw_state, transform, scale, g, stage_height, elapsed),
                 };
             } else {
                 self.judgement = None;
@@ -218,9 +220,9 @@ impl Skin for OsuSkin {
     }
 }
 
-impl OsuSkin {
+impl<G: Graphics> OsuSkin<G> {
     // TODO render animations
-    fn draw_note(&self, draw_state: &DrawState, transform: math::Matrix2d, gl: &mut GlGraphics, stage_h: f64, pos: f64, column_index: usize) {
+    fn draw_note(&self, draw_state: &DrawState, transform: math::Matrix2d, g: &mut G, stage_h: f64, pos: f64, column_index: usize) {
 
         let scale = stage_h / 480.0;
         let hit_p = self.config.hit_position as f64 * scale;
@@ -235,9 +237,9 @@ impl OsuSkin {
 
         let note = self.textures.notes[column_index][0].deref();
         let note_img = Image::new().rect([note_x, note_y, note_w, note_h]);
-        note_img.draw(note, draw_state, transform, gl);
+        note_img.draw(note, draw_state, transform, g);
     }
-    fn draw_long_note(&self, draw_state: &DrawState, transform: math::Matrix2d, gl: &mut GlGraphics,
+    fn draw_long_note(&self, draw_state: &DrawState, transform: math::Matrix2d, g: &mut G,
                       stage_h: f64, pos: f64, end_pos: f64, column_index: usize) {
 
         let scale = stage_h / 480.0;
@@ -269,7 +271,7 @@ impl OsuSkin {
                 let note_body_img = Image::new()
                     .src_rect([0.0, 0.0, note_body.get_width() as f64, ((bottom_y - top_y)/(real_bottom_y - top_y)*(note_body.get_height() as f64))])
                     .rect([note_x, top_y - note_end_h/2.0, note_w, bottom_y - top_y]);
-                note_body_img.draw(note_body, draw_state, transform, gl);
+                note_body_img.draw(note_body, draw_state, transform, g);
             },
             NoteBodyStyle::CascadeFromTop => {
                 let mut rect = [note_x, top_y - note_end_h/2.0, note_w, note_body_h];
@@ -277,7 +279,7 @@ impl OsuSkin {
                 let mut note_body_img = Image::new();
                 while i < bottom_y - top_y - note_body_h {
                     note_body_img = note_body_img.rect(rect);
-                    note_body_img.draw(note_body, draw_state, transform, gl);
+                    note_body_img.draw(note_body, draw_state, transform, g);
                     rect[1] += note_body_h;
                     i += note_body_h;
                 }
@@ -285,7 +287,7 @@ impl OsuSkin {
                 mod_rect[3] = bottom_y - top_y - i;
                 let src_rect = [0.0, 0.0, note_body.get_width() as f64, mod_rect[3]];
                 note_body_img = note_body_img.src_rect(src_rect).rect(mod_rect);
-                note_body_img.draw(note_body, draw_state, transform, gl);
+                note_body_img.draw(note_body, draw_state, transform, g);
             },
             NoteBodyStyle::CascadeFromBottom => {
                 let mut rect = [note_x, top_y - note_end_h/2.0, note_w, note_body_h];
@@ -297,7 +299,7 @@ impl OsuSkin {
                 mod_rect[3] = offset;
                 let src_rect = [0.0, offset / scale2, note_body.get_width() as f64, -(mod_rect[3] / scale2)];
                 note_body_img = note_body_img.src_rect(src_rect).rect(mod_rect);
-                note_body_img.draw(note_body, draw_state, transform, gl);
+                note_body_img.draw(note_body, draw_state, transform, g);
 
                 note_body_img = Image::new();
 
@@ -308,7 +310,7 @@ impl OsuSkin {
 
                 while i < bottom_y - top_y - note_body_h {
                     note_body_img = note_body_img.src_rect(upside_down_rect).rect(rect);
-                    note_body_img.draw(note_body, draw_state, transform, gl);
+                    note_body_img.draw(note_body, draw_state, transform, g);
                     rect[1] += note_body_h;
                     i += note_body_h;
                 }
@@ -317,29 +319,29 @@ impl OsuSkin {
                 mod_rect[3] = bottom_y - top_y - i;
                 let src_rect = [0.0, note_body.get_height() as f64, note_body.get_width() as f64, -mod_rect[3]];
                 note_body_img = note_body_img.src_rect(src_rect).rect(mod_rect);
-                note_body_img.draw(note_body, draw_state, transform, gl);
+                note_body_img.draw(note_body, draw_state, transform, g);
 
                 let note_body_img = Image::new().rect([note_x, top_y - note_end_h/2.0, note_w, bottom_y - top_y]);
-                note_body_img.draw(note_body, draw_state, transform, gl);
+                note_body_img.draw(note_body, draw_state, transform, g);
             },
         }
 
         if pos >= 0.0 {
-            note_head_img.draw(note_head, draw_state, transform, gl);
+            note_head_img.draw(note_head, draw_state, transform, g);
         }
 
-        note_head_img.draw(note_head, draw_state, transform, gl);
+        note_head_img.draw(note_head, draw_state, transform, g);
 
         if let Some(note_tail) = note_tail {
-            note_tail_img.draw(note_tail, draw_state, transform, gl);
+            note_tail_img.draw(note_tail, draw_state, transform, g);
         } else {
             note_tail_img.src_rect([0.0, note_head.get_height() as f64,
                                     note_head.get_width() as f64, -(note_head.get_height() as f64)])
-                         .draw(note_head, draw_state, transform, gl);
+                         .draw(note_head, draw_state, transform, g);
         }
     }
 
-    fn draw_track(&self, draw_state: &DrawState, transform: math::Matrix2d, gl: &mut GlGraphics, stage_h: f64) {
+    fn draw_track(&self, draw_state: &DrawState, transform: math::Matrix2d, g: &mut G, stage_h: f64) {
 
         let scale = stage_h / 480.0;
 
@@ -357,26 +359,26 @@ impl OsuSkin {
         let stage_r_img = Image::new().rect([column_start + column_width_sum, 0.0, stage_r_width, stage_h]);
         let stage_hint_img = Image::new().rect([column_start, self.config.hit_position as f64 * scale - stage_hint_height / 2.0, column_width_sum, stage_hint_height]);
 
-        stage_hint_img.draw(self.textures.stage_hint[0].deref(), draw_state, transform, gl);
-        stage_l_img.draw(self.textures.stage_left.deref(), draw_state, transform, gl);
-        stage_r_img.draw(self.textures.stage_right.deref(), draw_state, transform, gl);
+        stage_hint_img.draw(self.textures.stage_hint[0].deref(), draw_state, transform, g);
+        stage_l_img.draw(self.textures.stage_left.deref(), draw_state, transform, g);
+        stage_r_img.draw(self.textures.stage_right.deref(), draw_state, transform, g);
 
         if let Some(ref v) = self.textures.stage_bottom {
             let stage_bottom = &v[0];
             let stage_b_width = stage_bottom.get_width() as f64 * scale;
             let stage_b_height = stage_bottom.get_height() as f64 * scale;
             let stage_b_img = Image::new().rect([column_start + column_width_sum / 2.0 - stage_b_width / 2.0, stage_h - stage_b_height, stage_b_width, stage_b_height]);
-            stage_b_img.draw(stage_bottom.deref(), draw_state, transform, gl);
+            stage_b_img.draw(stage_bottom.deref(), draw_state, transform, g);
         }
     }
 
-    fn draw_keys(&self, draw_state: &DrawState, transform: math::Matrix2d, gl: &mut GlGraphics, stage_h: f64, pressed: &[bool]) {
+    fn draw_keys(&self, draw_state: &DrawState, transform: math::Matrix2d, g: &mut G, stage_h: f64, pressed: &[bool]) {
 
         let scale = stage_h / 480.0;
         let scale2 = stage_h / 768.0;
 
         for (i, key_pressed) in pressed.iter().enumerate() {
-            let key_texture: &Texture = if *key_pressed { self.textures.keys_d[i].as_ref() } else { self.textures.keys[i].as_ref() };
+            let key_texture = if *key_pressed { self.textures.keys_d[i].as_ref() } else { self.textures.keys[i].as_ref() };
             let key_width = self.config.column_width[i] as f64 * scale;
             let key_height = key_texture.get_height() as f64 * scale2;
             let key_x = scale * (self.config.column_start as f64 +
@@ -384,7 +386,7 @@ impl OsuSkin {
                                  self.config.column_spacing[0..i].iter().sum::<u16>() as f64);
             let key_y = stage_h - key_height;
             let key_img = Image::new().rect([key_x, key_y, key_width, key_height]);
-            key_img.draw(key_texture, draw_state, transform, gl);
+            key_img.draw(key_texture, draw_state, transform, g);
 
             let mut color = [self.config.colour_light[i][0] as f32 / 255.0,
                          self.config.colour_light[i][1] as f32 / 255.0,
@@ -401,16 +403,16 @@ impl OsuSkin {
                 if frame < 3 {
                     color[3] -= fframe/3.0;
                     let stage_light_img = Image::new().rect([key_x, key_y - stage_light_height, key_width, stage_light_height]).color(color);
-                    stage_light_img.draw(self.textures.stage_light[sl_size-1].as_ref(), draw_state, transform, gl);
+                    stage_light_img.draw(self.textures.stage_light[sl_size-1].as_ref(), draw_state, transform, g);
                 }
             } else if *key_pressed {
                 let stage_light_img = Image::new().rect([key_x, key_y - stage_light_height, key_width, stage_light_height]).color(color);
-                stage_light_img.draw(self.textures.stage_light[0].as_ref(), draw_state, transform, gl);
+                stage_light_img.draw(self.textures.stage_light[0].as_ref(), draw_state, transform, g);
             }
         }
     }
 
-    fn draw_perfect(&self, draw_state: &DrawState, transform: math::Matrix2d, size_scale: f64, gl: &mut GlGraphics, stage_h: f64, elapsed_time: time::Duration) {
+    fn draw_perfect(&self, draw_state: &DrawState, transform: math::Matrix2d, size_scale: f64, g: &mut G, stage_h: f64, elapsed_time: time::Duration) {
         let elapsed = elapsed_time.as_secs() as f64 + elapsed_time.subsec_nanos() as f64 / 1_000_000_000.0;
         let frame = (elapsed * 30.0) as usize % self.textures.hit300g.len();
 
@@ -427,10 +429,10 @@ impl OsuSkin {
         let tx_y = self.config.score_position as f64 * scale - tx_h / 2.0;
 
         let img = Image::new().rect([tx_x, tx_y, tx_w, tx_h]);
-        img.draw(tx, draw_state, transform, gl);
+        img.draw(tx, draw_state, transform, g);
     }
 
-    fn draw_miss(&self, draw_state: &DrawState, transform: math::Matrix2d, gl: &mut GlGraphics, stage_h: f64) {
+    fn draw_miss(&self, draw_state: &DrawState, transform: math::Matrix2d, g: &mut G, stage_h: f64) {
         let tx = self.textures.miss[0].deref();
 
         let scale = stage_h / 480.0;
@@ -444,10 +446,10 @@ impl OsuSkin {
         let tx_y = self.config.score_position as f64 * scale - tx_h / 2.0;
 
         let img = Image::new().rect([tx_x, tx_y, tx_w, tx_h]);
-        img.draw(tx, draw_state, transform, gl);
+        img.draw(tx, draw_state, transform, g);
     }
 
-    fn draw_hit_anims(&mut self, draw_state: &DrawState, transform: math::Matrix2d, gl: &mut GlGraphics, stage_height: f64) {
+    fn draw_hit_anims(&mut self, draw_state: &DrawState, transform: math::Matrix2d, g: &mut G, stage_height: f64) {
         let scale = stage_height / 480.0;
         let scale2 = stage_height / 768.0;
 
@@ -473,7 +475,7 @@ impl OsuSkin {
                         let hit_w = self.textures.lighting_n[uframe].get_width() as f64 * scale2;
                         let hit_h = self.textures.lighting_n[uframe].get_height() as f64 * scale2;
                         let hit_img = Image::new().rect([hit_x - hit_w / 2.0 + key_width / 2.0, hit_p - hit_h / 2.0, hit_w, hit_h]);
-                        hit_img.draw(self.textures.lighting_n[uframe].deref(), draw_state, transform, gl);
+                        hit_img.draw(self.textures.lighting_n[uframe].deref(), draw_state, transform, g);
                     }
                 },
                 HitAnimState::LongNote(time) => {
@@ -482,7 +484,7 @@ impl OsuSkin {
                     let hit_w = self.textures.lighting_l[uframe].get_width() as f64 * scale2;
                     let hit_h = self.textures.lighting_l[uframe].get_height() as f64 * scale2;
                     let hit_img = Image::new().rect([hit_x - hit_w / 2.0 + key_width / 2.0, hit_p - hit_h / 2.0, hit_w, hit_h]);
-                    hit_img.draw(self.textures.lighting_l[uframe].deref(), draw_state, transform, gl);
+                    hit_img.draw(self.textures.lighting_l[uframe].deref(), draw_state, transform, g);
                 },
                 HitAnimState::None => (),
             }
@@ -545,22 +547,31 @@ fn image_reverse_srgb(mut img: image::RgbaImage) -> image::RgbaImage {
     img
 }
 
-fn texture_from_path<T: AsRef<path::Path>>(path: T, texture_settings: &TextureSettings) -> Result<Texture, ParseError> {
+fn texture_from_path<F, T, P>(factory: &mut F, path: P, texture_settings: &TextureSettings) -> Result<T, ParseError>
+where T: CreateTexture<F>, P: AsRef<path::Path>, T::Error: ToString
+{
+    let path_string = path.as_ref().to_string_lossy().into_owned();
     let image = match image::open(&path) {
         Ok(t) => t,
-        Err(e) => return Err(ParseError::ImageError(path.as_ref().to_string_lossy().into_owned(), e)),
+        Err(e) => return Err(ParseError::ImageError(path_string, e)),
     };
-    Ok(Texture::from_image(&image_reverse_srgb(image.to_rgba()), texture_settings))
+    let image = image_reverse_srgb(image.to_rgba());
+    let dimensions = image.dimensions();
+    CreateTexture::create(factory, Format::Rgba8, &*image.into_raw(), [dimensions.0, dimensions.1], texture_settings)
+    .map_err(|e: T::Error| ParseError::ImageError(path_string, image::ImageError::UnsupportedError(e.to_string())))
 }
 
 /// Load an animatable skin element's textures
 ///
 /// This function takes the basename and tries different paths until it finds one that exists
-fn load_texture_anim(cache: &mut HashMap<String, Rc<Vec<Rc<Texture>>>>,
-                dir: &path::Path,
-                default_dir: &path::Path,
-                names: &(&'static str, String),
-                texture_settings: &TextureSettings) -> Result<Rc<Vec<Rc<Texture>>>, ParseError> {
+fn load_texture_anim<F, T>(factory: &mut F,
+                           cache: &mut HashMap<String, Rc<Vec<Rc<T>>>>,
+                           dir: &path::Path,
+                           default_dir: &path::Path,
+                           names: &(&'static str, String),
+                           texture_settings: &TextureSettings) -> Result<Rc<Vec<Rc<T>>>, ParseError>
+where T: CreateTexture<F>, T::Error: ToString
+{
 
     let mut textures = Vec::new();
     let mut path;
@@ -574,12 +585,12 @@ fn load_texture_anim(cache: &mut HashMap<String, Rc<Vec<Rc<Texture>>>>,
 
             path = $dir.join($name + "-0.png");
             if path.exists() {
-                textures.push(Rc::new(texture_from_path(&path, texture_settings)?));
+                textures.push(Rc::new(texture_from_path(factory, &path, texture_settings)?));
                 let mut n = 1;
                 loop {
                     path = $dir.join(format!("{}-{}.png", $name, n));
                     if !path.exists() { break; }
-                    textures.push(Rc::new(texture_from_path(&path, texture_settings)?));
+                    textures.push(Rc::new(texture_from_path(factory, &path, texture_settings)?));
                     n += 1;
                 }
                 let anim = Rc::new(textures);
@@ -590,7 +601,7 @@ fn load_texture_anim(cache: &mut HashMap<String, Rc<Vec<Rc<Texture>>>>,
             path = $dir.join($name + ".png");
             if path.exists() {
                 // help
-                let texture = Rc::new(texture_from_path(&path, texture_settings)?);
+                let texture = Rc::new(texture_from_path(factory, &path, texture_settings)?);
                 let anim = Rc::new(vec![texture]);
                 cache.insert($name, Rc::clone(&anim));
                 return Ok(anim);
@@ -607,12 +618,14 @@ fn load_texture_anim(cache: &mut HashMap<String, Rc<Vec<Rc<Texture>>>>,
 /// Load a skin element's texture
 ///
 /// This function takes the basename and tries different paths until it finds one that exists
-fn load_texture(cache: &mut HashMap<String, Rc<Vec<Rc<Texture>>>>,
-                dir: &path::Path,
-                default_dir: &path::Path,
-                names: &(&'static str, String),
-                texture_settings: &TextureSettings) -> Result<Rc<Texture>, ParseError> {
-
+fn load_texture<F, T>(factory: &mut F,
+                      cache: &mut HashMap<String, Rc<Vec<Rc<T>>>>,
+                      dir: &path::Path,
+                      default_dir: &path::Path,
+                      names: &(&'static str, String),
+                      texture_settings: &TextureSettings) -> Result<Rc<T>, ParseError>
+where T: CreateTexture<F>, T::Error: ToString
+{
     macro_rules! repetitive_code {
         ($(($dir:ident, $name:expr)),*) => {$(
 
@@ -622,7 +635,7 @@ fn load_texture(cache: &mut HashMap<String, Rc<Vec<Rc<Texture>>>>,
 
             let path = $dir.join($name + ".png");
             if path.exists() {
-                let texture = texture_from_path(path, texture_settings)?;
+                let texture = texture_from_path(factory, path, texture_settings)?;
                 let rc = Rc::new(texture);
                 cache.insert($name, Rc::new(vec![Rc::clone(&rc)]));
                 return Ok(rc);
@@ -635,7 +648,9 @@ fn load_texture(cache: &mut HashMap<String, Rc<Vec<Rc<Texture>>>>,
     Err(OsuSkinParseError::NoDefaultTexture(String::from(names.0)).into())
 }
 
-pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<dyn Skin>, ParseError> {
+pub fn from_path<F, G>(factory: &mut F, dir: &path::Path, default_dir: &path::Path) -> Result<Box<dyn Skin<G>>, ParseError>
+where G: Graphics + 'static, G::Texture: CreateTexture<F>, <G::Texture as CreateTexture<F>>::Error: ToString
+{
     let config_path = dir.join(path::Path::new("skin.ini"));
 
     let texture_settings = TextureSettings::new();
@@ -831,72 +846,72 @@ pub fn from_path(dir: &path::Path, default_dir: &path::Path) -> Result<Box<dyn S
 
     let mut cache = HashMap::new();
 
-    let miss = load_texture_anim(&mut cache, dir, default_dir, &miss_name, &texture_settings)?;
-    let hit50 = load_texture_anim(&mut cache, dir, default_dir, &hit50_name, &texture_settings)?;
-    let hit100 = load_texture_anim(&mut cache, dir, default_dir, &hit100_name, &texture_settings)?;
-    let hit200 = load_texture_anim(&mut cache, dir, default_dir, &hit200_name, &texture_settings)?;
-    let hit300 = load_texture_anim(&mut cache, dir, default_dir, &hit300_name, &texture_settings)?;
-    let hit300g = load_texture_anim(&mut cache, dir, default_dir, &hit300g_name, &texture_settings)?;
-    let stage_light = load_texture_anim(&mut cache, dir, default_dir, &stage_light_name, &texture_settings)?;
-    let lighting_n = load_texture_anim(&mut cache, dir, default_dir, &lighting_n_name, &texture_settings)?;
-    let lighting_l = load_texture_anim(&mut cache, dir, default_dir, &lighting_l_name, &texture_settings)?;
-    let keys = [load_texture(&mut cache, dir, default_dir, &keys_name[0], &texture_settings)?,
-                load_texture(&mut cache, dir, default_dir, &keys_name[1], &texture_settings)?,
-                load_texture(&mut cache, dir, default_dir, &keys_name[2], &texture_settings)?,
-                load_texture(&mut cache, dir, default_dir, &keys_name[3], &texture_settings)?,
-                load_texture(&mut cache, dir, default_dir, &keys_name[4], &texture_settings)?,
-                load_texture(&mut cache, dir, default_dir, &keys_name[5], &texture_settings)?,
-                load_texture(&mut cache, dir, default_dir, &keys_name[6], &texture_settings)?];
+    let miss = load_texture_anim(factory, &mut cache, dir, default_dir, &miss_name, &texture_settings)?;
+    let hit50 = load_texture_anim(factory, &mut cache, dir, default_dir, &hit50_name, &texture_settings)?;
+    let hit100 = load_texture_anim(factory, &mut cache, dir, default_dir, &hit100_name, &texture_settings)?;
+    let hit200 = load_texture_anim(factory, &mut cache, dir, default_dir, &hit200_name, &texture_settings)?;
+    let hit300 = load_texture_anim(factory, &mut cache, dir, default_dir, &hit300_name, &texture_settings)?;
+    let hit300g = load_texture_anim(factory, &mut cache, dir, default_dir, &hit300g_name, &texture_settings)?;
+    let stage_light = load_texture_anim(factory, &mut cache, dir, default_dir, &stage_light_name, &texture_settings)?;
+    let lighting_n = load_texture_anim(factory, &mut cache, dir, default_dir, &lighting_n_name, &texture_settings)?;
+    let lighting_l = load_texture_anim(factory, &mut cache, dir, default_dir, &lighting_l_name, &texture_settings)?;
+    let keys = [load_texture(factory, &mut cache, dir, default_dir, &keys_name[0], &texture_settings)?,
+                load_texture(factory, &mut cache, dir, default_dir, &keys_name[1], &texture_settings)?,
+                load_texture(factory, &mut cache, dir, default_dir, &keys_name[2], &texture_settings)?,
+                load_texture(factory, &mut cache, dir, default_dir, &keys_name[3], &texture_settings)?,
+                load_texture(factory, &mut cache, dir, default_dir, &keys_name[4], &texture_settings)?,
+                load_texture(factory, &mut cache, dir, default_dir, &keys_name[5], &texture_settings)?,
+                load_texture(factory, &mut cache, dir, default_dir, &keys_name[6], &texture_settings)?];
 
-    let keys_d = [load_texture(&mut cache, dir, default_dir, &keys_d_name[0], &texture_settings)?,
-                  load_texture(&mut cache, dir, default_dir, &keys_d_name[1], &texture_settings)?,
-                  load_texture(&mut cache, dir, default_dir, &keys_d_name[2], &texture_settings)?,
-                  load_texture(&mut cache, dir, default_dir, &keys_d_name[3], &texture_settings)?,
-                  load_texture(&mut cache, dir, default_dir, &keys_d_name[4], &texture_settings)?,
-                  load_texture(&mut cache, dir, default_dir, &keys_d_name[5], &texture_settings)?,
-                  load_texture(&mut cache, dir, default_dir, &keys_d_name[6], &texture_settings)?];
+    let keys_d = [load_texture(factory, &mut cache, dir, default_dir, &keys_d_name[0], &texture_settings)?,
+                  load_texture(factory, &mut cache, dir, default_dir, &keys_d_name[1], &texture_settings)?,
+                  load_texture(factory, &mut cache, dir, default_dir, &keys_d_name[2], &texture_settings)?,
+                  load_texture(factory, &mut cache, dir, default_dir, &keys_d_name[3], &texture_settings)?,
+                  load_texture(factory, &mut cache, dir, default_dir, &keys_d_name[4], &texture_settings)?,
+                  load_texture(factory, &mut cache, dir, default_dir, &keys_d_name[5], &texture_settings)?,
+                  load_texture(factory, &mut cache, dir, default_dir, &keys_d_name[6], &texture_settings)?];
 
-    let notes = [load_texture_anim(&mut cache, dir, default_dir, &notes_name[0], &texture_settings)?,
-                 load_texture_anim(&mut cache, dir, default_dir, &notes_name[1], &texture_settings)?,
-                 load_texture_anim(&mut cache, dir, default_dir, &notes_name[2], &texture_settings)?,
-                 load_texture_anim(&mut cache, dir, default_dir, &notes_name[3], &texture_settings)?,
-                 load_texture_anim(&mut cache, dir, default_dir, &notes_name[4], &texture_settings)?,
-                 load_texture_anim(&mut cache, dir, default_dir, &notes_name[5], &texture_settings)?,
-                 load_texture_anim(&mut cache, dir, default_dir, &notes_name[6], &texture_settings)?];
+    let notes = [load_texture_anim(factory, &mut cache, dir, default_dir, &notes_name[0], &texture_settings)?,
+                 load_texture_anim(factory, &mut cache, dir, default_dir, &notes_name[1], &texture_settings)?,
+                 load_texture_anim(factory, &mut cache, dir, default_dir, &notes_name[2], &texture_settings)?,
+                 load_texture_anim(factory, &mut cache, dir, default_dir, &notes_name[3], &texture_settings)?,
+                 load_texture_anim(factory, &mut cache, dir, default_dir, &notes_name[4], &texture_settings)?,
+                 load_texture_anim(factory, &mut cache, dir, default_dir, &notes_name[5], &texture_settings)?,
+                 load_texture_anim(factory, &mut cache, dir, default_dir, &notes_name[6], &texture_settings)?];
 
-    let long_notes_head = [load_texture_anim(&mut cache, dir, default_dir, &lns_head_name[0], &texture_settings)?,
-                           load_texture_anim(&mut cache, dir, default_dir, &lns_head_name[1], &texture_settings)?,
-                           load_texture_anim(&mut cache, dir, default_dir, &lns_head_name[2], &texture_settings)?,
-                           load_texture_anim(&mut cache, dir, default_dir, &lns_head_name[3], &texture_settings)?,
-                           load_texture_anim(&mut cache, dir, default_dir, &lns_head_name[4], &texture_settings)?,
-                           load_texture_anim(&mut cache, dir, default_dir, &lns_head_name[5], &texture_settings)?,
-                           load_texture_anim(&mut cache, dir, default_dir, &lns_head_name[6], &texture_settings)?];
+    let long_notes_head = [load_texture_anim(factory, &mut cache, dir, default_dir, &lns_head_name[0], &texture_settings)?,
+                           load_texture_anim(factory, &mut cache, dir, default_dir, &lns_head_name[1], &texture_settings)?,
+                           load_texture_anim(factory, &mut cache, dir, default_dir, &lns_head_name[2], &texture_settings)?,
+                           load_texture_anim(factory, &mut cache, dir, default_dir, &lns_head_name[3], &texture_settings)?,
+                           load_texture_anim(factory, &mut cache, dir, default_dir, &lns_head_name[4], &texture_settings)?,
+                           load_texture_anim(factory, &mut cache, dir, default_dir, &lns_head_name[5], &texture_settings)?,
+                           load_texture_anim(factory, &mut cache, dir, default_dir, &lns_head_name[6], &texture_settings)?];
 
-    let long_notes_body = [load_texture_anim(&mut cache, dir, default_dir, &lns_body_name[0], &texture_settings)?,
-                           load_texture_anim(&mut cache, dir, default_dir, &lns_body_name[1], &texture_settings)?,
-                           load_texture_anim(&mut cache, dir, default_dir, &lns_body_name[2], &texture_settings)?,
-                           load_texture_anim(&mut cache, dir, default_dir, &lns_body_name[3], &texture_settings)?,
-                           load_texture_anim(&mut cache, dir, default_dir, &lns_body_name[4], &texture_settings)?,
-                           load_texture_anim(&mut cache, dir, default_dir, &lns_body_name[5], &texture_settings)?,
-                           load_texture_anim(&mut cache, dir, default_dir, &lns_body_name[6], &texture_settings)?];
+    let long_notes_body = [load_texture_anim(factory, &mut cache, dir, default_dir, &lns_body_name[0], &texture_settings)?,
+                           load_texture_anim(factory, &mut cache, dir, default_dir, &lns_body_name[1], &texture_settings)?,
+                           load_texture_anim(factory, &mut cache, dir, default_dir, &lns_body_name[2], &texture_settings)?,
+                           load_texture_anim(factory, &mut cache, dir, default_dir, &lns_body_name[3], &texture_settings)?,
+                           load_texture_anim(factory, &mut cache, dir, default_dir, &lns_body_name[4], &texture_settings)?,
+                           load_texture_anim(factory, &mut cache, dir, default_dir, &lns_body_name[5], &texture_settings)?,
+                           load_texture_anim(factory, &mut cache, dir, default_dir, &lns_body_name[6], &texture_settings)?];
 
-    let long_notes_tail = [load_texture_anim(&mut cache, dir, default_dir, &lns_tail_name[0], &texture_settings).ok(),
-                           load_texture_anim(&mut cache, dir, default_dir, &lns_tail_name[1], &texture_settings).ok(),
-                           load_texture_anim(&mut cache, dir, default_dir, &lns_tail_name[2], &texture_settings).ok(),
-                           load_texture_anim(&mut cache, dir, default_dir, &lns_tail_name[3], &texture_settings).ok(),
-                           load_texture_anim(&mut cache, dir, default_dir, &lns_tail_name[4], &texture_settings).ok(),
-                           load_texture_anim(&mut cache, dir, default_dir, &lns_tail_name[5], &texture_settings).ok(),
-                           load_texture_anim(&mut cache, dir, default_dir, &lns_tail_name[6], &texture_settings).ok()];
+    let long_notes_tail = [load_texture_anim(factory, &mut cache, dir, default_dir, &lns_tail_name[0], &texture_settings).ok(),
+                           load_texture_anim(factory, &mut cache, dir, default_dir, &lns_tail_name[1], &texture_settings).ok(),
+                           load_texture_anim(factory, &mut cache, dir, default_dir, &lns_tail_name[2], &texture_settings).ok(),
+                           load_texture_anim(factory, &mut cache, dir, default_dir, &lns_tail_name[3], &texture_settings).ok(),
+                           load_texture_anim(factory, &mut cache, dir, default_dir, &lns_tail_name[4], &texture_settings).ok(),
+                           load_texture_anim(factory, &mut cache, dir, default_dir, &lns_tail_name[5], &texture_settings).ok(),
+                           load_texture_anim(factory, &mut cache, dir, default_dir, &lns_tail_name[6], &texture_settings).ok()];
 
-    let stage_hint = load_texture_anim(&mut cache, dir, default_dir, &stage_hint_name, &texture_settings)?;
-    let stage_left = load_texture(&mut cache, dir, default_dir, &stage_left_name, &texture_settings)?;
-    let stage_right = load_texture(&mut cache, dir, default_dir, &stage_right_name, &texture_settings)?;
-    let stage_bottom = load_texture_anim(&mut cache, dir, default_dir, &stage_bottom_name, &texture_settings).ok();
+    let stage_hint = load_texture_anim(factory, &mut cache, dir, default_dir, &stage_hint_name, &texture_settings)?;
+    let stage_left = load_texture(factory, &mut cache, dir, default_dir, &stage_left_name, &texture_settings)?;
+    let stage_right = load_texture(factory, &mut cache, dir, default_dir, &stage_right_name, &texture_settings)?;
+    let stage_bottom = load_texture_anim(factory, &mut cache, dir, default_dir, &stage_bottom_name, &texture_settings).ok();
 
     let smallest_note_width;
     let smallest_note_height;
     {
-        let smallest_height_note = &notes.iter().min_by_key(|x| x[0].get_height()).unwrap()[0];
+        let smallest_height_note = &notes.iter().min_by_key(|x: &&Rc<Vec<Rc<G::Texture>>>| x[0].get_height()).unwrap()[0];
         smallest_note_width = smallest_height_note.get_width() as f64;
         smallest_note_height = smallest_height_note.get_height() as f64;
     }

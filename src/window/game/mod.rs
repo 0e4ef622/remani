@@ -5,6 +5,7 @@ use std::path::Path;
 
 use piston;
 use piston::input::{ RenderEvent, UpdateEvent, PressEvent, ReleaseEvent };
+use opengl_graphics;
 
 mod model;
 mod view;
@@ -22,7 +23,7 @@ use skin;
 pub struct GameScene {
     chart: Chart,
     music: Option<audio::MusicStream<f32>>,
-    view: View,
+    view: View<opengl_graphics::GlGraphics>,
     model: Model,
     time: f64,
     last_instant: time::Instant,
@@ -32,10 +33,10 @@ pub struct GameScene {
 
 impl GameScene {
     /// Allocate and initialize everything
-    pub fn new(chart: Chart, config: &Config, audio: &audio::Audio<f32>) -> GameScene {
+    pub fn new(chart: Chart, config: &Config, audio: &audio::Audio<f32>) -> Self {
 
         let music = audio::music_from_path(Path::new("test/test_chart").join(&chart.music_path), audio.format()).unwrap();
-        let the_skin = skin::from_path(&config.skin_path, config).unwrap();
+        let the_skin = skin::from_path(&mut (), &config.skin_path, config).unwrap();
 
         let model = Model::new();
         let view = View::new(the_skin);
@@ -105,7 +106,9 @@ impl GameScene {
         }
 
         if let Some(r) = e.render_args() {
-            self.view.render(&mut window.gl, &r, config, &self.chart, &self.model, self.time);
+            window.gl.draw(r.viewport(), |c, mut gl| {
+                self.view.render(c, &mut gl, &r, config, &self.chart, &self.model, self.time);
+            });
         }
     }
 }

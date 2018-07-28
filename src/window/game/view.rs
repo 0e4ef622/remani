@@ -1,8 +1,9 @@
 //! A module that handles window render events for the game scene
 
 use piston::input::RenderArgs;
-use opengl_graphics::GlGraphics;
 use graphics;
+use graphics::Graphics;
+use graphics::Context;
 
 use skin::Skin;
 use super::Model;
@@ -12,8 +13,8 @@ use judgement::Judgement;
 use chart;
 
 /// Holds values and resources needed by the window to do drawing stuff
-pub struct View {
-    skin: Box<dyn Skin>,
+pub struct View<G: Graphics> {
+    skin: Box<dyn Skin<G>>,
 
     /// Index of the next note that isn't on the screen yet
     next_note_index: usize,
@@ -31,10 +32,10 @@ pub struct View {
     long_notes_held: [bool; 7],
 }
 
-impl View {
+impl<G: Graphics> View<G> {
 
     /// Create a view with some hardcoded defaults and stuffs
-    pub fn new(skin: Box<dyn Skin>) -> View {
+    pub fn new(skin: Box<dyn Skin<G>>) -> Self {
         View {
             skin,
             next_note_index: 0,
@@ -47,82 +48,72 @@ impl View {
     }
 
     /// Called when a render event occurs
-    pub fn render(&mut self, gl: &mut GlGraphics, args: &RenderArgs, config: &Config, chart: &chart::Chart, model: &Model, time: f64) {
-        let skin = &mut self.skin;
-        let next_note_index = &mut self.next_note_index;
-        let notes_on_screen_indices = &mut self.notes_on_screen_indices;
-        let notes_below_screen_indices = &mut self.notes_below_screen_indices;
-        let notes_pos = &mut self.notes_pos;
-        let current_timing_point_index = &mut self.current_timing_point_index;
-        let long_notes_held = &mut self.long_notes_held;
+    pub fn render(&mut self, c: Context, g: &mut G, args: &RenderArgs, config: &Config, chart: &chart::Chart, model: &Model, time: f64) {
+        graphics::clear([0.0; 4], g);
 
-        gl.draw(args.viewport(), |c, gl| {
-            graphics::clear([0.0; 4], gl);
+        let mut add_next_note_index = 0;
 
-            let mut add_next_note_index = 0;
+        for (index, note) in chart.notes[self.next_note_index..].iter().enumerate() {
 
-            for (index, note) in chart.notes[*next_note_index..].iter().enumerate() {
+            let note_pos = calc_pos(time, note.time, chart, config.scroll_speed, self.current_timing_point_index);
+            if note_pos > 1.0 { break; }
 
-                let note_pos = calc_pos(time, note.time, chart, config.scroll_speed, *current_timing_point_index);
-                if note_pos > 1.0 { break; }
+            self.notes_on_screen_indices.push(index + self.next_note_index);
+            add_next_note_index += 1;
+        }
+        self.next_note_index += add_next_note_index;
 
-                notes_on_screen_indices.push(index + *next_note_index);
-                add_next_note_index += 1;
-            }
-            *next_note_index += add_next_note_index;
+        for (index, &note_index) in self.notes_on_screen_indices.iter().enumerate() {
 
-            for (index, &note_index) in notes_on_screen_indices.iter().enumerate() {
+            let note = &chart.notes[note_index];
+            if let Some(end_time) = note.end_time {
 
-                let note = &chart.notes[note_index];
-                if let Some(end_time) = note.end_time {
+                if note.time - time < 0.0 && !self.long_notes_held[note.column] {
 
-                    if note.time - time < 0.0 && !long_notes_held[note.column] {
+                    self.skin.long_note_hit_anim_start(note.column);
+                    self.long_notes_held[note.column] = true;
 
-                        skin.long_note_hit_anim_start(note.column);
-                        long_notes_held[note.column] = true;
+                } else if end_time - time < 0.0 {
 
-                    } else if end_time - time < 0.0 {
+                    // TODO only display hit animation if the player successfully hits the note
+                    self.skin.long_note_hit_anim_stop(note.column);
+                    self.notes_below_screen_indices.push(index);
+                    self.long_notes_held[note.column] = false;
+                    continue;
+                }
+            } else {
+                if note.time - time < 0.0 {
 
-                        // TODO only display hit animation if the player successfully hits the note
-                        skin.long_note_hit_anim_stop(note.column);
-                        notes_below_screen_indices.push(index);
-                        long_notes_held[note.column] = false;
-                        continue;
-                    }
-                } else {
-                    if note.time - time < 0.0 {
-
-                        // TODO only display hit animation if the player successfully hits the note
-                        skin.single_note_hit_anim(note.column);
-                        notes_below_screen_indices.push(index);
-                        continue;
-                    }
+                    // TODO only display hit animation if the player successfully hits the note
+                    self.skin.single_note_hit_anim(note.column);
+                    self.notes_below_screen_indices.push(index);
+                    continue;
                 }
             }
+        }
 
-            // TODO manage self.current_timing_point_index
+        // TODO manage self.current_timing_point_index
 
-            for &index in notes_below_screen_indices.iter().rev() {
-                notes_on_screen_indices.swap_remove(index);
-            }
-            notes_below_screen_indices.clear();
-            notes_pos.clear();
-            notes_pos.extend(notes_on_screen_indices.iter().map(|&i| {
-                let note = &chart.notes[i];
+        for &index in self.notes_below_screen_indices.iter().rev() {
+            self.notes_on_screen_indices.swap_remove(index);
+        }
+        self.notes_below_screen_indices.clear();
+        self.notes_pos.clear();
+        let current_timing_point_index = self.current_timing_point_index; // rust pls fix closures
+        self.notes_pos.extend(self.notes_on_screen_indices.iter().map(|&i| {
+            let note = &chart.notes[i];
 
-                let pos = calc_pos(time, note.time, chart, config.scroll_speed, *current_timing_point_index);
-                let end_pos = note.end_time.map(|t| calc_pos(time, t, chart, config.scroll_speed, *current_timing_point_index));
+            let pos = calc_pos(time, note.time, chart, config.scroll_speed, current_timing_point_index);
+            let end_pos = note.end_time.map(|t| calc_pos(time, t, chart, config.scroll_speed, current_timing_point_index));
 
-                (note.column, pos, end_pos)
-            }));
+            (note.column, pos, end_pos)
+        }));
 
-            skin.draw_play_scene(c.transform,
-                                 gl,
-                                 args.height as f64,
-                                 &model.keys_down,
-                                 &notes_pos[..]);
-        });
-
+        self.skin.draw_play_scene(c.transform,
+                             g,
+                             args.height as f64,
+                             &model.keys_down,
+                             &*self.notes_pos);
     }
 
     pub fn draw_judgement(&mut self, column: usize, judgement: Judgement) {

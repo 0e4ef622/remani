@@ -1,8 +1,9 @@
 //! A module for reading skins.
 
-use opengl_graphics::GlGraphics;
 use graphics::math;
+use graphics::Graphics;
 use image;
+use texture::CreateTexture;
 
 use std::io;
 use std::error;
@@ -21,7 +22,6 @@ pub enum ParseError {
     Io(String, io::Error),
     /// Parsing error
     Parse(String, Option<Box<dyn error::Error>>),
-    UnknownFormat,
     InvalidFile,
     ImageError(String, image::ImageError),
 }
@@ -32,7 +32,6 @@ impl fmt::Display for ParseError {
             ParseError::Io(ref s, ref e) => write!(f, "{}: {}", s, e),
             ParseError::Parse(ref s, Some(ref e)) => write!(f, "{}: {}", s, e),
             ParseError::Parse(ref s, None) => write!(f, "{}", s),
-            ParseError::UnknownFormat => write!(f, "Unknown skin format"),
             ParseError::InvalidFile => write!(f, "Invalid skin"),
             ParseError::ImageError(ref s, _) => write!(f, "Error reading image {}", s),
         }
@@ -50,7 +49,6 @@ impl error::Error for ParseError {
         match *self {
             ParseError::Io(_, _) => "IO error",
             ParseError::Parse(_, _) => "Parse error",
-            ParseError::UnknownFormat => "Unknown skin format",
             ParseError::InvalidFile => "Invalid skin",
             ParseError::ImageError(_, _) => "Error reading image",
         }
@@ -69,15 +67,17 @@ impl error::Error for ParseError {
 /// Parse from a directory specified by the path.
 ///
 /// For now, the osu parser is assumed (TODO).
-pub fn from_path<P: AsRef<path::Path>>(path: P, config: &config::Config) -> Result<Box<dyn Skin>, ParseError> {
-    osu_skin::from_path(path.as_ref(), &config.default_osu_skin_path)
+pub fn from_path<P, G, F>(factory: &mut F, path: P, config: &config::Config) -> Result<Box<dyn Skin<G>>, ParseError>
+where G: Graphics + 'static, G::Texture: CreateTexture<F>, <G::Texture as CreateTexture<F>>::Error: ToString, P: AsRef<path::Path>
+{
+    osu_skin::from_path(factory, path.as_ref(), &config.default_osu_skin_path)
 }
 
 /// A skin. Should be returned by skin parsers.
-pub trait Skin {
+pub trait Skin<G: Graphics> {
     fn draw_play_scene(&mut self,
                        transform: math::Matrix2d,
-                       gl: &mut GlGraphics,
+                       graphics: &mut G,
                        stage_height: f64,
                        keys_down: &[bool],
                        // column index, start pos, end pos
