@@ -221,8 +221,9 @@ impl<G: Graphics> Skin<G> for OsuSkin<G> {
 }
 
 impl<G: Graphics> OsuSkin<G> {
-    // TODO render animations
     fn draw_note(&self, draw_state: &DrawState, transform: math::Matrix2d, g: &mut G, stage_h: f64, pos: f64, column_index: usize) {
+
+        // TODO figure out and render animations
 
         let scale = stage_h / 480.0;
         let hit_p = self.config.hit_position as f64 * scale;
@@ -241,6 +242,8 @@ impl<G: Graphics> OsuSkin<G> {
     }
     fn draw_long_note(&self, draw_state: &DrawState, transform: math::Matrix2d, g: &mut G,
                       stage_h: f64, pos: f64, end_pos: f64, column_index: usize) {
+
+        // TODO figure out and render animations
 
         let scale = stage_h / 480.0;
         let scale2 = stage_h / 768.0; // long note body height when cascading is scaled with this
@@ -342,6 +345,8 @@ impl<G: Graphics> OsuSkin<G> {
     }
 
     fn draw_track(&self, draw_state: &DrawState, transform: math::Matrix2d, g: &mut G, stage_h: f64) {
+
+        // TODO mania-stage-bottom, mania-stage-light, and mania-stage-hint are all animatable
 
         let scale = stage_h / 480.0;
 
@@ -915,7 +920,7 @@ where G: Graphics + 'static, G::Texture: CreateTexture<F>, <G::Texture as Create
         smallest_note_width = smallest_height_note.get_width() as f64;
         smallest_note_height = smallest_height_note.get_height() as f64;
     }
-    let width_for_note_height_scale =  smallest_note_height / smallest_note_width * *column_width.iter().min().unwrap() as f64;
+    let width_for_note_height_scale = smallest_note_height / smallest_note_width * *column_width.iter().min().unwrap() as f64;
     Ok(Box::new(OsuSkin {
         textures: OsuSkinTextures {
             miss,
