@@ -12,9 +12,9 @@ extern crate cpal;
 extern crate simplemad;
 
 macro_rules! remani_warn {
-    ($fmt:expr) => (println!(concat!("WARNING: ", $fmt)));
+    ($fmt:expr) => (eprintln!(concat!("WARNING: ", $fmt)));
     ($fmt:expr, $($arg:tt)*) => {
-        println!(concat!("WARNING: ", $fmt), $($arg)*)
+        eprintln!(concat!("WARNING: ", $fmt), $($arg)*)
     };
 }
 
