@@ -18,7 +18,14 @@ use std::time;
 use cpal;
 use cpal::Sample;
 
-pub type EffectStream<S: cpal::Sample> = Arc<Vec<S>>;
+#[derive(Debug, Clone)]
+pub struct EffectStream<S: cpal::Sample>(Arc<Vec<S>>);
+
+impl<S: cpal::Sample> From<Arc<Vec<S>>> for EffectStream<S> {
+    fn from(a: Arc<Vec<S>>) -> Self {
+        EffectStream::<S>(a)
+    }
+}
 
 /// A struct that encapsulates a lazy iterator over audio samples with metadata.
 pub struct MusicStream<S: cpal::Sample> {
@@ -94,10 +101,10 @@ impl<S: cpal::Sample> Audio<S> {
 
     /// Play a sound effect/hitsound, returning the passed in effect stream if there was an error
     pub fn play_effect(&self, effect: EffectStream<S>) -> Result<(), EffectStream<S>> {
-        self.effect_sender.try_send(ArcIter::new(effect)).or_else(|e| Err(match e {
+        self.effect_sender.try_send(ArcIter::new(effect.0)).or_else(|e| Err(match e {
             mpsc::TrySendError::Full(m) => m,
             mpsc::TrySendError::Disconnected(m) => m,
-        }.inner()))
+        }.inner().into()))
     }
 
     /// Sends a request to the audio thread for the current playhead of the music.
