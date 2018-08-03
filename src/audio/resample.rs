@@ -6,13 +6,28 @@ use std::iter::Peekable;
 
 /// Resample a MusicStream using linear interpolation
 pub struct Resample<S: cpal::Sample> {
+
+    /// The iterator that yields interleaved audio samples
+    /// (e.g. an iterator for an audio stream with 3 channels would
+    /// yield samples for channel 1, then 2, then 3, then 1, then 2, ...
     samples: Peekable<Box<dyn Iterator<Item=S> + Send>>,
-    num_channels: usize,
+
+    channel_count: usize,
     from_sample_rate: u32,
     to_sample_rate: u32,
+    /// What channel the next sample from the iterator corresponds with.
     channel_offset: usize,
+
+    /// Some number between 0 and `to_sample_rate`.
+    ///
+    /// This is divided by `to_sample_rate` to calculate the coefficient for
+    /// linear interpolation.
     sampling_offset: u32,
+
+    /// Holds the previous audio frame (1 sample from each channel).
     previous_values: Vec<S>,
+
+    /// Holds the next audio frame (1 sample from each channel).
     next_values: Vec<S>,
 }
 
@@ -20,7 +35,7 @@ impl<S: cpal::Sample> Iterator for Resample<S> {
     type Item = f32;
     fn next(&mut self) -> Option<f32> {
         let return_value;
-        if self.previous_values.len() < self.num_channels && self.next_values.len() < self.num_channels {
+        if self.previous_values.len() < self.channel_count && self.next_values.len() < self.channel_count {
             let next_sample = match self.samples.next() {
                 Some(s) => s,
                 None => return None,
@@ -39,7 +54,7 @@ impl<S: cpal::Sample> Iterator for Resample<S> {
                 self.sampling_offset += self.from_sample_rate;
                 while self.sampling_offset >= self.to_sample_rate {
                     self.sampling_offset -= self.to_sample_rate;
-                    for n in 0..self.num_channels {
+                    for n in 0..self.channel_count {
                         self.previous_values[n] = self.next_values[n];
                         let next_sample = match self.samples.next() {
                             Some(s) => s,
@@ -54,7 +69,7 @@ impl<S: cpal::Sample> Iterator for Resample<S> {
             return_value = Some(prev_sample.to_f32() + (next_sample.to_f32() - prev_sample.to_f32()) * self.sampling_offset as f32 / self.to_sample_rate as f32);
         }
         self.channel_offset += 1;
-        if self.channel_offset >= self.num_channels {
+        if self.channel_offset >= self.channel_count {
             self.channel_offset = 0;
         }
         return_value
@@ -64,7 +79,7 @@ impl<S: cpal::Sample> Iterator for Resample<S> {
 pub fn from_music_stream<S: cpal::Sample + Send + 'static>(stream: MusicStream<S>, target_sample_rate: u32) -> MusicStream<f32> {
     let le_samples = Resample {
         samples: stream.samples.peekable(),
-        num_channels: stream.channel_count as usize,
+        channel_count: stream.channel_count as usize,
         from_sample_rate: stream.sample_rate,
         to_sample_rate: target_sample_rate,
         channel_offset: 0,

@@ -38,6 +38,7 @@ impl<R: io::Read + Send> Iterator for MP3Samples<R> {
     fn next(&mut self) -> Option<f32> {
         if self.eof {
             return None;
+        // If we need the next mp3 frame, get it
         } else if self.current_samples.is_none() || self.current_samples_index == self.current_samples.as_ref().unwrap()[0].len() {
             loop {
                 match self.decoder.next() {
@@ -48,8 +49,8 @@ impl<R: io::Read + Send> Iterator for MP3Samples<R> {
                             self.current_channel = 0;
                             break;
                         },
-                        Err(SimplemadError::Mad(e)) => eprintln!("libmad err: {:?}", e),
-                        Err(SimplemadError::Read(e)) => eprintln!("mp3 read err: {}", e),
+                        Err(SimplemadError::Mad(e)) => remani_warn!("libmad err: {:?}", e),
+                        Err(SimplemadError::Read(e)) => remani_warn!("mp3 read err: {}", e),
                         Err(SimplemadError::EOF) => {
                             self.eof = true;
                             return None;
@@ -63,8 +64,11 @@ impl<R: io::Read + Send> Iterator for MP3Samples<R> {
             }
         }
 
-        let sample = self.current_samples.as_ref().unwrap()[self.current_channel][self.current_samples_index].to_f32();
-        self.current_channel = (self.current_channel + 1) % self.current_samples.as_ref().unwrap().len();
+        // This shouldn't ever error
+        let current_samples = self.current_samples.as_ref().expect("Something went terribly wrong in the mp3 module");
+
+        let sample = current_samples[self.current_channel][self.current_samples_index].to_f32();
+        self.current_channel = (self.current_channel + 1) % current_samples.len();
         if self.current_channel == 0 {
             self.current_samples_index += 1;
         }
@@ -78,7 +82,7 @@ unsafe impl<R: io::Read + Send> Send for MP3Samples<R> { }
 
 /// Create a stream that reads from an mp3
 pub fn decode<R: io::Read + Send + 'static>(reader: R) -> Result<MusicStream<f32>, String> {
-    let mut decoder = match Decoder::decode(io::BufReader::new(reader)) {
+    let mut decoder = match Decoder::decode(reader) {
         Ok(d) => d.peekable(),
         Err(e) => return Err(format!("{:?}", e)),
     };
@@ -86,8 +90,10 @@ pub fn decode<R: io::Read + Send + 'static>(reader: R) -> Result<MusicStream<f32
     let sample_rate;
     let channel_count;
 
-    {
-        while let &Err(_) = decoder.peek().unwrap() { decoder.next(); }
+    { // Get the sample rate and channel count.
+        while let &Err(_) = decoder.peek().ok_or("Error finding audio metadata")? { decoder.next(); }
+
+        // This line should never panic
         let frame = decoder.peek().unwrap().as_ref().unwrap();
 
         sample_rate = frame.sample_rate;
