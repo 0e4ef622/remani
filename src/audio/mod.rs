@@ -245,7 +245,7 @@ pub fn start_audio_thread() -> Result<Audio<f32>, AudioThreadError> {
                 cpal::StreamData::Output { buffer: cpal::UnknownTypeOutputBuffer::F32(mut buffer) } => {
                     for frame in buffer.chunks_mut(channel_count) {
                         for sample in frame.iter_mut() {
-                            *sample = s(&mut effects).to_f32();;
+                            *sample = s(&mut effects);
                         }
                         current_music_frame_index += 1;
                     }
