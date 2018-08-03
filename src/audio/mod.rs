@@ -209,6 +209,7 @@ pub fn start_audio_thread() -> Result<Audio<f32>, AudioThreadError> {
                 send_playhead_tx.try_send((time::Instant::now(), current_music_frame_index as f64 / sample_rate as f64));
             }
 
+            // Get samples and mix them
             let mut s = |effects: &mut VecDeque<Peekable<ArcIter<f32>>>| {
                 let mut s = match music.next() {
                     None => 0.0,
@@ -219,7 +220,7 @@ pub fn start_audio_thread() -> Result<Audio<f32>, AudioThreadError> {
                         s += sample.to_f32();
                     }
                 }
-                s / 2.0
+                s / 2.0 // TODO don't do this and maybe have a volume setting control this? ¯\_(ツ)_/¯
             };
 
             match data {
@@ -251,6 +252,8 @@ pub fn start_audio_thread() -> Result<Audio<f32>, AudioThreadError> {
                 },
                 _ => (),
             }
+
+            // Remove any effects that have finished playing (nll when ;-;)
             while effects.front_mut().is_some() {
                 if effects.front_mut().unwrap().peek().is_none() {
                     effects.pop_front();
