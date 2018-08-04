@@ -10,15 +10,15 @@ use opengl_graphics;
 mod model;
 mod view;
 
-use chart::Chart;
-use config::Config;
-use judgement::Judgement;
+use crate::chart::Chart;
+use crate::config::Config;
+use crate::judgement::Judgement;
 use self::model::Model;
 use self::view::View;
 use super::Window;
 
-use audio;
-use skin;
+use crate::audio;
+use crate::skin;
 
 pub struct GameScene {
     chart: Chart,

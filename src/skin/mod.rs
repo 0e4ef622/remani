@@ -10,8 +10,8 @@ use std::error;
 use std::fmt;
 use std::path;
 
-use config;
-use judgement::Judgement;
+use crate::config;
+use crate::judgement::Judgement;
 
 mod osu_skin;
 

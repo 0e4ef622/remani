@@ -1,4 +1,4 @@
-use audio::MusicStream;
+use crate::audio::MusicStream;
 use cpal;
 use std::iter::Peekable;
 

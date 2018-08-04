@@ -5,12 +5,12 @@ use graphics;
 use graphics::Graphics;
 use graphics::Context;
 
-use skin::Skin;
+use crate::skin::Skin;
 use super::Model;
-use config::Config;
-use judgement::Judgement;
+use crate::config::Config;
+use crate::judgement::Judgement;
 
-use chart;
+use crate::chart;
 
 /// Holds values and resources needed by the window to do drawing stuff
 pub struct View<G: Graphics> {

@@ -2,9 +2,9 @@
 
 use opengl_graphics::GlGraphics;
 
-use config::Config;
+use crate::config::Config;
 
-use audio;
+use crate::audio;
 
 mod game;
 mod main_menu;

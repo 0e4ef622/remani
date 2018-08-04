@@ -4,9 +4,9 @@ use std::collections::VecDeque;
 
 use piston::input::{ UpdateArgs, Button };
 
-use config::Config;
-use chart::Chart;
-use judgement::Judgement;
+use crate::config::Config;
+use crate::chart::Chart;
+use crate::judgement::Judgement;
 
 /// Holds game states needed by the logic and renderer. Also does timing judgements.
 pub struct Model {

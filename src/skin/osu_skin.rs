@@ -26,8 +26,8 @@ use std::fmt;
 use std::time;
 use std::str;
 
-use skin::{ Skin, ParseError };
-use judgement::Judgement;
+use crate::skin::{ Skin, ParseError };
+use crate::judgement::Judgement;
 
 #[derive(Copy, Clone, Debug)]
 enum NoteBodyStyle {

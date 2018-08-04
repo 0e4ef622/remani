@@ -4,9 +4,9 @@ use std::io;
 use std::path::PathBuf;
 use std::cmp::Ordering;
 
-use chart;
-use chart::{ Chart, ChartParser, ParseError };
-use chart::Note;
+use crate::chart;
+use crate::chart::{ Chart, ChartParser, ParseError };
+use crate::chart::Note;
 
 /// Convert Err values to ParseError
 macro_rules! cvt_err {
@@ -541,7 +541,7 @@ impl ChartParser for OsuParser {
 
 #[cfg(test)]
 mod tests {
-    use chart::osu_parser::*;
+    use crate::chart::osu_parser::*;
 
     /// Test hit object parser
     #[test]

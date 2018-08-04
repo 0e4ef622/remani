@@ -9,10 +9,10 @@ use piston::input::{ RenderEvent, PressEvent, MouseCursorEvent, Button };
 
 use super::{ Window, Scene };
 use super::game;
-use chart::Chart;
-use config::Config;
+use crate::chart::Chart;
+use crate::config::Config;
 
-use audio;
+use crate::audio;
 
 pub struct MainMenu {
     play_texture: Texture,

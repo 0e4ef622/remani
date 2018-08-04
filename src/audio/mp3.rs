@@ -1,7 +1,7 @@
 //! Load MP3 files
 
 use simplemad;
-use audio::MusicStream;
+use crate::audio::MusicStream;
 
 use std::io;
 use std::iter::Peekable;

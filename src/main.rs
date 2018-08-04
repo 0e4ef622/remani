@@ -1,16 +1,4 @@
-#![deny(bare_trait_objects)]
 #![feature(macro_literal_matcher)]
-
-extern crate piston;
-extern crate texture;
-extern crate glutin_window;
-extern crate graphics;
-extern crate opengl_graphics;
-extern crate image;
-extern crate cpal;
-
-#[cfg(feature="mp3")]
-extern crate simplemad;
 
 macro_rules! remani_warn {
     ($fmt:expr) => (eprintln!(concat!("WARNING: ", $fmt)));
