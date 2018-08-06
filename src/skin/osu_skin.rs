@@ -775,29 +775,24 @@ where G: Graphics + 'static, G::Texture: CreateTexture<F>, <G::Texture as Create
                         // fancy macros
                         // used to match stuff like KeyImage{0..6}H more easily
                         // only works with properties that specify images because of structural reasons
-                        macro_rules! enumerate_match_image {
-                            ($key:ident, $(.$name:tt => $varname:ident = $value:expr, [ $baseidx:literal $($idx:literal)* ],)*
-                             $wildcard:ident => $wildcard_expr:expr) => {
-                                match $key {
-                                    $(
-                                    prop_name!($name, $baseidx) => $varname[0].1 = $value,
-                                    $(prop_name!($name, $idx) => $varname[$idx - $baseidx].1 = $value,)*
-                                    )*
-                                    $wildcard => $wildcard_expr,
-                                }
-                            }
-                        }
-
                         macro_rules! enumerate_match {
-                            ($key:ident, $(.$name:tt => $varname:ident = $value:expr, [ $baseidx:literal $($idx:literal)* ],)*) => {
+                            ($key:ident,
+                             $(.$name1:tt => $varname1:ident = $value1:expr, [ $baseidx1:literal $($idx1:literal)* ],)*
+                             ==
+                             $(.$name2:tt => $varname2:ident = $value2:expr, [ $baseidx2:literal $($idx2:literal)* ],)*) => {
                                 match $key {
                                     $(
-                                    prop_name!($name, $baseidx) => $varname[0] = $value,
-                                    $(prop_name!($name, $idx) => $varname[$idx - $baseidx] = $value,)*
+                                        prop_name!($name1, $baseidx1) => $varname1[0].1 = $value1,
+                                        $(prop_name!($name1, $idx1) => $varname1[$idx1 - $baseidx1].1 = $value1,)*
+                                    )*
+
+                                    $(
+                                        prop_name!($name2, $baseidx2) => $varname2[0] = $value2,
+                                        $(prop_name!($name2, $idx2) => $varname2[$idx2 - $baseidx2] = $value2,)*
                                     )*
                                     _ => (),
                                 }
-                            }
+                            };
                         }
 
                         // for values that look like
@@ -838,17 +833,16 @@ where G: Graphics + 'static, G::Texture: CreateTexture<F>, <G::Texture as Create
                             "LightingN" => lighting_n_name.1 = value.to_owned(),
                             "LightingL" => lighting_l_name.1 = value.to_owned(),
 
-                            k => enumerate_match_image! { k,
+                            k => enumerate_match! { k,
                                 .{KeyImage#} => keys_name = value.to_owned(), [0 1 2 3 4 5 6],
                                 .{KeyImage#D} => keys_d_name = value.to_owned(), [0 1 2 3 4 5 6],
                                 .{NoteImage#} => notes_name = value.to_owned(), [0 1 2 3 4 5 6],
                                 .{NoteImage#H} => lns_head_name = value.to_owned(), [0 1 2 3 4 5 6],
                                 .{NoteImage#L} => lns_body_name = value.to_owned(), [0 1 2 3 4 5 6],
                                 .{NoteImage#T} => lns_tail_name = value.to_owned(), [0 1 2 3 4 5 6],
-                                k => enumerate_match! { k,
-                                    .{ColourLight#} => colour_light = csv![[0; 3]; 3], [1 2 3 4 5 6 7],
-                                    .{NoteBodyStyle#} => note_body_style = parse!(value), [0 1 2 3 4 5 6],
-                                }
+                                == // separator between the image file specifying properties above, and the other properties below
+                                .{ColourLight#} => colour_light = csv![[0; 3]; 3], [1 2 3 4 5 6 7],
+                                .{NoteBodyStyle#} => note_body_style = parse!(value), [0 1 2 3 4 5 6],
                             },
                         }
                     }
