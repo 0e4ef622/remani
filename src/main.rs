@@ -1,4 +1,5 @@
 #![deny(bare_trait_objects)]
+#![feature(macro_literal_matcher)]
 
 extern crate piston;
 extern crate texture;

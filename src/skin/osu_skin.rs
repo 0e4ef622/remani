@@ -764,28 +764,37 @@ where G: Graphics + 'static, G::Texture: CreateTexture<F>, <G::Texture as Create
                 "Keys" => keys = parse!(value),
                 _ => {
                     if keys == 7 && section == "Mania" {
+                        macro_rules! prop_name {
+                            ({$prefix:ident#$suffix:ident}, $n:expr) => {
+                                concat!(concat!(stringify!($prefix), stringify!($n)), stringify!($suffix))
+                            };
+                            ({$prefix:ident#}, $n:expr) => {
+                                concat!(stringify!($prefix), stringify!($n))
+                            }
+                        }
                         // fancy macros
                         // used to match stuff like KeyImage{0..6}H more easily
                         // only works with properties that specify images because of structural reasons
                         macro_rules! enumerate_match_image {
-                            ($key:ident, $($prefix:expr, $suffix:expr => $varname:ident = $value:expr, ($baseidx:expr, [ $($idx:expr)* ]),)*
-                             ==
+                            ($key:ident, $(.$name:tt => $varname:ident = $value:expr, [ $baseidx:literal $($idx:literal)* ],)*
                              $wildcard:ident => $wildcard_expr:expr) => {
                                 match $key {
-                                    $($(
-                                    concat!(concat!($prefix, stringify!($idx)), $suffix) => $varname[$idx - $baseidx].1 = $value,
-                                    )*)*
+                                    $(
+                                    prop_name!($name, $baseidx) => $varname[0].1 = $value,
+                                    $(prop_name!($name, $idx) => $varname[$idx - $baseidx].1 = $value,)*
+                                    )*
                                     $wildcard => $wildcard_expr,
                                 }
                             }
                         }
 
                         macro_rules! enumerate_match {
-                            ($key:ident, $($prefix:expr, $suffix:expr => $varname:ident = $value:expr, ($baseidx:expr, [ $($idx:expr)* ]),)*) => {
+                            ($key:ident, $(.$name:tt => $varname:ident = $value:expr, [ $baseidx:literal $($idx:literal)* ],)*) => {
                                 match $key {
-                                    $($(
-                                    concat!(concat!($prefix, stringify!($idx)), $suffix) => $varname[$idx - $baseidx] = $value,
-                                    )*)*
+                                    $(
+                                    prop_name!($name, $baseidx) => $varname[0] = $value,
+                                    $(prop_name!($name, $idx) => $varname[$idx - $baseidx] = $value,)*
+                                    )*
                                     _ => (),
                                 }
                             }
@@ -830,16 +839,15 @@ where G: Graphics + 'static, G::Texture: CreateTexture<F>, <G::Texture as Create
                             "LightingL" => lighting_l_name.1 = value.to_owned(),
 
                             k => enumerate_match_image! { k,
-                                "KeyImage", "" => keys_name = value.to_owned(), (0, [0 1 2 3 4 5 6]),
-                                "KeyImage", "D" => keys_d_name = value.to_owned(), (0, [0 1 2 3 4 5 6]),
-                                "NoteImage", "" => notes_name = value.to_owned(), (0, [0 1 2 3 4 5 6]),
-                                "NoteImage", "H" => lns_head_name = value.to_owned(), (0, [0 1 2 3 4 5 6]),
-                                "NoteImage", "L" => lns_body_name = value.to_owned(), (0, [0 1 2 3 4 5 6]),
-                                "NoteImage", "T" => lns_tail_name = value.to_owned(), (0, [0 1 2 3 4 5 6]),
-                                == // for disambiguation purposes :P
+                                .{KeyImage#} => keys_name = value.to_owned(), [0 1 2 3 4 5 6],
+                                .{KeyImage#D} => keys_d_name = value.to_owned(), [0 1 2 3 4 5 6],
+                                .{NoteImage#} => notes_name = value.to_owned(), [0 1 2 3 4 5 6],
+                                .{NoteImage#H} => lns_head_name = value.to_owned(), [0 1 2 3 4 5 6],
+                                .{NoteImage#L} => lns_body_name = value.to_owned(), [0 1 2 3 4 5 6],
+                                .{NoteImage#T} => lns_tail_name = value.to_owned(), [0 1 2 3 4 5 6],
                                 k => enumerate_match! { k,
-                                    "ColourLight", "" => colour_light = csv![[0; 3]; 3], (1, [1 2 3 4 5 6 7]),
-                                    "NoteBodyStyle", "" => note_body_style = parse!(value), (0, [0 1 2 3 4 5 6]),
+                                    .{ColourLight#} => colour_light = csv![[0; 3]; 3], [1 2 3 4 5 6 7],
+                                    .{NoteBodyStyle#} => note_body_style = parse!(value), [0 1 2 3 4 5 6],
                                 }
                             },
                         }
