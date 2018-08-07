@@ -141,7 +141,7 @@ impl From<cpal::CreationError> for AudioThreadError {
 }
 
 impl fmt::Display for AudioThreadError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             AudioThreadError::NoOutputDevice => write!(f, "No output device found"),
             AudioThreadError::DefaultFormatError(_) => write!(f, "Error requesting stream format"),
@@ -306,7 +306,7 @@ impl From<String> for AudioLoadError {
 }
 
 impl fmt::Display for AudioLoadError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             AudioLoadError::Io(ref e) => write!(f, "IO error: {}", e),
             AudioLoadError::Decode(ref s) => write!(f, "Decode error: {}", s),

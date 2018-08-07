@@ -52,7 +52,7 @@ impl str::FromStr for NoteBodyStyle {
 struct NoteBodyStyleParseError;
 
 impl fmt::Display for NoteBodyStyleParseError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "Invalid NoteBodyStyle variant")
     }
 }
@@ -504,7 +504,7 @@ enum OsuSkinParseError {
 }
 
 impl fmt::Display for OsuSkinParseError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
             OsuSkinParseError::NoDefaultTexture(ref s) => write!(f, "No default texture found for {}", s),
         }
