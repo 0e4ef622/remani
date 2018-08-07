@@ -1,11 +1,11 @@
 //! A module for reading charts, or beatmaps.
 
-use std::io;
 use std::error;
-use std::fmt;
 use std::ffi;
+use std::fmt;
 use std::fs::File;
-use std::path::{ Path, PathBuf };
+use std::io;
+use std::path::{Path, PathBuf};
 
 mod osu_parser;
 
@@ -15,7 +15,6 @@ use self::osu_parser::OsuParser;
 /// note or not.
 #[derive(Debug)]
 pub struct Note {
-
     /// Where the note begins, in seconds.
     pub time: f64,
 
@@ -24,7 +23,6 @@ pub struct Note {
 
     /// Where the note ends, in seconds. None means it's a regular note, Some means it's a long note.
     pub end_time: Option<f64>,
-
     // TODO
     // /// The sound to play when the note is hit.
     // pub sound: Rc<something>
@@ -38,7 +36,6 @@ pub enum TimingPointValue {
 }
 
 impl TimingPointValue {
-
     pub fn inner(&self) -> f64 {
         match *self {
             TimingPointValue::SV(v) => v,
@@ -147,36 +144,34 @@ pub struct Chart {
 }
 
 impl Chart {
-
     /// Parse from a file specified by the path.
     ///
     /// The function will choose a parser based on the file extension.
     pub fn from_path<P: AsRef<Path>>(path: P) -> Result<Chart, ParseError> {
-
         let file = match File::open(&path) {
             Ok(f) => f,
-            Err(e) => return Err(ParseError::Io(
-                    format!("Error opening {}", path.as_ref().display()), e)),
+            Err(e) => {
+                return Err(ParseError::Io(
+                    format!("Error opening {}", path.as_ref().display()),
+                    e,
+                ))
+            }
         };
 
         match path.as_ref().extension().and_then(ffi::OsStr::to_str) {
-
             Some("osu") => {
                 println!("Using osu parser");
                 let parser = OsuParser::default();
                 parser.parse(io::BufReader::new(file))
-            },
-
-            _ => {
-                Err(ParseError::UnknownFormat)
             }
+
+            _ => Err(ParseError::UnknownFormat),
         }
     }
 }
 
 /// A chart parser. Should be implemented by chart builders/parsers.
 trait ChartParser {
-
     /// Parse the file
     fn parse<R: io::BufRead>(self, reader: R) -> Result<Chart, ParseError>;
 }

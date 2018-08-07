@@ -5,9 +5,9 @@ use graphics::Graphics;
 use image;
 use texture::CreateTexture;
 
-use std::io;
 use std::error;
 use std::fmt;
+use std::io;
 use std::path;
 
 use crate::config;
@@ -67,28 +67,37 @@ impl error::Error for ParseError {
 /// Parse from a directory specified by the path.
 ///
 /// For now, the osu parser is assumed (TODO).
-pub fn from_path<P, G, F>(factory: &mut F, path: P, config: &config::Config) -> Result<Box<dyn Skin<G>>, ParseError>
-where G: Graphics + 'static, G::Texture: CreateTexture<F>, <G::Texture as CreateTexture<F>>::Error: ToString, P: AsRef<path::Path>
+pub fn from_path<P, G, F>(
+    factory: &mut F,
+    path: P,
+    config: &config::Config,
+) -> Result<Box<dyn Skin<G>>, ParseError>
+where
+    G: Graphics + 'static,
+    G::Texture: CreateTexture<F>,
+    <G::Texture as CreateTexture<F>>::Error: ToString,
+    P: AsRef<path::Path>,
 {
     osu_skin::from_path(factory, path.as_ref(), &config.default_osu_skin_path)
 }
 
 /// A skin. Should be returned by skin parsers.
 pub trait Skin<G: Graphics> {
-    fn draw_play_scene(&mut self,
-                       transform: math::Matrix2d,
-                       graphics: &mut G,
-                       stage_height: f64,
-                       keys_down: &[bool],
-                       // column index, start pos, end pos
-                       notes: &[(usize, f64, Option<f64>)]);
+    fn draw_play_scene(
+        &mut self,
+        transform: math::Matrix2d,
+        graphics: &mut G,
+        stage_height: f64,
+        keys_down: &[bool],
+        // column index, start pos, end pos
+        notes: &[(usize, f64, Option<f64>)],
+    );
     fn draw_judgement(&mut self, column: usize, judgement: Judgement);
     fn key_down(&mut self, column: usize);
     fn key_up(&mut self, column: usize);
-    fn single_note_hit_anim(&mut self, _column: usize) { }
+    fn single_note_hit_anim(&mut self, _column: usize) {}
     fn long_note_hit_anim_start(&mut self, column: usize) {
         self.single_note_hit_anim(column);
     }
-    fn long_note_hit_anim_stop(&mut self, _column: usize) {
-    }
+    fn long_note_hit_anim_stop(&mut self, _column: usize) {}
 }

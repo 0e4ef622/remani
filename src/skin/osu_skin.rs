@@ -4,30 +4,30 @@
 
 use image;
 
-use graphics::image::Image;
-use graphics::draw_state::DrawState;
 use graphics::draw_state;
+use graphics::draw_state::DrawState;
+use graphics::image::Image;
 use graphics::math;
 use graphics::Graphics;
-use texture::TextureSettings;
-use texture::ImageSize;
+use std::ops::Deref;
 use texture::CreateTexture;
 use texture::Format;
-use std::ops::Deref;
+use texture::ImageSize;
+use texture::TextureSettings;
 
-use std::io::BufReader;
-use std::io::BufRead;
-use std::fs::File;
-use std::rc::Rc;
 use std::collections::HashMap;
-use std::path;
 use std::error;
 use std::fmt;
-use std::time;
+use std::fs::File;
+use std::io::BufRead;
+use std::io::BufReader;
+use std::path;
+use std::rc::Rc;
 use std::str;
+use std::time;
 
-use crate::skin::{ Skin, ParseError };
 use crate::judgement::Judgement;
+use crate::skin::{ParseError, Skin};
 
 #[derive(Copy, Clone, Debug)]
 enum NoteBodyStyle {
@@ -120,7 +120,6 @@ struct OsuSkinConfig {
     note_body_style: [NoteBodyStyle; 7],
 
     colour_light: [[u8; 3]; 7],
-
     // TODO
     // lighting_n_width: [u16; 7],
     // lighting_l_width: [u16; 7],
@@ -147,14 +146,15 @@ struct OsuSkin<G: Graphics> {
 }
 
 impl<G: Graphics> Skin<G> for OsuSkin<G> {
-    fn draw_play_scene(&mut self,
-                       transform: math::Matrix2d,
-                       g: &mut G,
-                       stage_height: f64,
-                       keys_down: &[bool],
-                       // column index, start pos, end pos
-                       notes: &[(usize, f64, Option<f64>)]) {
-
+    fn draw_play_scene(
+        &mut self,
+        transform: math::Matrix2d,
+        g: &mut G,
+        stage_height: f64,
+        keys_down: &[bool],
+        // column index, start pos, end pos
+        notes: &[(usize, f64, Option<f64>)],
+    ) {
         let draw_state = &DrawState::default();
 
         self.draw_track(draw_state, transform, g, stage_height);
@@ -167,14 +167,18 @@ impl<G: Graphics> Skin<G> for OsuSkin<G> {
         }
         self.draw_keys(draw_state, transform, g, stage_height, keys_down);
         // TODO the weird fade in/out thing osu does
-        self.draw_hit_anims(&DrawState::default().blend(draw_state::Blend::Add), transform, g, stage_height);
+        self.draw_hit_anims(
+            &DrawState::default().blend(draw_state::Blend::Add),
+            transform,
+            g,
+            stage_height,
+        );
 
         // Draw judgement
         if let Some((judgement, time)) = self.judgement {
             let elapsed = time.elapsed();
 
             if elapsed <= time::Duration::from_millis(200) {
-
                 // the "burst" animation
                 let scale = if elapsed <= time::Duration::from_millis(50) {
                     1.5 - elapsed.subsec_nanos() as f64 / 50_000_000.0 / 2.0
@@ -187,7 +191,9 @@ impl<G: Graphics> Skin<G> for OsuSkin<G> {
                     Judgement::Miss => self.draw_miss(draw_state, transform, g, stage_height),
                     Judgement::Bad => (), // TODO
                     Judgement::Good => (),
-                    Judgement::Perfect => self.draw_perfect(draw_state, transform, scale, g, stage_height, elapsed),
+                    Judgement::Perfect => {
+                        self.draw_perfect(draw_state, transform, scale, g, stage_height, elapsed)
+                    }
                 };
             } else {
                 self.judgement = None;
@@ -221,8 +227,15 @@ impl<G: Graphics> Skin<G> for OsuSkin<G> {
 }
 
 impl<G: Graphics> OsuSkin<G> {
-    fn draw_note(&self, draw_state: &DrawState, transform: math::Matrix2d, g: &mut G, stage_h: f64, pos: f64, column_index: usize) {
-
+    fn draw_note(
+        &self,
+        draw_state: &DrawState,
+        transform: math::Matrix2d,
+        g: &mut G,
+        stage_h: f64,
+        pos: f64,
+        column_index: usize,
+    ) {
         // TODO figure out and render animations
 
         let scale = stage_h / 480.0;
@@ -230,9 +243,14 @@ impl<G: Graphics> OsuSkin<G> {
 
         let note_w = self.config.column_width[column_index] as f64 * scale;
         let note_h = self.config.width_for_note_height_scale * scale;
-        let note_x = scale * (self.config.column_start as f64 +
-                              self.config.column_width[0..column_index].iter().sum::<u16>() as f64 +
-                              self.config.column_spacing[0..column_index].iter().sum::<u16>() as f64);
+        let note_x = scale
+            * (self.config.column_start as f64
+                + self.config.column_width[0..column_index]
+                    .iter()
+                    .sum::<u16>() as f64
+                + self.config.column_spacing[0..column_index]
+                    .iter()
+                    .sum::<u16>() as f64);
 
         let note_y = hit_p * (1.0 - pos) - note_h;
 
@@ -240,9 +258,16 @@ impl<G: Graphics> OsuSkin<G> {
         let note_img = Image::new().rect([note_x, note_y, note_w, note_h]);
         note_img.draw(note, draw_state, transform, g);
     }
-    fn draw_long_note(&self, draw_state: &DrawState, transform: math::Matrix2d, g: &mut G,
-                      stage_h: f64, pos: f64, end_pos: f64, column_index: usize) {
-
+    fn draw_long_note(
+        &self,
+        draw_state: &DrawState,
+        transform: math::Matrix2d,
+        g: &mut G,
+        stage_h: f64,
+        pos: f64,
+        end_pos: f64,
+        column_index: usize,
+    ) {
         // TODO figure out and render animations
 
         let scale = stage_h / 480.0;
@@ -250,15 +275,22 @@ impl<G: Graphics> OsuSkin<G> {
         let hit_p = self.config.hit_position as f64 * scale;
 
         let note_w = self.config.column_width[column_index] as f64 * scale;
-        let note_x = scale * (self.config.column_start as f64 +
-                              self.config.column_width[0..column_index].iter().sum::<u16>() as f64 +
-                              self.config.column_spacing[0..column_index].iter().sum::<u16>() as f64);
+        let note_x = scale
+            * (self.config.column_start as f64
+                + self.config.column_width[0..column_index]
+                    .iter()
+                    .sum::<u16>() as f64
+                + self.config.column_spacing[0..column_index]
+                    .iter()
+                    .sum::<u16>() as f64);
         let real_bottom_y = hit_p * (1.0 - pos);
         let bottom_y = if pos < 0.0 { hit_p } else { real_bottom_y };
         let top_y = hit_p * (1.0 - end_pos);
 
         let note_head = self.textures.long_notes_head[column_index][0].deref();
-        let note_tail = self.textures.long_notes_tail[column_index].as_ref().map(|v| v[0].deref());
+        let note_tail = self.textures.long_notes_tail[column_index]
+            .as_ref()
+            .map(|v| v[0].deref());
         let note_body = self.textures.long_notes_body[column_index][0].deref();
 
         let note_body_h = note_body.get_height() as f64 * scale2;
@@ -272,12 +304,22 @@ impl<G: Graphics> OsuSkin<G> {
         match self.config.note_body_style[column_index] {
             NoteBodyStyle::Stretch => {
                 let note_body_img = Image::new()
-                    .src_rect([0.0, 0.0, note_body.get_width() as f64, ((bottom_y - top_y)/(real_bottom_y - top_y)*(note_body.get_height() as f64))])
-                    .rect([note_x, top_y - note_end_h/2.0, note_w, bottom_y - top_y]);
+                    .src_rect([
+                        0.0,
+                        0.0,
+                        note_body.get_width() as f64,
+                        ((bottom_y - top_y) / (real_bottom_y - top_y)
+                            * (note_body.get_height() as f64)),
+                    ]).rect([
+                        note_x,
+                        top_y - note_end_h / 2.0,
+                        note_w,
+                        bottom_y - top_y,
+                    ]);
                 note_body_img.draw(note_body, draw_state, transform, g);
-            },
+            }
             NoteBodyStyle::CascadeFromTop => {
-                let mut rect = [note_x, top_y - note_end_h/2.0, note_w, note_body_h];
+                let mut rect = [note_x, top_y - note_end_h / 2.0, note_w, note_body_h];
                 let mut i = 0.0;
                 let mut note_body_img = Image::new();
                 while i < bottom_y - top_y - note_body_h {
@@ -291,16 +333,21 @@ impl<G: Graphics> OsuSkin<G> {
                 let src_rect = [0.0, 0.0, note_body.get_width() as f64, mod_rect[3]];
                 note_body_img = note_body_img.src_rect(src_rect).rect(mod_rect);
                 note_body_img.draw(note_body, draw_state, transform, g);
-            },
+            }
             NoteBodyStyle::CascadeFromBottom => {
-                let mut rect = [note_x, top_y - note_end_h/2.0, note_w, note_body_h];
+                let mut rect = [note_x, top_y - note_end_h / 2.0, note_w, note_body_h];
                 let mut note_body_img = Image::new();
 
                 let offset = (real_bottom_y - top_y) % note_body_h;
 
                 let mut mod_rect = rect.clone();
                 mod_rect[3] = offset;
-                let src_rect = [0.0, offset / scale2, note_body.get_width() as f64, -(mod_rect[3] / scale2)];
+                let src_rect = [
+                    0.0,
+                    offset / scale2,
+                    note_body.get_width() as f64,
+                    -(mod_rect[3] / scale2),
+                ];
                 note_body_img = note_body_img.src_rect(src_rect).rect(mod_rect);
                 note_body_img.draw(note_body, draw_state, transform, g);
 
@@ -309,7 +356,12 @@ impl<G: Graphics> OsuSkin<G> {
                 rect[1] += offset;
                 let mut i = offset;
 
-                let upside_down_rect = [0.0, note_body.get_height() as f64, note_body.get_width() as f64, -(note_body.get_height() as f64)];
+                let upside_down_rect = [
+                    0.0,
+                    note_body.get_height() as f64,
+                    note_body.get_width() as f64,
+                    -(note_body.get_height() as f64),
+                ];
 
                 while i < bottom_y - top_y - note_body_h {
                     note_body_img = note_body_img.src_rect(upside_down_rect).rect(rect);
@@ -320,13 +372,19 @@ impl<G: Graphics> OsuSkin<G> {
 
                 mod_rect = rect.clone();
                 mod_rect[3] = bottom_y - top_y - i;
-                let src_rect = [0.0, note_body.get_height() as f64, note_body.get_width() as f64, -mod_rect[3]];
+                let src_rect = [
+                    0.0,
+                    note_body.get_height() as f64,
+                    note_body.get_width() as f64,
+                    -mod_rect[3],
+                ];
                 note_body_img = note_body_img.src_rect(src_rect).rect(mod_rect);
                 note_body_img.draw(note_body, draw_state, transform, g);
 
-                let note_body_img = Image::new().rect([note_x, top_y - note_end_h/2.0, note_w, bottom_y - top_y]);
+                let note_body_img =
+                    Image::new().rect([note_x, top_y - note_end_h / 2.0, note_w, bottom_y - top_y]);
                 note_body_img.draw(note_body, draw_state, transform, g);
-            },
+            }
         }
 
         if pos >= 0.0 {
@@ -338,14 +396,23 @@ impl<G: Graphics> OsuSkin<G> {
         if let Some(note_tail) = note_tail {
             note_tail_img.draw(note_tail, draw_state, transform, g);
         } else {
-            note_tail_img.src_rect([0.0, note_head.get_height() as f64,
-                                    note_head.get_width() as f64, -(note_head.get_height() as f64)])
-                         .draw(note_head, draw_state, transform, g);
+            note_tail_img
+                .src_rect([
+                    0.0,
+                    note_head.get_height() as f64,
+                    note_head.get_width() as f64,
+                    -(note_head.get_height() as f64),
+                ]).draw(note_head, draw_state, transform, g);
         }
     }
 
-    fn draw_track(&self, draw_state: &DrawState, transform: math::Matrix2d, g: &mut G, stage_h: f64) {
-
+    fn draw_track(
+        &self,
+        draw_state: &DrawState,
+        transform: math::Matrix2d,
+        g: &mut G,
+        stage_h: f64,
+    ) {
         // TODO mania-stage-bottom, mania-stage-light, and mania-stage-hint are all animatable
 
         let scale = stage_h / 480.0;
@@ -354,17 +421,31 @@ impl<G: Graphics> OsuSkin<G> {
         // height of 768. .-.
         let scale2 = stage_h / 768.0;
 
-        let column_width_sum = (self.config.column_width.iter().sum::<u16>() as f64 + self.config.column_spacing.iter().sum::<u16>() as f64) * scale;
+        let column_width_sum = (self.config.column_width.iter().sum::<u16>() as f64
+            + self.config.column_spacing.iter().sum::<u16>() as f64)
+            * scale;
         let column_start = self.config.column_start as f64 * scale;
         let stage_hint_height = self.textures.stage_hint[0].get_height() as f64 * scale;
         let stage_l_width = self.textures.stage_left.get_width() as f64 * scale2;
         let stage_r_width = self.textures.stage_right.get_width() as f64 * scale2;
 
-        let stage_l_img = Image::new().rect([column_start - stage_l_width , 0.0, stage_l_width, stage_h]);
-        let stage_r_img = Image::new().rect([column_start + column_width_sum, 0.0, stage_r_width, stage_h]);
-        let stage_hint_img = Image::new().rect([column_start, self.config.hit_position as f64 * scale - stage_hint_height / 2.0, column_width_sum, stage_hint_height]);
+        let stage_l_img =
+            Image::new().rect([column_start - stage_l_width, 0.0, stage_l_width, stage_h]);
+        let stage_r_img =
+            Image::new().rect([column_start + column_width_sum, 0.0, stage_r_width, stage_h]);
+        let stage_hint_img = Image::new().rect([
+            column_start,
+            self.config.hit_position as f64 * scale - stage_hint_height / 2.0,
+            column_width_sum,
+            stage_hint_height,
+        ]);
 
-        stage_hint_img.draw(self.textures.stage_hint[0].deref(), draw_state, transform, g);
+        stage_hint_img.draw(
+            self.textures.stage_hint[0].deref(),
+            draw_state,
+            transform,
+            g,
+        );
         stage_l_img.draw(self.textures.stage_left.deref(), draw_state, transform, g);
         stage_r_img.draw(self.textures.stage_right.deref(), draw_state, transform, g);
 
@@ -372,60 +453,114 @@ impl<G: Graphics> OsuSkin<G> {
             let stage_bottom = &v[0];
             let stage_b_width = stage_bottom.get_width() as f64 * scale;
             let stage_b_height = stage_bottom.get_height() as f64 * scale;
-            let stage_b_img = Image::new().rect([column_start + column_width_sum / 2.0 - stage_b_width / 2.0, stage_h - stage_b_height, stage_b_width, stage_b_height]);
+            let stage_b_img = Image::new().rect([
+                column_start + column_width_sum / 2.0 - stage_b_width / 2.0,
+                stage_h - stage_b_height,
+                stage_b_width,
+                stage_b_height,
+            ]);
             stage_b_img.draw(stage_bottom.deref(), draw_state, transform, g);
         }
     }
 
-    fn draw_keys(&self, draw_state: &DrawState, transform: math::Matrix2d, g: &mut G, stage_h: f64, pressed: &[bool]) {
-
+    fn draw_keys(
+        &self,
+        draw_state: &DrawState,
+        transform: math::Matrix2d,
+        g: &mut G,
+        stage_h: f64,
+        pressed: &[bool],
+    ) {
         let scale = stage_h / 480.0;
         let scale2 = stage_h / 768.0;
 
         for (i, key_pressed) in pressed.iter().enumerate() {
-            let key_texture = if *key_pressed { self.textures.keys_d[i].as_ref() } else { self.textures.keys[i].as_ref() };
+            let key_texture = if *key_pressed {
+                self.textures.keys_d[i].as_ref()
+            } else {
+                self.textures.keys[i].as_ref()
+            };
             let key_width = self.config.column_width[i] as f64 * scale;
             let key_height = key_texture.get_height() as f64 * scale2;
-            let key_x = scale * (self.config.column_start as f64 +
-                                 self.config.column_width[0..i].iter().sum::<u16>() as f64 +
-                                 self.config.column_spacing[0..i].iter().sum::<u16>() as f64);
+            let key_x = scale
+                * (self.config.column_start as f64
+                    + self.config.column_width[0..i].iter().sum::<u16>() as f64
+                    + self.config.column_spacing[0..i].iter().sum::<u16>() as f64);
             let key_y = stage_h - key_height;
             let key_img = Image::new().rect([key_x, key_y, key_width, key_height]);
             key_img.draw(key_texture, draw_state, transform, g);
 
-            let mut color = [self.config.colour_light[i][0] as f32 / 255.0,
-                         self.config.colour_light[i][1] as f32 / 255.0,
-                         self.config.colour_light[i][2] as f32 / 255.0, 1.0];
+            let mut color = [
+                self.config.colour_light[i][0] as f32 / 255.0,
+                self.config.colour_light[i][1] as f32 / 255.0,
+                self.config.colour_light[i][2] as f32 / 255.0,
+                1.0,
+            ];
             let sl_size = self.textures.stage_light.len();
-            let stage_light_height = self.textures.stage_light[sl_size-1].get_height() as f64 * scale2;
+            let stage_light_height =
+                self.textures.stage_light[sl_size - 1].get_height() as f64 * scale2;
 
             if let Some(last_down_time) = self.anim_states.keys_last_down_time[i] {
                 let current_time = time::Instant::now();
                 let elapsed_time = current_time - last_down_time;
-                let elapsed_time_secs = elapsed_time.as_secs() as f64 + elapsed_time.subsec_nanos() as f64 / 1_000_000_000.0;
+                let elapsed_time_secs = elapsed_time.as_secs() as f64
+                    + elapsed_time.subsec_nanos() as f64 / 1_000_000_000.0;
                 let fframe: f32 = elapsed_time_secs as f32 * 30.0;
                 let frame = fframe as usize;
                 if frame < 3 {
-                    color[3] -= fframe/3.0;
-                    let stage_light_img = Image::new().rect([key_x, key_y - stage_light_height, key_width, stage_light_height]).color(color);
-                    stage_light_img.draw(self.textures.stage_light[sl_size-1].as_ref(), draw_state, transform, g);
+                    color[3] -= fframe / 3.0;
+                    let stage_light_img = Image::new()
+                        .rect([
+                            key_x,
+                            key_y - stage_light_height,
+                            key_width,
+                            stage_light_height,
+                        ]).color(color);
+                    stage_light_img.draw(
+                        self.textures.stage_light[sl_size - 1].as_ref(),
+                        draw_state,
+                        transform,
+                        g,
+                    );
                 }
             } else if *key_pressed {
-                let stage_light_img = Image::new().rect([key_x, key_y - stage_light_height, key_width, stage_light_height]).color(color);
-                stage_light_img.draw(self.textures.stage_light[0].as_ref(), draw_state, transform, g);
+                let stage_light_img = Image::new()
+                    .rect([
+                        key_x,
+                        key_y - stage_light_height,
+                        key_width,
+                        stage_light_height,
+                    ]).color(color);
+                stage_light_img.draw(
+                    self.textures.stage_light[0].as_ref(),
+                    draw_state,
+                    transform,
+                    g,
+                );
             }
         }
     }
 
-    fn draw_perfect(&self, draw_state: &DrawState, transform: math::Matrix2d, size_scale: f64, g: &mut G, stage_h: f64, elapsed_time: time::Duration) {
-        let elapsed = elapsed_time.as_secs() as f64 + elapsed_time.subsec_nanos() as f64 / 1_000_000_000.0;
+    fn draw_perfect(
+        &self,
+        draw_state: &DrawState,
+        transform: math::Matrix2d,
+        size_scale: f64,
+        g: &mut G,
+        stage_h: f64,
+        elapsed_time: time::Duration,
+    ) {
+        let elapsed =
+            elapsed_time.as_secs() as f64 + elapsed_time.subsec_nanos() as f64 / 1_000_000_000.0;
         let frame = (elapsed * 30.0) as usize % self.textures.hit300g.len();
 
         let tx = self.textures.hit300g[frame].deref();
 
         let scale = stage_h / 480.0;
         let scale2 = stage_h / 768.0;
-        let stage_width = (self.config.column_width.iter().sum::<u16>() as f64 + self.config.column_spacing.iter().sum::<u16>() as f64) * scale;
+        let stage_width = (self.config.column_width.iter().sum::<u16>() as f64
+            + self.config.column_spacing.iter().sum::<u16>() as f64)
+            * scale;
         let column_start = self.config.column_start as f64 * scale;
 
         let tx_w = tx.get_width() as f64 * scale2 / 1.5 * size_scale;
@@ -437,12 +572,20 @@ impl<G: Graphics> OsuSkin<G> {
         img.draw(tx, draw_state, transform, g);
     }
 
-    fn draw_miss(&self, draw_state: &DrawState, transform: math::Matrix2d, g: &mut G, stage_h: f64) {
+    fn draw_miss(
+        &self,
+        draw_state: &DrawState,
+        transform: math::Matrix2d,
+        g: &mut G,
+        stage_h: f64,
+    ) {
         let tx = self.textures.miss[0].deref();
 
         let scale = stage_h / 480.0;
         let scale2 = stage_h / 768.0;
-        let stage_width = (self.config.column_width.iter().sum::<u16>() as f64 + self.config.column_spacing.iter().sum::<u16>() as f64) * scale;
+        let stage_width = (self.config.column_width.iter().sum::<u16>() as f64
+            + self.config.column_spacing.iter().sum::<u16>() as f64)
+            * scale;
         let column_start = self.config.column_start as f64 * scale;
 
         let tx_w = tx.get_width() as f64 * scale2;
@@ -454,7 +597,13 @@ impl<G: Graphics> OsuSkin<G> {
         img.draw(tx, draw_state, transform, g);
     }
 
-    fn draw_hit_anims(&mut self, draw_state: &DrawState, transform: math::Matrix2d, g: &mut G, stage_height: f64) {
+    fn draw_hit_anims(
+        &mut self,
+        draw_state: &DrawState,
+        transform: math::Matrix2d,
+        g: &mut G,
+        stage_height: f64,
+    ) {
         let scale = stage_height / 480.0;
         let scale2 = stage_height / 768.0;
 
@@ -462,14 +611,17 @@ impl<G: Graphics> OsuSkin<G> {
 
         for (i, hit_anim) in self.anim_states.hit_anim.iter_mut().enumerate() {
             let key_width = self.config.column_width[i] as f64 * scale;
-            let hit_x = scale * (self.config.column_start as f64 +
-                                 self.config.column_width[0..i].iter().sum::<u16>() as f64 +
-                                 self.config.column_spacing[0..i].iter().sum::<u16>() as f64);
+            let hit_x = scale
+                * (self.config.column_start as f64
+                    + self.config.column_width[0..i].iter().sum::<u16>() as f64
+                    + self.config.column_spacing[0..i].iter().sum::<u16>() as f64);
 
             let mut set_hit_anim_state_none = false;
             match hit_anim {
                 HitAnimState::SingleNote(time) => {
-                    let frame = (time.elapsed().as_secs() as f64 + time.elapsed().subsec_nanos() as f64 / 1000_000_000.0) * 60.0;
+                    let frame = (time.elapsed().as_secs() as f64
+                        + time.elapsed().subsec_nanos() as f64 / 1000_000_000.0)
+                        * 60.0;
                     let uframe = frame as usize;
                     if uframe > self.textures.lighting_n.len() - 1 {
                         // there was an bug in rustc 1.26.0
@@ -479,21 +631,45 @@ impl<G: Graphics> OsuSkin<G> {
                     } else {
                         let hit_w = self.textures.lighting_n[uframe].get_width() as f64 * scale2;
                         let hit_h = self.textures.lighting_n[uframe].get_height() as f64 * scale2;
-                        let hit_img = Image::new().rect([hit_x - hit_w / 2.0 + key_width / 2.0, hit_p - hit_h / 2.0, hit_w, hit_h]);
-                        hit_img.draw(self.textures.lighting_n[uframe].deref(), draw_state, transform, g);
+                        let hit_img = Image::new().rect([
+                            hit_x - hit_w / 2.0 + key_width / 2.0,
+                            hit_p - hit_h / 2.0,
+                            hit_w,
+                            hit_h,
+                        ]);
+                        hit_img.draw(
+                            self.textures.lighting_n[uframe].deref(),
+                            draw_state,
+                            transform,
+                            g,
+                        );
                     }
-                },
+                }
                 HitAnimState::LongNote(time) => {
-                    let frame = (time.elapsed().as_secs() as f64 + time.elapsed().subsec_nanos() as f64 / 1000_000_000.0) * 60.0;
+                    let frame = (time.elapsed().as_secs() as f64
+                        + time.elapsed().subsec_nanos() as f64 / 1000_000_000.0)
+                        * 60.0;
                     let uframe = frame as usize % self.textures.lighting_l.len();
                     let hit_w = self.textures.lighting_l[uframe].get_width() as f64 * scale2;
                     let hit_h = self.textures.lighting_l[uframe].get_height() as f64 * scale2;
-                    let hit_img = Image::new().rect([hit_x - hit_w / 2.0 + key_width / 2.0, hit_p - hit_h / 2.0, hit_w, hit_h]);
-                    hit_img.draw(self.textures.lighting_l[uframe].deref(), draw_state, transform, g);
-                },
+                    let hit_img = Image::new().rect([
+                        hit_x - hit_w / 2.0 + key_width / 2.0,
+                        hit_p - hit_h / 2.0,
+                        hit_w,
+                        hit_h,
+                    ]);
+                    hit_img.draw(
+                        self.textures.lighting_l[uframe].deref(),
+                        draw_state,
+                        transform,
+                        g,
+                    );
+                }
                 HitAnimState::None => (),
             }
-            if set_hit_anim_state_none { *hit_anim = HitAnimState::None; }
+            if set_hit_anim_state_none {
+                *hit_anim = HitAnimState::None;
+            }
         }
     }
 }
@@ -506,7 +682,9 @@ enum OsuSkinParseError {
 impl fmt::Display for OsuSkinParseError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match *self {
-            OsuSkinParseError::NoDefaultTexture(ref s) => write!(f, "No default texture found for {}", s),
+            OsuSkinParseError::NoDefaultTexture(ref s) => {
+                write!(f, "No default texture found for {}", s)
+            }
         }
     }
 }
@@ -536,24 +714,32 @@ fn image_reverse_srgb(mut img: image::RgbaImage) -> image::RgbaImage {
     // We can't use graphics::color::gamma_srgb_to_linear(color) because it doesn't
     // perform the transformation on the alpha channel, which we want
     img.pixels_mut().for_each(|pixel| {
+        pixel.data.iter_mut().for_each(|c| {
+            const U8_MAX: f32 = u8::MAX as f32;
 
-            pixel.data.iter_mut().for_each(|c| {
-                const U8_MAX: f32 = u8::MAX as f32;
+            let mut v = *c as f32 / U8_MAX;
 
-                let mut v = *c as f32 / U8_MAX;
+            if v <= 0.04045 {
+                v = v / 12.92
+            } else {
+                v = ((v + 0.055) / 1.055).powf(2.4)
+            }
 
-                if v <= 0.04045 { v = v / 12.92 }
-                else { v = ((v + 0.055) / 1.055).powf(2.4) }
-
-                *c = (v * U8_MAX).round() as u8;
-
-            });
+            *c = (v * U8_MAX).round() as u8;
         });
+    });
     img
 }
 
-fn texture_from_path<F, T, P>(factory: &mut F, path: P, texture_settings: &TextureSettings) -> Result<T, ParseError>
-where T: CreateTexture<F>, P: AsRef<path::Path>, T::Error: ToString
+fn texture_from_path<F, T, P>(
+    factory: &mut F,
+    path: P,
+    texture_settings: &TextureSettings,
+) -> Result<T, ParseError>
+where
+    T: CreateTexture<F>,
+    P: AsRef<path::Path>,
+    T::Error: ToString,
 {
     let path_string = path.as_ref().to_string_lossy().into_owned();
     let image = match image::open(&path) {
@@ -562,22 +748,35 @@ where T: CreateTexture<F>, P: AsRef<path::Path>, T::Error: ToString
     };
     let image = image_reverse_srgb(image.to_rgba());
     let dimensions = image.dimensions();
-    CreateTexture::create(factory, Format::Rgba8, &*image.into_raw(), [dimensions.0, dimensions.1], texture_settings)
-    .map_err(|e: T::Error| ParseError::ImageError(path_string, image::ImageError::UnsupportedError(e.to_string())))
+    CreateTexture::create(
+        factory,
+        Format::Rgba8,
+        &*image.into_raw(),
+        [dimensions.0, dimensions.1],
+        texture_settings,
+    ).map_err(|e: T::Error| {
+        ParseError::ImageError(
+            path_string,
+            image::ImageError::UnsupportedError(e.to_string()),
+        )
+    })
 }
 
 /// Load an animatable skin element's textures
 ///
 /// This function takes the basename and tries different paths until it finds one that exists
-fn load_texture_anim<F, T>(factory: &mut F,
-                           cache: &mut HashMap<String, Rc<Vec<Rc<T>>>>,
-                           dir: &path::Path,
-                           default_dir: &path::Path,
-                           names: &(&'static str, String),
-                           texture_settings: &TextureSettings) -> Result<Rc<Vec<Rc<T>>>, ParseError>
-where T: CreateTexture<F>, T::Error: ToString
+fn load_texture_anim<F, T>(
+    factory: &mut F,
+    cache: &mut HashMap<String, Rc<Vec<Rc<T>>>>,
+    dir: &path::Path,
+    default_dir: &path::Path,
+    names: &(&'static str, String),
+    texture_settings: &TextureSettings,
+) -> Result<Rc<Vec<Rc<T>>>, ParseError>
+where
+    T: CreateTexture<F>,
+    T::Error: ToString,
 {
-
     let mut textures = Vec::new();
     let mut path;
 
@@ -623,13 +822,17 @@ where T: CreateTexture<F>, T::Error: ToString
 /// Load a skin element's texture
 ///
 /// This function takes the basename and tries different paths until it finds one that exists
-fn load_texture<F, T>(factory: &mut F,
-                      cache: &mut HashMap<String, Rc<Vec<Rc<T>>>>,
-                      dir: &path::Path,
-                      default_dir: &path::Path,
-                      names: &(&'static str, String),
-                      texture_settings: &TextureSettings) -> Result<Rc<T>, ParseError>
-where T: CreateTexture<F>, T::Error: ToString
+fn load_texture<F, T>(
+    factory: &mut F,
+    cache: &mut HashMap<String, Rc<Vec<Rc<T>>>>,
+    dir: &path::Path,
+    default_dir: &path::Path,
+    names: &(&'static str, String),
+    texture_settings: &TextureSettings,
+) -> Result<Rc<T>, ParseError>
+where
+    T: CreateTexture<F>,
+    T::Error: ToString,
 {
     macro_rules! repetitive_code {
         ($(($dir:ident, $name:expr)),*) => {$(
@@ -653,20 +856,31 @@ where T: CreateTexture<F>, T::Error: ToString
     Err(OsuSkinParseError::NoDefaultTexture(String::from(names.0)).into())
 }
 
-pub fn from_path<F, G>(factory: &mut F, dir: &path::Path, default_dir: &path::Path) -> Result<Box<dyn Skin<G>>, ParseError>
-where G: Graphics + 'static, G::Texture: CreateTexture<F>, <G::Texture as CreateTexture<F>>::Error: ToString
+pub fn from_path<F, G>(
+    factory: &mut F,
+    dir: &path::Path,
+    default_dir: &path::Path,
+) -> Result<Box<dyn Skin<G>>, ParseError>
+where
+    G: Graphics + 'static,
+    G::Texture: CreateTexture<F>,
+    <G::Texture as CreateTexture<F>>::Error: ToString,
 {
     let config_path = dir.join(path::Path::new("skin.ini"));
 
     let texture_settings = TextureSettings::new();
 
     macro_rules! double {
-        ($e:expr) => (($e, String::from($e)))
+        ($e:expr) => {
+            ($e, String::from($e))
+        };
     }
 
     // put things into the 1213121 pattern
     macro_rules! pat {
-        ($a:expr, $b:expr, $c:expr) => [[$a, $b, $a, $c, $a, $b, $a]]
+        ($a:expr, $b:expr, $c:expr) => {
+            [$a, $b, $a, $c, $a, $b, $a]
+        };
     }
 
     // (default image name, skin image name)
@@ -681,30 +895,42 @@ where G: Graphics + 'static, G::Texture: CreateTexture<F>, <G::Texture as Create
     let mut lighting_n_name = double!("lightingN");
     let mut lighting_l_name = double!("lightingL");
 
-    let mut keys_name = pat![double!("mania-key1"),
-                             double!("mania-key2"),
-                             double!("mania-keyS")];
+    let mut keys_name = pat![
+        double!("mania-key1"),
+        double!("mania-key2"),
+        double!("mania-keyS")
+    ];
 
-    let mut keys_d_name = pat![double!("mania-key1D"),
-                               double!("mania-key2D"),
-                               double!("mania-keySD")];
+    let mut keys_d_name = pat![
+        double!("mania-key1D"),
+        double!("mania-key2D"),
+        double!("mania-keySD")
+    ];
 
-    let mut notes_name = pat![double!("mania-note1"),
-                              double!("mania-note2"),
-                              double!("mania-noteS")];
+    let mut notes_name = pat![
+        double!("mania-note1"),
+        double!("mania-note2"),
+        double!("mania-noteS")
+    ];
 
     // lns is plural of ln (long note)
-    let mut lns_head_name = pat![double!("mania-note1H"),
-                                 double!("mania-note2H"),
-                                 double!("mania-noteSH")];
+    let mut lns_head_name = pat![
+        double!("mania-note1H"),
+        double!("mania-note2H"),
+        double!("mania-noteSH")
+    ];
 
-    let mut lns_body_name = pat![double!("mania-note1L"),
-                                 double!("mania-note2L"),
-                                 double!("mania-noteSL")];
+    let mut lns_body_name = pat![
+        double!("mania-note1L"),
+        double!("mania-note2L"),
+        double!("mania-noteSL")
+    ];
 
-    let mut lns_tail_name = pat![double!("mania-note1T"),
-                                 double!("mania-note2T"),
-                                 double!("mania-noteST")];
+    let mut lns_tail_name = pat![
+        double!("mania-note1T"),
+        double!("mania-note2T"),
+        double!("mania-noteST")
+    ];
 
     let mut stage_hint_name = double!("mania-stage-hint");
     let mut stage_left_name = double!("mania-stage-left");
@@ -723,17 +949,19 @@ where G: Graphics + 'static, G::Texture: CreateTexture<F>, <G::Texture as Create
 
     // parse skin.ini
     if config_path.exists() {
-        let config_file = File::open(config_path).map_err(|e| ParseError::Io(String::from("Error opening config file"), e))?;
+        let config_file = File::open(config_path)
+            .map_err(|e| ParseError::Io(String::from("Error opening config file"), e))?;
         let config_reader = BufReader::new(&config_file);
         let mut section = String::from("General");
         let mut keys: u8 = 0;
-        for (line_number, l) in config_reader.lines().enumerate().map(|(n,l)| (n+1,l)) {
-            let line = l.map_err(|e| ParseError::Io(String::from("Error reading config file"), e))?;
+        for (line_number, l) in config_reader.lines().enumerate().map(|(n, l)| (n + 1, l)) {
+            let line =
+                l.map_err(|e| ParseError::Io(String::from("Error reading config file"), e))?;
             let line = line.trim();
 
             // section declarations look like [section name]
             if line.starts_with("[") && line.ends_with("]") {
-                section = line[1..line.len()-1].to_string();
+                section = line[1..line.len() - 1].to_string();
                 continue;
             }
 
@@ -751,26 +979,41 @@ where G: Graphics + 'static, G::Texture: CreateTexture<F>, <G::Texture as Create
                     match $value.parse() {
                         Ok(o) => o,
                         Err(e) => {
-                            remani_warn!("Malformed value in line {} of skin.ini ({}), ignoring", line_number, e);
+                            remani_warn!(
+                                "Malformed value in line {} of skin.ini ({}), ignoring",
+                                line_number,
+                                e
+                            );
                             continue;
                         }
                     }
-                }
+                };
             }
 
-            let key = if let Some(k) = line_parts.next() { k.trim() } else { continue; };
-            let value = if let Some(v) = line_parts.next() { v.trim() } else { continue; };
+            let key = if let Some(k) = line_parts.next() {
+                k.trim()
+            } else {
+                continue;
+            };
+            let value = if let Some(v) = line_parts.next() {
+                v.trim()
+            } else {
+                continue;
+            };
             match key {
                 "Keys" => keys = parse!(value),
                 _ => {
                     if keys == 7 && section == "Mania" {
                         macro_rules! prop_name {
                             ({$prefix:ident#$suffix:ident}, $n:expr) => {
-                                concat!(concat!(stringify!($prefix), stringify!($n)), stringify!($suffix))
+                                concat!(
+                                    concat!(stringify!($prefix), stringify!($n)),
+                                    stringify!($suffix)
+                                )
                             };
                             ({$prefix:ident#}, $n:expr) => {
                                 concat!(stringify!($prefix), stringify!($n))
-                            }
+                            };
                         }
                         // fancy macros
                         // used to match stuff like KeyImage{0..6}H more easily
@@ -806,10 +1049,15 @@ where G: Graphics + 'static, G::Texture: CreateTexture<F>, <G::Texture as Create
                                     n = i;
                                 }
                                 if n < $count - 1 {
-                                    remani_warn!("Malformed value in line {} of skin.ini (not enough fields), ignoring", line_number);
+                                    remani_warn!(
+                                        "Malformed value in line {} of skin.ini (not enough fields), ignoring",
+                                        line_number
+                                    );
                                     continue;
-                                } else { a }
-                            }}
+                                } else {
+                                    a
+                                }
+                            }};
                         }
                         match key {
                             "ColumnStart" => column_start = parse!(value),
@@ -846,7 +1094,7 @@ where G: Graphics + 'static, G::Texture: CreateTexture<F>, <G::Texture as Create
                             },
                         }
                     }
-                },
+                }
             }
         }
     }
@@ -918,11 +1166,15 @@ where G: Graphics + 'static, G::Texture: CreateTexture<F>, <G::Texture as Create
     let smallest_note_width;
     let smallest_note_height;
     {
-        let smallest_height_note = &notes.iter().min_by_key(|x: &&Rc<Vec<Rc<G::Texture>>>| x[0].get_height()).unwrap()[0];
+        let smallest_height_note = &notes
+            .iter()
+            .min_by_key(|x: &&Rc<Vec<Rc<G::Texture>>>| x[0].get_height())
+            .unwrap()[0];
         smallest_note_width = smallest_height_note.get_width() as f64;
         smallest_note_height = smallest_height_note.get_height() as f64;
     }
-    let width_for_note_height_scale = smallest_note_height / smallest_note_width * *column_width.iter().min().unwrap() as f64;
+    let width_for_note_height_scale =
+        smallest_note_height / smallest_note_width * *column_width.iter().min().unwrap() as f64;
     Ok(Box::new(OsuSkin {
         textures: OsuSkinTextures {
             miss,

@@ -7,13 +7,12 @@ macro_rules! remani_warn {
     };
 }
 
-
-mod chart;
-mod skin;
-mod config;
 mod audio;
-mod window;
+mod chart;
+mod config;
 mod judgement;
+mod skin;
+mod window;
 
 fn main() {
     let config = config::get_config();

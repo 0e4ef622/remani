@@ -1,18 +1,18 @@
 //! This module deals with audio playback.
 
-#[cfg(feature="mp3")]
+#[cfg(feature = "mp3")]
 mod mp3;
 
 mod resample;
 
-use std::sync::mpsc;
 use std::collections::VecDeque;
+use std::error;
+use std::fmt;
 use std::iter;
 use std::iter::Peekable;
+use std::sync::mpsc;
 use std::sync::Arc;
 use std::thread;
-use std::fmt;
-use std::error;
 use std::time;
 
 use cpal;
@@ -68,7 +68,7 @@ impl<T: Copy> Iterator for ArcIter<T> {
             Some(&n) => {
                 self.index += 1;
                 Some(n)
-            },
+            }
             None => None,
         }
     }
@@ -90,7 +90,6 @@ pub struct Audio<S: cpal::Sample> {
 }
 
 impl<S: cpal::Sample> Audio<S> {
-
     /// Start playing music, returning the passed in music stream if there was an error
     pub fn play_music(&self, music: MusicStream<S>) -> Result<(), MusicStream<S>> {
         self.music_sender.try_send(music).or_else(|e| match e {
@@ -101,10 +100,15 @@ impl<S: cpal::Sample> Audio<S> {
 
     /// Play a sound effect/hitsound, returning the passed in effect stream if there was an error
     pub fn play_effect(&self, effect: EffectStream<S>) -> Result<(), EffectStream<S>> {
-        self.effect_sender.try_send(ArcIter::new(effect.0)).or_else(|e| Err(match e {
-            mpsc::TrySendError::Full(m) => m,
-            mpsc::TrySendError::Disconnected(m) => m,
-        }.inner().into()))
+        self.effect_sender
+            .try_send(ArcIter::new(effect.0))
+            .or_else(|e| {
+                Err(match e {
+                    mpsc::TrySendError::Full(m) => m,
+                    mpsc::TrySendError::Disconnected(m) => m,
+                }.inner()
+                .into())
+            })
     }
 
     /// Sends a request to the audio thread for the current playhead of the music.
@@ -118,7 +122,9 @@ impl<S: cpal::Sample> Audio<S> {
         self.playhead_rcv.try_recv().ok()
     }
 
-    pub fn format(&self) -> &cpal::Format { &self.format }
+    pub fn format(&self) -> &cpal::Format {
+        &self.format
+    }
 }
 
 #[derive(Debug)]
@@ -145,7 +151,9 @@ impl fmt::Display for AudioThreadError {
         match *self {
             AudioThreadError::NoOutputDevice => write!(f, "No output device found"),
             AudioThreadError::DefaultFormatError(_) => write!(f, "Error requesting stream format"),
-            AudioThreadError::OutputStreamCreationError(ref e) => write!(f, "Error building audio stream: {}", e),
+            AudioThreadError::OutputStreamCreationError(ref e) => {
+                write!(f, "Error building audio stream: {}", e)
+            }
         }
     }
 }
@@ -170,7 +178,6 @@ impl error::Error for AudioThreadError {
 /// Starts the audio thread and returns an object that can be used to communicate with the audio
 /// thread.
 pub fn start_audio_thread() -> Result<Audio<f32>, AudioThreadError> {
-
     let device = cpal::default_output_device().ok_or(AudioThreadError::NoOutputDevice)?;
 
     println!("Using device {}", device.name());
@@ -191,7 +198,6 @@ pub fn start_audio_thread() -> Result<Audio<f32>, AudioThreadError> {
 
     // Spawn the audio thread
     thread::spawn(move || {
-
         let mut effects: VecDeque<Peekable<ArcIter<f32>>> = VecDeque::with_capacity(128);
         let mut music: MusicStream<f32> = MusicStream {
             samples: Box::new(iter::empty::<f32>()),
@@ -282,10 +288,10 @@ pub fn start_audio_thread() -> Result<Audio<f32>, AudioThreadError> {
     })
 }
 
-use std::fs::File;
-use std::path::Path;
 use std::ffi;
+use std::fs::File;
 use std::io;
+use std::path::Path;
 
 #[derive(Debug)]
 pub enum AudioLoadError {
@@ -324,19 +330,24 @@ impl error::Error for AudioLoadError {
     fn cause(&self) -> Option<&dyn error::Error> {
         match *self {
             AudioLoadError::Io(ref e) => Some(e),
-            AudioLoadError::Decode(_) => None
+            AudioLoadError::Decode(_) => None,
         }
     }
 }
 
-pub fn music_from_path<P: AsRef<Path>>(path: P, format: &cpal::Format) -> Result<MusicStream<f32>, AudioLoadError> {
-
+pub fn music_from_path<P: AsRef<Path>>(
+    path: P,
+    format: &cpal::Format,
+) -> Result<MusicStream<f32>, AudioLoadError> {
     let file = File::open(&path)?;
-    let extension = path.as_ref().extension().and_then(ffi::OsStr::to_str).map(str::to_lowercase);
+    let extension = path
+        .as_ref()
+        .extension()
+        .and_then(ffi::OsStr::to_str)
+        .map(str::to_lowercase);
 
     match extension.as_ref().map(String::as_str) {
-
-        #[cfg(feature="mp3")]
+        #[cfg(feature = "mp3")]
         Some("mp3") => {
             let stream = mp3::decode(file).map_err(AudioLoadError::from)?;
             if stream.sample_rate == format.sample_rate.0 {
@@ -344,7 +355,7 @@ pub fn music_from_path<P: AsRef<Path>>(path: P, format: &cpal::Format) -> Result
             } else {
                 Ok(resample::from_music_stream(stream, format.sample_rate.0))
             }
-        },
+        }
 
         _ => panic!("Unsupported format"),
     }

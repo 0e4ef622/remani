@@ -1,21 +1,21 @@
 //! Holds the main game logic
 
-use std::time;
 use std::path::Path;
+use std::time;
 
-use piston;
-use piston::input::{ RenderEvent, UpdateEvent, PressEvent, ReleaseEvent };
 use opengl_graphics;
+use piston;
+use piston::input::{PressEvent, ReleaseEvent, RenderEvent, UpdateEvent};
 
 mod model;
 mod view;
 
-use crate::chart::Chart;
-use crate::config::Config;
-use crate::judgement::Judgement;
 use self::model::Model;
 use self::view::View;
 use super::Window;
+use crate::chart::Chart;
+use crate::config::Config;
+use crate::judgement::Judgement;
 
 use crate::audio;
 use crate::skin;
@@ -34,8 +34,10 @@ pub struct GameScene {
 impl GameScene {
     /// Allocate and initialize everything
     pub fn new(chart: Chart, config: &Config, audio: &audio::Audio<f32>) -> Self {
-
-        let music = audio::music_from_path(Path::new("test/test_chart").join(&chart.music_path), audio.format()).unwrap();
+        let music = audio::music_from_path(
+            Path::new("test/test_chart").join(&chart.music_path),
+            audio.format(),
+        ).unwrap();
         let the_skin = skin::from_path(&mut (), &config.skin_path, config).unwrap();
 
         let model = Model::new();
@@ -54,8 +56,13 @@ impl GameScene {
     }
 
     /// Called everytime there is a window event
-    pub(super) fn event(&mut self, e: piston::input::Event, config: &Config, audio: &audio::Audio<f32>, window: &mut Window) {
-
+    pub(super) fn event(
+        &mut self,
+        e: piston::input::Event,
+        config: &Config,
+        audio: &audio::Audio<f32>,
+        window: &mut Window,
+    ) {
         if self.music.is_some() {
             audio.play_music(self.music.take().unwrap());
         }
@@ -64,9 +71,10 @@ impl GameScene {
             audio.request_playhead();
             self.first_playhead_request = true;
         } else if let Some((instant, playhead)) = audio.get_playhead() {
-
             let d = instant.elapsed();
-            let new_time = playhead + d.as_secs() as f64 + d.subsec_nanos() as f64 / 1_000_000_000.0 - config.offset;
+            let new_time =
+                playhead + d.as_secs() as f64 + d.subsec_nanos() as f64 / 1_000_000_000.0
+                    - config.offset;
             if !self.first_playhead_received {
                 self.time = new_time;
                 self.first_playhead_received = true;
@@ -75,39 +83,40 @@ impl GameScene {
             }
             self.last_instant = time::Instant::now();
             audio.request_playhead();
-
         } else {
-
             let d = self.last_instant.elapsed();
             self.time += d.as_secs() as f64 + d.subsec_nanos() as f64 / 1_000_000_000.0;
             self.last_instant = time::Instant::now();
-
         }
 
         if let Some(u) = e.update_args() {
             let view = &mut self.view;
-            self.model.update(&u, &self.chart, self.time, |k| view.draw_judgement(k, Judgement::Miss));
+            self.model.update(&u, &self.chart, self.time, |k| {
+                view.draw_judgement(k, Judgement::Miss)
+            });
         }
 
         if let Some(i) = e.press_args() {
             let view = &mut self.view;
-            self.model.press(&i, config, &self.chart, self.time, |k, j| {
-
-                if let Some(j) = j {
-                    view.draw_judgement(k, j);
-                }
-                view.key_down(k);
-            });
+            self.model
+                .press(&i, config, &self.chart, self.time, |k, j| {
+                    if let Some(j) = j {
+                        view.draw_judgement(k, j);
+                    }
+                    view.key_down(k);
+                });
         }
 
         if let Some(i) = e.release_args() {
             let view = &mut self.view;
-            self.model.release(&i, config, self.time, |k| view.key_up(k));
+            self.model
+                .release(&i, config, self.time, |k| view.key_up(k));
         }
 
         if let Some(r) = e.render_args() {
             window.gl.draw(r.viewport(), |c, mut gl| {
-                self.view.render(c, &mut gl, &r, config, &self.chart, &self.model, self.time);
+                self.view
+                    .render(c, &mut gl, &r, config, &self.chart, &self.model, self.time);
             });
         }
     }

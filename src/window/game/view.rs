@@ -1,14 +1,14 @@
 //! A module that handles window render events for the game scene
 
-use piston::input::RenderArgs;
 use graphics;
-use graphics::Graphics;
 use graphics::Context;
+use graphics::Graphics;
+use piston::input::RenderArgs;
 
-use crate::skin::Skin;
 use super::Model;
 use crate::config::Config;
 use crate::judgement::Judgement;
+use crate::skin::Skin;
 
 use crate::chart;
 
@@ -33,7 +33,6 @@ pub struct View<G: Graphics> {
 }
 
 impl<G: Graphics> View<G> {
-
     /// Create a view with some hardcoded defaults and stuffs
     pub fn new(skin: Box<dyn Skin<G>>) -> Self {
         View {
@@ -48,33 +47,45 @@ impl<G: Graphics> View<G> {
     }
 
     /// Called when a render event occurs
-    pub fn render(&mut self, c: Context, g: &mut G, args: &RenderArgs, config: &Config, chart: &chart::Chart, model: &Model, time: f64) {
+    pub fn render(
+        &mut self,
+        c: Context,
+        g: &mut G,
+        args: &RenderArgs,
+        config: &Config,
+        chart: &chart::Chart,
+        model: &Model,
+        time: f64,
+    ) {
         graphics::clear([0.0; 4], g);
 
         let mut add_next_note_index = 0;
 
         for (index, note) in chart.notes[self.next_note_index..].iter().enumerate() {
+            let note_pos = calc_pos(
+                time,
+                note.time,
+                chart,
+                config.scroll_speed,
+                self.current_timing_point_index,
+            );
+            if note_pos > 1.0 {
+                break;
+            }
 
-            let note_pos = calc_pos(time, note.time, chart, config.scroll_speed, self.current_timing_point_index);
-            if note_pos > 1.0 { break; }
-
-            self.notes_on_screen_indices.push(index + self.next_note_index);
+            self.notes_on_screen_indices
+                .push(index + self.next_note_index);
             add_next_note_index += 1;
         }
         self.next_note_index += add_next_note_index;
 
         for (index, &note_index) in self.notes_on_screen_indices.iter().enumerate() {
-
             let note = &chart.notes[note_index];
             if let Some(end_time) = note.end_time {
-
                 if note.time - time < 0.0 && !self.long_notes_held[note.column] {
-
                     self.skin.long_note_hit_anim_start(note.column);
                     self.long_notes_held[note.column] = true;
-
                 } else if end_time - time < 0.0 {
-
                     // TODO only display hit animation if the player successfully hits the note
                     self.skin.long_note_hit_anim_stop(note.column);
                     self.notes_below_screen_indices.push(index);
@@ -83,7 +94,6 @@ impl<G: Graphics> View<G> {
                 }
             } else {
                 if note.time - time < 0.0 {
-
                     // TODO only display hit animation if the player successfully hits the note
                     self.skin.single_note_hit_anim(note.column);
                     self.notes_below_screen_indices.push(index);
@@ -100,20 +110,37 @@ impl<G: Graphics> View<G> {
         self.notes_below_screen_indices.clear();
         self.notes_pos.clear();
         let current_timing_point_index = self.current_timing_point_index; // rust pls fix closures
-        self.notes_pos.extend(self.notes_on_screen_indices.iter().map(|&i| {
-            let note = &chart.notes[i];
+        self.notes_pos
+            .extend(self.notes_on_screen_indices.iter().map(|&i| {
+                let note = &chart.notes[i];
 
-            let pos = calc_pos(time, note.time, chart, config.scroll_speed, current_timing_point_index);
-            let end_pos = note.end_time.map(|t| calc_pos(time, t, chart, config.scroll_speed, current_timing_point_index));
+                let pos = calc_pos(
+                    time,
+                    note.time,
+                    chart,
+                    config.scroll_speed,
+                    current_timing_point_index,
+                );
+                let end_pos = note.end_time.map(|t| {
+                    calc_pos(
+                        time,
+                        t,
+                        chart,
+                        config.scroll_speed,
+                        current_timing_point_index,
+                    )
+                });
 
-            (note.column, pos, end_pos)
-        }));
+                (note.column, pos, end_pos)
+            }));
 
-        self.skin.draw_play_scene(c.transform,
-                             g,
-                             args.height as f64,
-                             &model.keys_down,
-                             &*self.notes_pos);
+        self.skin.draw_play_scene(
+            c.transform,
+            g,
+            args.height as f64,
+            &model.keys_down,
+            &*self.notes_pos,
+        );
     }
 
     pub fn draw_judgement(&mut self, column: usize, judgement: Judgement) {
@@ -134,13 +161,21 @@ impl<G: Graphics> View<G> {
 /// line, and 1.0 being at the top of the stage.
 ///
 /// Used to calculate note position.
-fn calc_pos(current_time: f64, time: f64, chart: &chart::Chart, scroll_speed: f64, current_timing_point_index: usize) -> f64 {
-    let mut iterator = chart.timing_points[current_timing_point_index..].iter()
+fn calc_pos(
+    current_time: f64,
+    time: f64,
+    chart: &chart::Chart,
+    scroll_speed: f64,
+    current_timing_point_index: usize,
+) -> f64 {
+    let mut iterator = chart.timing_points[current_timing_point_index..]
+        .iter()
         .take_while(|tp| tp.offset < time)
         .peekable();
 
     let mut last_sv_tp: Option<&chart::TimingPoint> = None;
-    let mut last_bpm_tp: Option<&chart::TimingPoint> = { // it should be the first timing point, but if it's not, the map is still playable
+    let mut last_bpm_tp: Option<&chart::TimingPoint> = {
+        // it should be the first timing point, but if it's not, the map is still playable
         match chart.timing_points.first() {
             Some(tp) if tp.is_bpm() => Some(tp),
             Some(_) => None,
@@ -167,8 +202,10 @@ fn calc_pos(current_time: f64, time: f64, chart: &chart::Chart, scroll_speed: f6
 
     let mut pos: f64;
 
-    let value = last_bpm_tp.map(|t| t.value.inner() / chart.primary_bpm).unwrap_or(1.0) *
-                last_sv_tp.map(|t| t.value.inner()).unwrap_or(1.0);
+    let value = last_bpm_tp
+        .map(|t| t.value.inner() / chart.primary_bpm)
+        .unwrap_or(1.0)
+        * last_sv_tp.map(|t| t.value.inner()).unwrap_or(1.0);
 
     if let Some(tp) = iterator.peek() {
         pos = (tp.offset - current_time) * value;
@@ -177,18 +214,21 @@ fn calc_pos(current_time: f64, time: f64, chart: &chart::Chart, scroll_speed: f6
     }
 
     while let Some(tp) = iterator.next() {
-
         let value = if tp.is_sv() {
-            last_bpm_tp.map(|t| t.value.inner() / chart.primary_bpm).unwrap_or(1.0) *
-            tp.value.inner()
-        } else { // bpm timing point
+            last_bpm_tp
+                .map(|t| t.value.inner() / chart.primary_bpm)
+                .unwrap_or(1.0)
+                * tp.value.inner()
+        } else {
+            // bpm timing point
             last_bpm_tp = Some(tp);
             tp.value.inner() / chart.primary_bpm
         };
 
         if let Some(ntp) = iterator.peek() {
             pos += (ntp.offset - tp.offset) * value;
-        } else { // if last
+        } else {
+            // if last
             pos += (time - tp.offset) * value;
             break;
         }

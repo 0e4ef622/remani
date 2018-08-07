@@ -1,14 +1,14 @@
 use graphics;
+use graphics::draw_state::DrawState;
+use graphics::image::Image;
+use opengl_graphics::Texture;
 use piston;
 use piston::input::mouse;
-use opengl_graphics::Texture;
-use graphics::image::Image;
-use graphics::draw_state::DrawState;
-use texture::{ TextureSettings, ImageSize };
-use piston::input::{ RenderEvent, PressEvent, MouseCursorEvent, Button };
+use piston::input::{Button, MouseCursorEvent, PressEvent, RenderEvent};
+use texture::{ImageSize, TextureSettings};
 
-use super::{ Window, Scene };
 use super::game;
+use super::{Scene, Window};
 use crate::chart::Chart;
 use crate::config::Config;
 
@@ -40,20 +40,26 @@ impl MainMenu {
     }
 
     /// Called everytime there is a window event
-    pub(super) fn event(&mut self, e: piston::input::Event, config: &Config, audio: &audio::Audio<f32>, window: &mut Window) {
-
+    pub(super) fn event(
+        &mut self,
+        e: piston::input::Event,
+        config: &Config,
+        audio: &audio::Audio<f32>,
+        window: &mut Window,
+    ) {
         if let Some(p) = e.mouse_cursor_args() {
             self.mouse_position = p;
         }
 
         if let Some(i) = e.press_args() {
-
             if i == Button::Mouse(mouse::MouseButton::Left) {
-
                 if self.mouse_position[1] < self.window_height / 3.0 {
                     let chart = match Chart::from_path("test/test_chart/test.osu") {
                         Ok(x) => x,
-                        Err(e) => { println!("{}", e); panic!(); },
+                        Err(e) => {
+                            println!("{}", e);
+                            panic!();
+                        }
                     };
                     window.change_scene(Scene::Game(game::GameScene::new(chart, config, audio)));
                 }
@@ -65,7 +71,6 @@ impl MainMenu {
 
         if let Some(r) = e.render_args() {
             window.gl.draw(r.viewport(), |c, gl| {
-
                 self.window_height = r.height as f64;
 
                 let play_texture = &self.play_texture;

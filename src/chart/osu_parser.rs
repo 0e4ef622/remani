@@ -1,23 +1,22 @@
 //! Osu chart parser module
 
+use std::cmp::Ordering;
 use std::io;
 use std::path::PathBuf;
-use std::cmp::Ordering;
 
 use crate::chart;
-use crate::chart::{ Chart, ChartParser, ParseError };
 use crate::chart::Note;
+use crate::chart::{Chart, ChartParser, ParseError};
 
 /// Convert Err values to ParseError
 macro_rules! cvt_err {
     ($s:expr, $e:expr) => {
         $e.or_else(|e| Err(ParseError::Parse($s.to_owned(), Some(Box::new(e)))))
-    }
+    };
 }
 
 /// Verifies that the file headers are correct and returns the file format version
 fn verify(line: &str) -> Result<i32, ParseError> {
-
     if !line.starts_with("osu file format v") {
         return Err(ParseError::InvalidFile);
     }
@@ -27,15 +26,19 @@ fn verify(line: &str) -> Result<i32, ParseError> {
 
 /// Returns string slice containing the section name
 fn parse_section(line: &str) -> &str {
-    &line[1..line.len()-1]
+    &line[1..line.len() - 1]
 }
 
 /// Parse a line from the General section and add the info to the chart passed in
 fn parse_general(line: &str, chart: &mut IncompleteChart) -> Result<(), ParseError> {
-
     let (k, v) = line.split_at(match line.find(':') {
         Some(n) => n,
-        None => return Err(ParseError::Parse(String::from("Error parsing General section: Malformed key/value pair"), None)),
+        None => {
+            return Err(ParseError::Parse(
+                String::from("Error parsing General section: Malformed key/value pair"),
+                None,
+            ))
+        }
     });
     let v = &v[2..];
 
@@ -43,7 +46,9 @@ fn parse_general(line: &str, chart: &mut IncompleteChart) -> Result<(), ParseErr
         "AudioFilename" => chart.music_path = Some(v.into()),
         "Mode" => if v != "3" {
             return Err(ParseError::Parse(
-                    String::from("Osu chart is wrong gamemode"), None));
+                String::from("Osu chart is wrong gamemode"),
+                None,
+            ));
         },
         _ => (),
     }
@@ -54,7 +59,12 @@ fn parse_general(line: &str, chart: &mut IncompleteChart) -> Result<(), ParseErr
 fn parse_metadata(line: &str, chart: &mut IncompleteChart) -> Result<(), ParseError> {
     let (k, v) = line.split_at(match line.find(':') {
         Some(n) => n,
-        None => return Err(ParseError::Parse(String::from("Malformed key/value pair"), None)),
+        None => {
+            return Err(ParseError::Parse(
+                String::from("Malformed key/value pair"),
+                None,
+            ))
+        }
     });
     let v = &v[1..];
 
@@ -74,12 +84,20 @@ fn parse_metadata(line: &str, chart: &mut IncompleteChart) -> Result<(), ParseEr
 fn parse_difficulty(line: &str) -> Result<(), ParseError> {
     let (k, v) = line.split_at(match line.find(':') {
         Some(n) => n,
-        None => return Err(ParseError::Parse(String::from("Malformed key/value pair"), None)),
+        None => {
+            return Err(ParseError::Parse(
+                String::from("Malformed key/value pair"),
+                None,
+            ))
+        }
     });
     let v = &v[1..];
 
     if k == "CircleSize" && v != "7" {
-            Err(ParseError::Parse(String::from("This chart is not 7 key"), None))
+        Err(ParseError::Parse(
+            String::from("This chart is not 7 key"),
+            None,
+        ))
     } else {
         Ok(())
     }
@@ -87,7 +105,6 @@ fn parse_difficulty(line: &str) -> Result<(), ParseError> {
 
 /// Parse a line from the TimingPoints section and add the timing point to the chart passed in
 fn parse_timing_point(line: &str, chart: &mut IncompleteChart) -> Result<(), ParseError> {
-
     static ERR_STRING: &str = "Error parsing timing point";
 
     let mut last_index = 0;
@@ -102,12 +119,10 @@ fn parse_timing_point(line: &str, chart: &mut IncompleteChart) -> Result<(), Par
     let mut inherited = false;
 
     for (index, field) in line.split(',').enumerate().take(8) {
-
         // Keep track of how many fields there were
         last_index = index;
 
         match index {
-
             // offset
             0 => offset = Some(cvt_err!(ERR_STRING, field.parse::<f64>())? / 1000.0),
 
@@ -115,15 +130,12 @@ fn parse_timing_point(line: &str, chart: &mut IncompleteChart) -> Result<(), Par
             1 => {
                 let n = cvt_err!(ERR_STRING, field.parse::<f64>())?;
                 if n.is_sign_positive() {
-
                     bpm = Some(60000.0 / n);
-
                 } else {
-
                     sv = Some(100.0 / -n);
                     inherited = true;
                 }
-            },
+            }
 
             // meter, not important
             2 => (),
@@ -136,19 +148,22 @@ fn parse_timing_point(line: &str, chart: &mut IncompleteChart) -> Result<(), Par
                     1 => SampleSet::Normal,
                     2 => SampleSet::Soft,
                     3 => SampleSet::Drum,
-                    x => { println!("Unknown sample set {}", x); SampleSet::Auto },
+                    x => {
+                        println!("Unknown sample set {}", x);
+                        SampleSet::Auto
+                    }
                 });
-            },
+            }
 
             // sample index
             4 => {
                 sample_index = Some(cvt_err!(ERR_STRING, field.parse::<u32>())?);
-            },
+            }
 
             // volume
             5 => {
                 volume = Some(cvt_err!(ERR_STRING, field.parse::<u8>())?);
-            },
+            }
 
             // inherited, we're gonna ignore since we determined this when looking at the ms / beat
             6 => (),
@@ -158,8 +173,10 @@ fn parse_timing_point(line: &str, chart: &mut IncompleteChart) -> Result<(), Par
         }
     }
     if last_index < 7 {
-        return Err(ParseError::Parse(ERR_STRING.to_owned(),
-                                     Some(Box::new(ParseError::EOL))));
+        return Err(ParseError::Parse(
+            ERR_STRING.to_owned(),
+            Some(Box::new(ParseError::EOL)),
+        ));
     }
 
     let timing_point_value = if inherited {
@@ -179,14 +196,12 @@ fn parse_timing_point(line: &str, chart: &mut IncompleteChart) -> Result<(), Par
 
 /// Parse a line from the HitObjects section and add the hit object to the chart passed in
 fn parse_hit_object(line: &str, chart: &mut IncompleteChart) -> Result<(), ParseError> {
-
     let mut last_index = 0;
     const ERR_STRING: &'static str = "Error parsing hit object";
 
     let mut ln = false;
     let mut hit_obj = HitObject::default();
     for (index, field) in line.split(',').enumerate().take(6) {
-
         // Keep track of how many fields there were
         last_index = index;
 
@@ -198,8 +213,11 @@ fn parse_hit_object(line: &str, chart: &mut IncompleteChart) -> Result<(), Parse
                 let n = cvt_err!(ERR_STRING, field.parse::<f64>())?;
                 const CW: f64 = 512.0 / 7.0;
                 let mut c = (n / CW).floor();
-                if c < 0.0 { c = 0.0; }
-                else if c > 7.0 { c = 7.0; }
+                if c < 0.0 {
+                    c = 0.0;
+                } else if c > 7.0 {
+                    c = 7.0;
+                }
                 hit_obj.column = c as usize;
             }
             // y, irrelevant
@@ -223,20 +241,39 @@ fn parse_hit_object(line: &str, chart: &mut IncompleteChart) -> Result<(), Parse
                                 index: 0,
                             }),
                         }
-                    }
+                    };
                 }
-                hit_obj.sounds.push(dflt_hit_snd!(SampleHitSoundSound::Normal));
-                if n & 2 == 2 { hit_obj.sounds.push(dflt_hit_snd!(SampleHitSoundSound::Whistle)); }
-                if n & 4 == 4 { hit_obj.sounds.push(dflt_hit_snd!(SampleHitSoundSound::Finish)); }
-                if n & 8 == 8 { hit_obj.sounds.push(dflt_hit_snd!(SampleHitSoundSound::Clap)); }
-            },
+                hit_obj
+                    .sounds
+                    .push(dflt_hit_snd!(SampleHitSoundSound::Normal));
+                if n & 2 == 2 {
+                    hit_obj
+                        .sounds
+                        .push(dflt_hit_snd!(SampleHitSoundSound::Whistle));
+                }
+                if n & 4 == 4 {
+                    hit_obj
+                        .sounds
+                        .push(dflt_hit_snd!(SampleHitSoundSound::Finish));
+                }
+                if n & 8 == 8 {
+                    hit_obj
+                        .sounds
+                        .push(dflt_hit_snd!(SampleHitSoundSound::Clap));
+                }
+            }
             // endtime/extras
             5 => {
                 let mut extras = field.split(':');
                 if ln {
                     hit_obj.end_time = Some(match extras.next() {
                         Some(s) => cvt_err!(ERR_STRING, s.parse::<f64>())? / 1000.0,
-                        None => return Err(ParseError::Parse(ERR_STRING.to_owned(), Some(Box::new(ParseError::EOL)))),
+                        None => {
+                            return Err(ParseError::Parse(
+                                ERR_STRING.to_owned(),
+                                Some(Box::new(ParseError::EOL)),
+                            ))
+                        }
                     });
                 }
                 let mut volume = 100;
@@ -247,12 +284,24 @@ fn parse_hit_object(line: &str, chart: &mut IncompleteChart) -> Result<(), Parse
                             let hs_iter = hit_obj.sounds.iter_mut();
                             match cvt_err!(ERR_STRING, v.parse::<u8>())? {
                                 0 => (),
-                                1 => hs_iter.for_each(|s| if let HitSoundSource::SampleSet(ref mut shs) = s.source { shs.set = SampleSet::Normal }),
-                                2 => hs_iter.for_each(|s| if let HitSoundSource::SampleSet(ref mut shs) = s.source { shs.set = SampleSet::Soft }),
-                                3 => hs_iter.for_each(|s| if let HitSoundSource::SampleSet(ref mut shs) = s.source { shs.set = SampleSet::Drum }),
+                                1 => hs_iter.for_each(|s| {
+                                    if let HitSoundSource::SampleSet(ref mut shs) = s.source {
+                                        shs.set = SampleSet::Normal
+                                    }
+                                }),
+                                2 => hs_iter.for_each(|s| {
+                                    if let HitSoundSource::SampleSet(ref mut shs) = s.source {
+                                        shs.set = SampleSet::Soft
+                                    }
+                                }),
+                                3 => hs_iter.for_each(|s| {
+                                    if let HitSoundSource::SampleSet(ref mut shs) = s.source {
+                                        shs.set = SampleSet::Drum
+                                    }
+                                }),
                                 _ => (),
                             }
-                        },
+                        }
                         // addition set
                         1 => {
                             let hs_iter = hit_obj.sounds.iter_mut().filter(|s| {
@@ -264,19 +313,33 @@ fn parse_hit_object(line: &str, chart: &mut IncompleteChart) -> Result<(), Parse
                             });
                             match cvt_err!(ERR_STRING, v.parse::<u8>())? {
                                 0 => (),
-                                1 => hs_iter.for_each(|s| if let HitSoundSource::SampleSet(ref mut shs) = s.source { shs.set = SampleSet::Normal }),
-                                2 => hs_iter.for_each(|s| if let HitSoundSource::SampleSet(ref mut shs) = s.source { shs.set = SampleSet::Soft }),
-                                3 => hs_iter.for_each(|s| if let HitSoundSource::SampleSet(ref mut shs) = s.source { shs.set = SampleSet::Drum }),
+                                1 => hs_iter.for_each(|s| {
+                                    if let HitSoundSource::SampleSet(ref mut shs) = s.source {
+                                        shs.set = SampleSet::Normal
+                                    }
+                                }),
+                                2 => hs_iter.for_each(|s| {
+                                    if let HitSoundSource::SampleSet(ref mut shs) = s.source {
+                                        shs.set = SampleSet::Soft
+                                    }
+                                }),
+                                3 => hs_iter.for_each(|s| {
+                                    if let HitSoundSource::SampleSet(ref mut shs) = s.source {
+                                        shs.set = SampleSet::Drum
+                                    }
+                                }),
                                 _ => (),
                             }
-                        },
+                        }
                         // custom index
-                        2 => {
-                            match cvt_err!(ERR_STRING, v.parse::<u32>())? {
-                                0 => (),
-                                n => {
-                                    hit_obj.sounds.iter_mut().for_each(|s| if let HitSoundSource::SampleSet(ref mut shs) = s.source { shs.index = n });
-                                }
+                        2 => match cvt_err!(ERR_STRING, v.parse::<u32>())? {
+                            0 => (),
+                            n => {
+                                hit_obj.sounds.iter_mut().for_each(|s| {
+                                    if let HitSoundSource::SampleSet(ref mut shs) = s.source {
+                                        shs.index = n
+                                    }
+                                });
                             }
                         },
                         // volume
@@ -286,7 +349,7 @@ fn parse_hit_object(line: &str, chart: &mut IncompleteChart) -> Result<(), Parse
                                 hit_obj.sounds.iter_mut().for_each(|s| s.volume = n);
                                 volume = n;
                             }
-                        },
+                        }
                         // hitsound from file
                         4 => if !v.is_empty() {
                             hit_obj.sounds.push(HitSound {
@@ -298,11 +361,15 @@ fn parse_hit_object(line: &str, chart: &mut IncompleteChart) -> Result<(), Parse
                     }
                 }
             }
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
-    if last_index < 5 { return Err(ParseError::Parse(ERR_STRING.to_owned(),
-                            Some(Box::new(ParseError::EOL)))); }
+    if last_index < 5 {
+        return Err(ParseError::Parse(
+            ERR_STRING.to_owned(),
+            Some(Box::new(ParseError::EOL)),
+        ));
+    }
 
     chart.hit_objects.push(hit_obj);
     Ok(())
@@ -312,7 +379,6 @@ fn parse_hit_object(line: &str, chart: &mut IncompleteChart) -> Result<(), Parse
 /// get the audio samples for the hit sound.
 #[derive(Default, Debug)]
 struct HitObject {
-
     /// Where the note begins, in seconds.
     time: f64,
     column: usize,
@@ -321,7 +387,6 @@ struct HitObject {
 }
 
 impl HitObject {
-
     //fn to_note(self, sound: Rc<something>) {
     fn to_note(self) -> Note {
         Note {
@@ -336,7 +401,6 @@ impl HitObject {
 
 #[derive(Debug)]
 struct HitSound {
-
     /// The audio source of the sample.
     source: HitSoundSource,
 
@@ -392,26 +456,34 @@ struct IncompleteChart {
 
 impl IncompleteChart {
     fn finalize(self) -> Result<Chart, ParseError> {
-        let timing_points = self.timing_points.into_iter()
-                            .map(|t| chart::TimingPoint {
-                                offset: t.offset,
-                                value: t.value,
-                            }).collect::<Vec<_>>();
+        let timing_points = self
+            .timing_points
+            .into_iter()
+            .map(|t| chart::TimingPoint {
+                offset: t.offset,
+                value: t.value,
+            }).collect::<Vec<_>>();
 
-        let notes = self.hit_objects.into_iter().map(HitObject::to_note).collect::<Vec<_>>();
+        let notes = self
+            .hit_objects
+            .into_iter()
+            .map(HitObject::to_note)
+            .collect::<Vec<_>>();
 
         let last_note_time = match notes.last() {
             Some(n) => n.end_time.unwrap_or(n.time),
-            None => return Err(
-                ParseError::Parse(String::from("Chart has no notes"), None)),
+            None => return Err(ParseError::Parse(String::from("Chart has no notes"), None)),
         };
 
         let primary_bpm = {
-
             // from beginning of song to the last note
             // sum of lengths of each bpm section
             let mut bpm_sums = Vec::new();
-            let mut tp_iter = timing_points.iter().filter(|tp| tp.is_bpm()).take_while(|tp| tp.offset < last_note_time).peekable();
+            let mut tp_iter = timing_points
+                .iter()
+                .filter(|tp| tp.is_bpm())
+                .take_while(|tp| tp.offset < last_note_time)
+                .peekable();
 
             if let Some(first_tp) = tp_iter.peek() {
                 bpm_sums.push((first_tp.value.inner(), first_tp.offset));
@@ -427,21 +499,29 @@ impl IncompleteChart {
                 //     bpm_sums.push((tp.value.inner(), length));
                 // }
 
-                if !{ if let Some(bpm_sum) = bpm_sums.iter_mut().find(|&&mut (bpm, _)| bpm == tp.value.inner()) {
+                if !{
+                    if let Some(bpm_sum) = bpm_sums
+                        .iter_mut()
+                        .find(|&&mut (bpm, _)| bpm == tp.value.inner())
+                    {
                         bpm_sum.1 += length;
                         true
                     } else {
                         false
-                    }} { // im dying
+                    }
+                } {
+                    // im dying
                     bpm_sums.push((tp.value.inner(), length));
                 }
-
             }
 
             // find the bpm that the song is at for the longest time, defaulting to 150 bpm if for
             // some reason that fails (FIXME?)
-            bpm_sums.iter().max_by(|(_, sum1), (_, sum2)| sum1.partial_cmp(sum2).unwrap_or(Ordering::Equal))
-                .map(|t| t.0).unwrap_or(150.0)
+            bpm_sums
+                .iter()
+                .max_by(|(_, sum1), (_, sum2)| sum1.partial_cmp(sum2).unwrap_or(Ordering::Equal))
+                .map(|t| t.0)
+                .unwrap_or(150.0)
         };
 
         Ok(Chart {
@@ -457,9 +537,13 @@ impl IncompleteChart {
 
             music_path: match self.music_path {
                 Some(s) => s,
-                None => return Err(
-                    ParseError::Parse(String::from("Could not find audio file"), None)),
-            }
+                None => {
+                    return Err(ParseError::Parse(
+                        String::from("Could not find audio file"),
+                        None,
+                    ))
+                }
+            },
         })
     }
 }
@@ -483,15 +567,14 @@ pub struct OsuParser {
 }
 
 impl OsuParser {
-
     fn parse_line(&mut self, line: &str) -> Result<(), ParseError> {
-        if line.len() == 0 { return Ok(()); }
+        if line.len() == 0 {
+            return Ok(());
+        }
         match &line[0..1] {
-
             "[" => self.current_section = Some(parse_section(line).to_owned()),
 
             _ => match self.current_section {
-
                 Some(ref s) => match s.as_str() {
                     "General" => parse_general(line, &mut self.chart)?,
                     "Difficulty" => parse_difficulty(line)?,
@@ -509,11 +592,10 @@ impl OsuParser {
 
 impl ChartParser for OsuParser {
     fn parse<R: io::BufRead>(mut self, reader: R) -> Result<Chart, ParseError> {
-
         macro_rules! read_error {
-            ($e:expr) =>  {
+            ($e:expr) => {
                 Err(ParseError::Io(String::from("Error reading chart"), $e))
-            }
+            };
         }
 
         let mut lines = reader.lines();
@@ -530,7 +612,10 @@ impl ChartParser for OsuParser {
 
         for (line_num, line) in lines.enumerate() {
             match line {
-                Ok(line) => cvt_err!(format!("Error on line {} of .osu file", line_num + 2), self.parse_line(line.trim()))?,
+                Ok(line) => cvt_err!(
+                    format!("Error on line {} of .osu file", line_num + 2),
+                    self.parse_line(line.trim())
+                )?,
                 Err(e) => return read_error!(e),
             }
         }
@@ -559,7 +644,7 @@ mod tests {
                     assert_eq!(SampleSet::Auto, shs.set);
                     assert_eq!(SampleHitSoundSound::Normal, shs.sound);
                     assert_eq!(0, shs.index);
-                },
+                }
                 _ => panic!("Incorrect hit sound source"),
             }
         }
@@ -575,7 +660,7 @@ mod tests {
             match ho.sounds[1].source {
                 HitSoundSource::File(ref path) => {
                     assert_eq!("potato.wav", path.to_str().unwrap());
-                },
+                }
                 _ => panic!("Incorrect hit sound source"),
             }
         }

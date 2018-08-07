@@ -1,12 +1,12 @@
 //! Load MP3 files
 
-use simplemad;
 use crate::audio::MusicStream;
+use simplemad;
 
 use std::io;
 use std::iter::Peekable;
 
-use simplemad::{ Decoder, SimplemadError, MadFixed32 };
+use simplemad::{Decoder, MadFixed32, SimplemadError};
 
 /// Lazy iterator over audio samples from an MP3
 struct MP3Samples<R: io::Read + Send> {
@@ -39,7 +39,9 @@ impl<R: io::Read + Send> Iterator for MP3Samples<R> {
         if self.eof {
             return None;
         // If we need the next mp3 frame, get it
-        } else if self.current_samples.is_none() || self.current_samples_index == self.current_samples.as_ref().unwrap()[0].len() {
+        } else if self.current_samples.is_none()
+            || self.current_samples_index == self.current_samples.as_ref().unwrap()[0].len()
+        {
             loop {
                 match self.decoder.next() {
                     Some(r) => match r {
@@ -48,24 +50,27 @@ impl<R: io::Read + Send> Iterator for MP3Samples<R> {
                             self.current_samples_index = 0;
                             self.current_channel = 0;
                             break;
-                        },
+                        }
                         Err(SimplemadError::Mad(e)) => remani_warn!("libmad err: {:?}", e),
                         Err(SimplemadError::Read(e)) => remani_warn!("mp3 read err: {}", e),
                         Err(SimplemadError::EOF) => {
                             self.eof = true;
                             return None;
-                        },
+                        }
                     },
                     None => {
                         self.eof = true;
                         return None;
-                    },
+                    }
                 }
             }
         }
 
         // This shouldn't ever error
-        let current_samples = self.current_samples.as_ref().expect("Something went terribly wrong in the mp3 module");
+        let current_samples = self
+            .current_samples
+            .as_ref()
+            .expect("Something went terribly wrong in the mp3 module");
 
         let sample = current_samples[self.current_channel][self.current_samples_index].to_f32();
         self.current_channel = (self.current_channel + 1) % current_samples.len();
@@ -78,7 +83,7 @@ impl<R: io::Read + Send> Iterator for MP3Samples<R> {
 }
 
 // Hope nothing bad happens
-unsafe impl<R: io::Read + Send> Send for MP3Samples<R> { }
+unsafe impl<R: io::Read + Send> Send for MP3Samples<R> {}
 
 /// Create a stream that reads from an mp3
 pub fn decode<R: io::Read + Send + 'static>(reader: R) -> Result<MusicStream<f32>, String> {
@@ -90,8 +95,11 @@ pub fn decode<R: io::Read + Send + 'static>(reader: R) -> Result<MusicStream<f32
     let sample_rate;
     let channel_count;
 
-    { // Get the sample rate and channel count.
-        while let &Err(_) = decoder.peek().ok_or("Error finding audio metadata")? { decoder.next(); }
+    {
+        // Get the sample rate and channel count.
+        while let &Err(_) = decoder.peek().ok_or("Error finding audio metadata")? {
+            decoder.next();
+        }
 
         // This line should never panic
         let frame = decoder.peek().unwrap().as_ref().unwrap();

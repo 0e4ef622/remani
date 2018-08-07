@@ -1,16 +1,15 @@
-use crate::audio::MusicStream;
 use cpal;
+use crate::audio::MusicStream;
 use std::iter::Peekable;
 
 // TODO maybe use higher quality resampling algorithm?
 
 /// Resample a MusicStream using linear interpolation
 pub struct Resample<S: cpal::Sample> {
-
     /// The iterator that yields interleaved audio samples
     /// (e.g. an iterator for an audio stream with 3 channels would
     /// yield samples for channel 1, then 2, then 3, then 1, then 2, ...
-    samples: Peekable<Box<dyn Iterator<Item=S> + Send>>,
+    samples: Peekable<Box<dyn Iterator<Item = S> + Send>>,
 
     channel_count: usize,
     from_sample_rate: u32,
@@ -35,7 +34,9 @@ impl<S: cpal::Sample> Iterator for Resample<S> {
     type Item = f32;
     fn next(&mut self) -> Option<f32> {
         let return_value;
-        if self.previous_values.len() < self.channel_count && self.next_values.len() < self.channel_count {
+        if self.previous_values.len() < self.channel_count
+            && self.next_values.len() < self.channel_count
+        {
             let next_sample = match self.samples.next() {
                 Some(s) => s,
                 None => return None,
@@ -66,7 +67,11 @@ impl<S: cpal::Sample> Iterator for Resample<S> {
             }
             let prev_sample = self.previous_values[self.channel_offset];
             let next_sample = self.next_values[self.channel_offset];
-            return_value = Some(prev_sample.to_f32() + (next_sample.to_f32() - prev_sample.to_f32()) * self.sampling_offset as f32 / self.to_sample_rate as f32);
+            return_value = Some(
+                prev_sample.to_f32()
+                    + (next_sample.to_f32() - prev_sample.to_f32()) * self.sampling_offset as f32
+                        / self.to_sample_rate as f32,
+            );
         }
         self.channel_offset += 1;
         if self.channel_offset >= self.channel_count {
@@ -76,7 +81,10 @@ impl<S: cpal::Sample> Iterator for Resample<S> {
     }
 }
 
-pub fn from_music_stream<S: cpal::Sample + Send + 'static>(stream: MusicStream<S>, target_sample_rate: u32) -> MusicStream<f32> {
+pub fn from_music_stream<S: cpal::Sample + Send + 'static>(
+    stream: MusicStream<S>,
+    target_sample_rate: u32,
+) -> MusicStream<f32> {
     let le_samples = Resample {
         samples: stream.samples.peekable(),
         channel_count: stream.channel_count as usize,
