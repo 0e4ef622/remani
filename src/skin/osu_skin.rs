@@ -4,30 +4,22 @@
 
 use image;
 
-use graphics::draw_state;
-use graphics::draw_state::DrawState;
-use graphics::image::Image;
-use graphics::math;
-use graphics::Graphics;
-use std::ops::Deref;
-use texture::CreateTexture;
-use texture::Format;
-use texture::ImageSize;
-use texture::TextureSettings;
+use graphics::{
+    draw_state::{self, DrawState},
+    image::Image,
+    math, Graphics,
+};
+use texture::{CreateTexture, Format, ImageSize, TextureSettings};
 
-use std::collections::HashMap;
-use std::error;
-use std::fmt;
-use std::fs::File;
-use std::io::BufRead;
-use std::io::BufReader;
-use std::path;
-use std::rc::Rc;
-use std::str;
-use std::time;
+use std::{
+    collections::HashMap, error, fmt, fs::File, io::BufRead, io::BufReader, ops::Deref, path,
+    rc::Rc, str, time,
+};
 
-use crate::judgement::Judgement;
-use crate::skin::{ParseError, Skin};
+use crate::{
+    judgement::Judgement,
+    skin::{ParseError, Skin},
+};
 
 #[derive(Copy, Clone, Debug)]
 enum NoteBodyStyle {

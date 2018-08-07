@@ -1,18 +1,13 @@
-use graphics;
-use graphics::draw_state::DrawState;
-use graphics::image::Image;
+use graphics::{self, draw_state::DrawState, image::Image};
 use opengl_graphics::Texture;
-use piston;
-use piston::input::mouse;
-use piston::input::{Button, MouseCursorEvent, PressEvent, RenderEvent};
+use piston::{
+    self,
+    input::{mouse, Button, MouseCursorEvent, PressEvent, RenderEvent},
+};
 use texture::{ImageSize, TextureSettings};
 
-use super::game;
-use super::{Scene, Window};
-use crate::chart::Chart;
-use crate::config::Config;
-
-use crate::audio;
+use super::{game, Scene, Window};
+use crate::{audio, chart::Chart, config::Config};
 
 pub struct MainMenu {
     play_texture: Texture,

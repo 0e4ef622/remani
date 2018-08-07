@@ -1,16 +1,10 @@
 //! A module that handles window render events for the game scene
 
-use graphics;
-use graphics::Context;
-use graphics::Graphics;
+use graphics::{self, Context, Graphics};
 use piston::input::RenderArgs;
 
 use super::Model;
-use crate::config::Config;
-use crate::judgement::Judgement;
-use crate::skin::Skin;
-
-use crate::chart;
+use crate::{chart, config::Config, judgement::Judgement, skin::Skin};
 
 /// Holds values and resources needed by the window to do drawing stuff
 pub struct View<G: Graphics> {

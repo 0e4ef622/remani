@@ -2,9 +2,7 @@
 
 use opengl_graphics::GlGraphics;
 
-use crate::config::Config;
-
-use crate::audio;
+use crate::{audio, config::Config};
 
 mod game;
 mod main_menu;
@@ -46,8 +44,10 @@ impl Window {
 pub fn start(config: Config) {
     use glutin_window::GlutinWindow;
     use opengl_graphics::{GlGraphics, OpenGL};
-    use piston::event_loop::{EventSettings, Events};
-    use piston::window::WindowSettings;
+    use piston::{
+        event_loop::{EventSettings, Events},
+        window::WindowSettings,
+    };
 
     let opengl = OpenGL::V3_2;
 

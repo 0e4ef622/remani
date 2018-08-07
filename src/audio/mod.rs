@@ -5,18 +5,11 @@ mod mp3;
 
 mod resample;
 
-use std::collections::VecDeque;
-use std::error;
-use std::fmt;
-use std::iter;
-use std::iter::Peekable;
-use std::sync::mpsc;
-use std::sync::Arc;
-use std::thread;
-use std::time;
+use std::{
+    collections::VecDeque, error, fmt, iter, iter::Peekable, sync::mpsc, sync::Arc, thread, time,
+};
 
-use cpal;
-use cpal::Sample;
+use cpal::{self, Sample};
 
 #[derive(Debug, Clone)]
 pub struct EffectStream<S: cpal::Sample>(Arc<Vec<S>>);

@@ -1,12 +1,10 @@
 //! Load MP3 files
 
 use crate::audio::MusicStream;
-use simplemad;
 
-use std::io;
-use std::iter::Peekable;
+use std::{io, iter::Peekable};
 
-use simplemad::{Decoder, MadFixed32, SimplemadError};
+use simplemad::{self, Decoder, MadFixed32, SimplemadError};
 
 /// Lazy iterator over audio samples from an MP3
 struct MP3Samples<R: io::Read + Send> {

@@ -1,17 +1,12 @@
 //! A module for reading skins.
 
-use graphics::math;
-use graphics::Graphics;
+use graphics::{math, Graphics};
 use image;
 use texture::CreateTexture;
 
-use std::error;
-use std::fmt;
-use std::io;
-use std::path;
+use std::{error, fmt, io, path};
 
-use crate::config;
-use crate::judgement::Judgement;
+use crate::{config, judgement::Judgement};
 
 mod osu_skin;
 

@@ -1,11 +1,11 @@
 //! A module for reading charts, or beatmaps.
 
-use std::error;
-use std::ffi;
-use std::fmt;
-use std::fs::File;
-use std::io;
-use std::path::{Path, PathBuf};
+use std::{
+    error, ffi, fmt,
+    fs::File,
+    io,
+    path::{Path, PathBuf},
+};
 
 mod osu_parser;
 
@@ -96,8 +96,8 @@ impl fmt::Display for ParseError {
 impl error::Error for ParseError {
     fn description(&self) -> &str {
         match *self {
-            ParseError::Io(_, _) => "IO error",
-            ParseError::Parse(_, _) => "Parse error",
+            ParseError::Io(..) => "IO error",
+            ParseError::Parse(..) => "Parse error",
             ParseError::UnknownFormat => "Unknown chart format",
             ParseError::InvalidFile => "Invalid chart",
             ParseError::EOL => "Unexpected end of line",
@@ -108,7 +108,7 @@ impl error::Error for ParseError {
         match *self {
             ParseError::Io(_, ref e) => Some(e),
             ParseError::Parse(_, Some(ref e)) => Some(e.deref()),
-            _ => Some(self),
+            _ => None,
         }
     }
 }

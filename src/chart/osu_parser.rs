@@ -1,12 +1,8 @@
 //! Osu chart parser module
 
-use std::cmp::Ordering;
-use std::io;
-use std::path::PathBuf;
+use std::{cmp::Ordering, io, path::PathBuf};
 
-use crate::chart;
-use crate::chart::Note;
-use crate::chart::{Chart, ChartParser, ParseError};
+use crate::chart::{self, Chart, ChartParser, Note, ParseError};
 
 /// Convert Err values to ParseError
 macro_rules! cvt_err {

@@ -1,24 +1,20 @@
 //! Holds the main game logic
 
-use std::path::Path;
-use std::time;
+use std::{path::Path, time};
 
 use opengl_graphics;
-use piston;
-use piston::input::{PressEvent, ReleaseEvent, RenderEvent, UpdateEvent};
+use piston::{
+    self,
+    input::{PressEvent, ReleaseEvent, RenderEvent, UpdateEvent},
+};
 
 mod model;
 mod view;
 
-use self::model::Model;
-use self::view::View;
+use self::{model::Model, view::View};
 use super::Window;
-use crate::chart::Chart;
-use crate::config::Config;
-use crate::judgement::Judgement;
 
-use crate::audio;
-use crate::skin;
+use crate::{audio, chart::Chart, config::Config, judgement::Judgement, skin};
 
 pub struct GameScene {
     chart: Chart,
