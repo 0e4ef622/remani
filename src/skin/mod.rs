@@ -54,7 +54,7 @@ impl error::Error for ParseError {
             ParseError::Io(_, ref e) => Some(e),
             ParseError::Parse(_, Some(ref e)) => Some(e.deref()),
             ParseError::ImageError(_, ref e) => Some(e),
-            _ => Some(self),
+            _ => None,
         }
     }
 }

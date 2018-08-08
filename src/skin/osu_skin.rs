@@ -693,9 +693,6 @@ impl error::Error for OsuSkinParseError {
             OsuSkinParseError::NoDefaultTexture(_) => "No default texture found",
         }
     }
-    fn cause(&self) -> Option<&dyn error::Error> {
-        Some(self)
-    }
 }
 
 // Work around https://github.com/PistonDevelopers/opengl_graphics/issues/264
