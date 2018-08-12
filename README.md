@@ -14,6 +14,10 @@ that you don't have to learn how to read a new skin.
 
 Currently requires nightly rust for the `literal` macro matcher feature.
 
+This project began as a semester long coding project for a high school class
+where we set our own deadlines and tried to meet them. The aforementioned
+deadlines were hosted on GitHub Pages and [can still be seen](https://0e4ef622.github.io/remani/).
+
 Libraries used
 ==============
 * [Piston](https://github.com/PistonDevelopers/piston) [MIT]
