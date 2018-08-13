@@ -259,7 +259,6 @@ pub fn start_audio_thread() -> Result<Audio<f32>, AudioThreadError> {
                 _ => (),
             }
 
-            // Remove any effects that have finished playing (nll when ;-;)
             while let Some(effect) = effects.front_mut() {
                 if effect.peek().is_none() {
                     effects.pop_front();
