@@ -488,25 +488,9 @@ impl IncompleteChart {
             while let Some(tp) = tp_iter.next() {
                 let length = tp_iter.peek().map(|t| t.offset).unwrap_or(last_note_time) - tp.offset;
 
-                // rust pls fix borrow checker
-                // if let Some(bpm_sum) = bpm_sums.iter_mut().find(|&&mut (bpm, _)| bpm == tp.value.inner()) {
-                //     bpm_sum.1 += length;
-                // } else {
-                //     bpm_sums.push((tp.value.inner(), length));
-                // }
-
-                if !{
-                    if let Some(bpm_sum) = bpm_sums
-                        .iter_mut()
-                        .find(|&&mut (bpm, _)| bpm == tp.value.inner())
-                    {
-                        bpm_sum.1 += length;
-                        true
-                    } else {
-                        false
-                    }
-                } {
-                    // im dying
+                if let Some(bpm_sum) = bpm_sums.iter_mut().find(|&&mut (bpm, _)| bpm == tp.value.inner()) {
+                    bpm_sum.1 += length;
+                } else {
                     bpm_sums.push((tp.value.inner(), length));
                 }
             }

@@ -608,7 +608,6 @@ impl<G: Graphics> OsuSkin<G> {
                     + self.config.column_width[0..i].iter().sum::<u16>() as f64
                     + self.config.column_spacing[0..i].iter().sum::<u16>() as f64);
 
-            let mut set_hit_anim_state_none = false;
             match hit_anim {
                 HitAnimState::SingleNote(time) => {
                     let frame = (time.elapsed().as_secs() as f64
@@ -616,10 +615,7 @@ impl<G: Graphics> OsuSkin<G> {
                         * 60.0;
                     let uframe = frame as usize;
                     if uframe > self.textures.lighting_n.len() - 1 {
-                        // there was an bug in rustc 1.26.0
-                        // also pls fix borrow checker this is safe i swear
-                        //*hit_anim = HitAnimState::None;
-                        set_hit_anim_state_none = true;
+                        *hit_anim = HitAnimState::None;
                     } else {
                         let hit_w = self.textures.lighting_n[uframe].get_width() as f64 * scale2;
                         let hit_h = self.textures.lighting_n[uframe].get_height() as f64 * scale2;
@@ -658,9 +654,6 @@ impl<G: Graphics> OsuSkin<G> {
                     );
                 }
                 HitAnimState::None => (),
-            }
-            if set_hit_anim_state_none {
-                *hit_anim = HitAnimState::None;
             }
         }
     }
