@@ -6,7 +6,7 @@ mod mp3;
 mod resample;
 
 use std::{
-    collections::VecDeque, error, fmt, iter, iter::Peekable, sync::mpsc, sync::Arc, thread, time,
+    collections::VecDeque, error, fmt, iter::Peekable, sync::mpsc, sync::Arc, thread, time,
 };
 
 use cpal::{self, Sample};
@@ -192,11 +192,7 @@ pub fn start_audio_thread() -> Result<Audio<f32>, AudioThreadError> {
     // Spawn the audio thread
     thread::spawn(move || {
         let mut effects: VecDeque<Peekable<ArcIter<f32>>> = VecDeque::with_capacity(128);
-        let mut music: MusicStream<f32> = MusicStream {
-            samples: Box::new(iter::empty::<f32>()),
-            channel_count: 0,
-            sample_rate: sample_rate,
-        };
+        let mut music: Option<MusicStream<f32>> = None;
 
         // hopefully u64 is big enough and no one tries to play a 3 million year 192kHz audio file
         let mut current_music_frame_index: u64 = 0;
@@ -208,7 +204,7 @@ pub fn start_audio_thread() -> Result<Audio<f32>, AudioThreadError> {
                 // TODO do things
             }
             while let Ok(m) = music_rx.try_recv() {
-                music = m;
+                music = Some(m);
                 current_music_frame_index = 0;
             }
             if let Ok(_) = request_playhead_rx.try_recv() {
@@ -217,9 +213,15 @@ pub fn start_audio_thread() -> Result<Audio<f32>, AudioThreadError> {
 
             // Get samples and mix them
             let mut s = |effects: &mut VecDeque<Peekable<ArcIter<f32>>>| {
-                let mut s = match music.next() {
-                    None => 0.0,
-                    Some(sample) => sample.to_f32(),
+                let mut s = match music {
+                    Some(ref mut m) => match m.next() {
+                        Some(n) => n,
+                        None => {
+                            music = None;
+                            0.0
+                        }
+                    }
+                    None => 0.0
                 };
                 for effect in effects.iter_mut() {
                     if let Some(sample) = effect.next() {

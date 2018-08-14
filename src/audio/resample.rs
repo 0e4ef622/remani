@@ -50,8 +50,6 @@ impl<S: cpal::Sample> Iterator for Resample<S> {
             return_value = Some(next_sample.to_f32());
         } else {
             if self.channel_offset == 0 {
-                // TODO this overflows when the end of the audio is reached, although this isn't illegal.
-                // Need to edit audio/mod.rs to stop using an iterator once it's been used up, or fuse it.
                 self.sampling_offset += self.from_sample_rate;
                 while self.sampling_offset >= self.to_sample_rate {
                     self.sampling_offset -= self.to_sample_rate;
