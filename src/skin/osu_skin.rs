@@ -100,14 +100,17 @@ struct OsuSkinTextures<T> {
     stage_bottom: Option<Rc<Vec<Rc<T>>>>,
 }
 
+/// Various information related to how to draw components. All the numbers are
+/// taken unmodified from the skin.ini file. Scaling happens in the drawing
+/// functions.
 struct OsuSkinConfig {
-    /// Various information related to how to draw components.
     column_start: u16,
     column_width: [u16; 7],
     column_spacing: [u16; 6],
     column_line_width: [u16; 8],
     hit_position: u16,
     score_position: u16,
+    light_position: u16,
     width_for_note_height_scale: f64,
     note_body_style: [NoteBodyStyle; 7],
 
@@ -492,6 +495,16 @@ impl<G: Graphics> OsuSkin<G> {
             let stage_light_height =
                 self.textures.stage_light[sl_size - 1].get_height() as f64 * scale2;
 
+            let stage_light_y = self.config.light_position as f64 * scale - stage_light_height;
+
+            let stage_light_img = Image::new()
+                .rect([
+                    key_x,
+                    stage_light_y,
+                    key_width,
+                    stage_light_height,
+                ]);
+
             if let Some(last_down_time) = self.anim_states.keys_last_down_time[i] {
                 let current_time = time::Instant::now();
                 let elapsed_time = current_time - last_down_time;
@@ -501,14 +514,7 @@ impl<G: Graphics> OsuSkin<G> {
                 let frame = fframe as usize;
                 if frame < 3 {
                     color[3] -= fframe / 3.0;
-                    let stage_light_img = Image::new()
-                        .rect([
-                            key_x,
-                            key_y - stage_light_height,
-                            key_width,
-                            stage_light_height,
-                        ]).color(color);
-                    stage_light_img.draw(
+                    stage_light_img.color(color).draw(
                         self.textures.stage_light[sl_size - 1].as_ref(),
                         draw_state,
                         transform,
@@ -516,14 +522,7 @@ impl<G: Graphics> OsuSkin<G> {
                     );
                 }
             } else if *key_pressed {
-                let stage_light_img = Image::new()
-                    .rect([
-                        key_x,
-                        key_y - stage_light_height,
-                        key_width,
-                        stage_light_height,
-                    ]).color(color);
-                stage_light_img.draw(
+                stage_light_img.color(color).draw(
                     self.textures.stage_light[0].as_ref(),
                     draw_state,
                     transform,
@@ -927,6 +926,7 @@ where
     let mut colour_light = [[255, 255, 255]; 7];
     let mut hit_position = 402;
     let mut score_position = 240; // idk TODO
+    let mut light_position = 413; // idk TODO
     let mut note_body_style = [NoteBodyStyle::CascadeFromTop; 7];
 
     // parse skin.ini
@@ -1045,6 +1045,7 @@ where
                             "ColumnStart" => column_start = parse!(value),
                             "HitPosition" => hit_position = parse!(value),
                             "ScorePosition" => score_position = parse!(value),
+                            "LightPosition" => light_position = parse!(value),
                             "ColumnWidth" => column_width = csv![column_width; 7],
                             "ColumnLineWidth" => column_line_width = csv![column_line_width; 8],
                             "ColumnSpacing" => column_spacing = csv![column_spacing; 6],
@@ -1192,6 +1193,7 @@ where
             column_line_width,
             hit_position,
             score_position,
+            light_position,
             width_for_note_height_scale,
             note_body_style,
             colour_light,
