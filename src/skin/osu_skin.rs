@@ -153,6 +153,7 @@ impl<G: Graphics> Skin<G> for OsuSkin<G> {
         let draw_state = &DrawState::default();
 
         self.draw_track(draw_state, transform, g, stage_height);
+        self.draw_keys(draw_state, transform, g, stage_height, keys_down);
         for &(column, pos, end_pos) in notes {
             if let Some(end_p) = end_pos {
                 self.draw_long_note(draw_state, transform, g, stage_height, pos, end_p, column);
@@ -160,7 +161,6 @@ impl<G: Graphics> Skin<G> for OsuSkin<G> {
                 self.draw_note(draw_state, transform, g, stage_height, pos, column);
             }
         }
-        self.draw_keys(draw_state, transform, g, stage_height, keys_down);
         // TODO the weird fade in/out thing osu does
         self.draw_hit_anims(
             &DrawState::default().blend(draw_state::Blend::Add),
@@ -483,7 +483,6 @@ impl<G: Graphics> OsuSkin<G> {
                     + self.config.column_spacing[0..i].iter().sum::<u16>() as f64);
             let key_y = stage_h - key_height;
             let key_img = Image::new().rect([key_x, key_y, key_width, key_height]);
-            key_img.draw(key_texture, draw_state, transform, g);
 
             let mut color = [
                 self.config.colour_light[i][0] as f32 / 255.0,
@@ -529,6 +528,7 @@ impl<G: Graphics> OsuSkin<G> {
                     g,
                 );
             }
+            key_img.draw(key_texture, draw_state, transform, g);
         }
     }
 
