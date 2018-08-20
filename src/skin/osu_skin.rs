@@ -58,18 +58,18 @@ enum HitAnimState {
 
 /// Holds skin data, such as note images and what not.
 struct OsuSkinTextures<T> {
-    miss: Rc<Vec<Rc<T>>>,
-    hit50: Rc<Vec<Rc<T>>>,
-    hit100: Rc<Vec<Rc<T>>>,
-    hit200: Rc<Vec<Rc<T>>>,
-    hit300: Rc<Vec<Rc<T>>>,
-    hit300g: Rc<Vec<Rc<T>>>,
+    miss: Rc<[Rc<T>]>,
+    hit50: Rc<[Rc<T>]>,
+    hit100: Rc<[Rc<T>]>,
+    hit200: Rc<[Rc<T>]>,
+    hit300: Rc<[Rc<T>]>,
+    hit300g: Rc<[Rc<T>]>,
 
     /// The animation played when a single note is pressed
-    lighting_n: Rc<Vec<Rc<T>>>,
+    lighting_n: Rc<[Rc<T>]>,
 
     /// The animation played when a long note is pressed
-    lighting_l: Rc<Vec<Rc<T>>>,
+    lighting_l: Rc<[Rc<T>]>,
 
     /// The images virtual keys under the judgement line.
     keys: [Rc<T>; 7],
@@ -79,25 +79,25 @@ struct OsuSkinTextures<T> {
     keys_d: [Rc<T>; 7],
 
     /// The notes' images.
-    notes: [Rc<Vec<Rc<T>>>; 7],
+    notes: [Rc<[Rc<T>]>; 7],
 
     /// The long notes' ends' images.
-    long_notes_head: [Rc<Vec<Rc<T>>>; 7],
+    long_notes_head: [Rc<[Rc<T>]>; 7],
 
     /// The long notes' bodies' images.
-    long_notes_body: [Rc<Vec<Rc<T>>>; 7],
+    long_notes_body: [Rc<[Rc<T>]>; 7],
 
     /// The long notes' tails' images.
-    long_notes_tail: [Option<Rc<Vec<Rc<T>>>>; 7],
+    long_notes_tail: [Option<Rc<[Rc<T>]>>; 7],
 
     /// The stage light animation images
-    stage_light: Rc<Vec<Rc<T>>>,
+    stage_light: Rc<[Rc<T>]>,
 
     /// The stage components.
-    stage_hint: Rc<Vec<Rc<T>>>,
+    stage_hint: Rc<[Rc<T>]>,
     stage_left: Rc<T>,
     stage_right: Rc<T>,
-    stage_bottom: Option<Rc<Vec<Rc<T>>>>,
+    stage_bottom: Option<Rc<[Rc<T>]>>,
 }
 
 /// Various information related to how to draw components. All the numbers are
@@ -748,12 +748,12 @@ where
 /// This function takes the basename and tries different paths until it finds one that exists
 fn load_texture_anim<F, T>(
     factory: &mut F,
-    cache: &mut HashMap<String, Rc<Vec<Rc<T>>>>,
+    cache: &mut HashMap<String, Rc<[Rc<T>]>>,
     dir: &path::Path,
     default_dir: &path::Path,
     names: &(&'static str, String),
     texture_settings: &TextureSettings,
-) -> Result<Rc<Vec<Rc<T>>>, ParseError>
+) -> Result<Rc<[Rc<T>]>, ParseError>
 where
     T: CreateTexture<F>,
     T::Error: ToString,
@@ -778,7 +778,7 @@ where
                     textures.push(Rc::new(texture_from_path(factory, &path, texture_settings)?));
                     n += 1;
                 }
-                let anim = Rc::new(textures);
+                let anim = Rc::from(textures);
                 cache.insert($name, Rc::clone(&anim));
                 return Ok(anim);
             }
@@ -787,7 +787,7 @@ where
             if path.exists() {
                 // help
                 let texture = Rc::new(texture_from_path(factory, &path, texture_settings)?);
-                let anim = Rc::new(vec![texture]);
+                let anim = Rc::from(&[texture][..]);
                 cache.insert($name, Rc::clone(&anim));
                 return Ok(anim);
             }
@@ -805,7 +805,7 @@ where
 /// This function takes the basename and tries different paths until it finds one that exists
 fn load_texture<F, T>(
     factory: &mut F,
-    cache: &mut HashMap<String, Rc<Vec<Rc<T>>>>,
+    cache: &mut HashMap<String, Rc<[Rc<T>]>>,
     dir: &path::Path,
     default_dir: &path::Path,
     names: &(&'static str, String),
@@ -826,7 +826,7 @@ where
             if path.exists() {
                 let texture = texture_from_path(factory, path, texture_settings)?;
                 let rc = Rc::new(texture);
-                cache.insert($name, Rc::new(vec![Rc::clone(&rc)]));
+                cache.insert($name, Rc::from(&[Rc::clone(&rc)][..]));
                 return Ok(rc);
             }
         )*}
@@ -1151,7 +1151,7 @@ where
     {
         let smallest_height_note = &notes
             .iter()
-            .min_by_key(|x: &&Rc<Vec<Rc<G::Texture>>>| x[0].get_height())
+            .min_by_key(|x: &&Rc<[Rc<G::Texture>]>| x[0].get_height())
             .unwrap()[0];
         smallest_note_width = smallest_height_note.get_width() as f64;
         smallest_note_height = smallest_height_note.get_height() as f64;
