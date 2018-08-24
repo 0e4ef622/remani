@@ -34,7 +34,7 @@ pub fn get_config() -> Config {
         default_osu_skin_path: path::PathBuf::from("default_osu_skin"),
         skin_path: path::PathBuf::from("test/test_skin"),
         scroll_speed: 1.3,
-        offset: 0.1,
+        offset: -0.1,
         resolution: [1024, 768],
     }
 }

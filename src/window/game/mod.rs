@@ -44,7 +44,7 @@ impl GameScene {
             music: Some(music),
             view,
             model,
-            time: -config.offset,
+            time: config.offset,
             last_instant: time::Instant::now(),
             first_playhead_received: false,
             first_playhead_request: false,
@@ -70,7 +70,7 @@ impl GameScene {
             let d = instant.elapsed();
             let new_time =
                 playhead + d.as_secs() as f64 + d.subsec_nanos() as f64 / 1_000_000_000.0
-                    - config.offset;
+                    + config.offset;
             if !self.first_playhead_received {
                 self.time = new_time;
                 self.first_playhead_received = true;
