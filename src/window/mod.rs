@@ -58,7 +58,7 @@ pub fn start(config: Config) {
         .expect("Could not create window");
     let gl = GlGraphics::new(opengl);
 
-    let audio = match audio::start_audio_thread() {
+    let audio = match audio::start_audio_thread(config.audio_buffer_size) {
         Ok(a) => a,
         Err(e) => {
             eprintln!("{}", e);

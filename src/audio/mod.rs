@@ -170,7 +170,7 @@ impl error::Error for AudioThreadError {
 
 /// Starts the audio thread and returns an object that can be used to communicate with the audio
 /// thread.
-pub fn start_audio_thread() -> Result<Audio<f32>, AudioThreadError> {
+pub fn start_audio_thread(mut audio_buffer_size: cpal::BufferSize) -> Result<Audio<f32>, AudioThreadError> {
     let device = cpal::default_output_device().ok_or(AudioThreadError::NoOutputDevice)?;
 
     println!("Using device {}", device.name());
@@ -178,7 +178,8 @@ pub fn start_audio_thread() -> Result<Audio<f32>, AudioThreadError> {
     let format = device.default_output_format()?;
 
     let event_loop = cpal::EventLoop::new();
-    let stream_id = event_loop.build_output_stream(&device, &format)?;
+    let stream_id = event_loop.build_output_stream(&device, &format, &mut audio_buffer_size)?;
+    println!("Using audio buffer size {:?}", audio_buffer_size);
     event_loop.play_stream(stream_id.clone());
 
     let (request_playhead_tx, request_playhead_rx) = mpsc::sync_channel(1);

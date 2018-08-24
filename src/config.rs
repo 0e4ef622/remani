@@ -2,6 +2,7 @@
 
 use piston::input;
 use std::path;
+use cpal;
 
 /// Holds all the configuration values like skin path or key bindings
 pub struct Config {
@@ -13,6 +14,7 @@ pub struct Config {
     /// to hit later, and vice versa.
     pub offset: f64,
     pub resolution: [u32; 2],
+    pub audio_buffer_size: cpal::BufferSize,
 }
 
 /// Load configuration from a file except that part isn't implemented yet. TODO
@@ -36,5 +38,6 @@ pub fn get_config() -> Config {
         scroll_speed: 1.3,
         offset: -0.1,
         resolution: [1024, 768],
+        audio_buffer_size: cpal::BufferSize::Fixed(1024),
     }
 }

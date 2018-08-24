@@ -13,8 +13,8 @@ dependencies = [
 
 [[package]]
 name = "alsa-sys"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+version = "0.1.1"
+source = "git+https://github.com/0e4ef622/cpal?rev=buffer-size-request#8c07f96d3574ebdafe51b38a63936e28c3557af6"
 dependencies = [
  "libc 0.2.43 (registry+https://github.com/rust-lang/crates.io-index)",
  "pkg-config 0.3.13 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -209,9 +209,9 @@ dependencies = [
 [[package]]
 name = "cpal"
 version = "0.8.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+source = "git+https://github.com/0e4ef622/cpal?rev=buffer-size-request#8c07f96d3574ebdafe51b38a63936e28c3557af6"
 dependencies = [
- "alsa-sys 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "alsa-sys 0.1.1 (git+https://github.com/0e4ef622/cpal?rev=buffer-size-request)",
  "core-foundation-sys 0.5.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "coreaudio-rs 0.9.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "lazy_static 1.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -867,7 +867,7 @@ dependencies = [
 name = "remani"
 version = "0.1.0"
 dependencies = [
- "cpal 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "cpal 0.8.2 (git+https://github.com/0e4ef622/cpal?rev=buffer-size-request)",
  "image 0.19.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "piston 0.37.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "piston-texture 0.6.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -1225,7 +1225,7 @@ dependencies = [
 [metadata]
 "checksum adler32 1.0.3 (registry+https://github.com/rust-lang/crates.io-index)" = "7e522997b529f05601e05166c07ed17789691f562762c7f3b987263d2dedee5c"
 "checksum aho-corasick 0.6.6 (registry+https://github.com/rust-lang/crates.io-index)" = "c1c6d463cbe7ed28720b5b489e7c083eeb8f90d08be2a0d6bb9e1ffea9ce1afa"
-"checksum alsa-sys 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "b0edcbbf9ef68f15ae1b620f722180b82a98b6f0628d30baa6b8d2a5abc87d58"
+"checksum alsa-sys 0.1.1 (git+https://github.com/0e4ef622/cpal?rev=buffer-size-request)" = "<none>"
 "checksum android_glue 0.2.3 (registry+https://github.com/rust-lang/crates.io-index)" = "000444226fcff248f2bc4c7625be32c63caccfecc2723a2b9f78a7487a49c407"
 "checksum ansi_term 0.11.0 (registry+https://github.com/rust-lang/crates.io-index)" = "ee49baf6cb617b853aa8d93bf420db2383fab46d314482ca2803b40d5fde979b"
 "checksum arrayvec 0.4.7 (registry+https://github.com/rust-lang/crates.io-index)" = "a1e964f9e24d588183fcb43503abda40d288c8657dfc27311516ce2f05675aef"
@@ -1248,7 +1248,7 @@ dependencies = [
 "checksum core-graphics 0.13.0 (registry+https://github.com/rust-lang/crates.io-index)" = "fb0ed45fdc32f9ab426238fba9407dfead7bacd7900c9b4dd3f396f46eafdae3"
 "checksum coreaudio-rs 0.9.1 (registry+https://github.com/rust-lang/crates.io-index)" = "f229761965dad3e9b11081668a6ea00f1def7aa46062321b5ec245b834f6e491"
 "checksum coreaudio-sys 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "78fdbabf58d5b1f461e31b94a571c109284f384cec619a3d96e66ec55b4de82b"
-"checksum cpal 0.8.2 (registry+https://github.com/rust-lang/crates.io-index)" = "d58ae1ed6536b1b233f5e3aeb6997a046ddb4d05e3f61701b58a92eb254a829e"
+"checksum cpal 0.8.2 (git+https://github.com/0e4ef622/cpal?rev=buffer-size-request)" = "<none>"
 "checksum crossbeam-deque 0.2.0 (registry+https://github.com/rust-lang/crates.io-index)" = "f739f8c5363aca78cfb059edf753d8f0d36908c348f3d8d1503f03d8b75d9cf3"
 "checksum crossbeam-epoch 0.3.1 (registry+https://github.com/rust-lang/crates.io-index)" = "927121f5407de9956180ff5e936fe3cf4324279280001cd56b669d28ee7e9150"
 "checksum crossbeam-utils 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)" = "2760899e32a1d58d5abb31129f8fae5de75220bc2176e77ff7c627ae45c918d9"
