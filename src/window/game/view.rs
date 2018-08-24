@@ -12,6 +12,9 @@ pub struct View<G: Graphics> {
 
     /// Index of the next note that isn't on the screen yet
     next_note_index: usize,
+
+    /// Used to optimize the calc_pos function. Points to the timing point that the judgement
+    /// line is in
     current_timing_point_index: usize,
 
     notes_on_screen_indices: Vec<usize>,
@@ -52,6 +55,15 @@ impl<G: Graphics> View<G> {
         time: f64,
     ) {
         graphics::clear([0.0; 4], g);
+
+        // manage self.current_timing_point_index
+        while chart.timing_points
+            .get(self.current_timing_point_index + 1)
+            .filter(|tp| time > tp.offset)
+            .is_some()
+        {
+            self.current_timing_point_index += 1;
+        }
 
         let mut add_next_note_index = 0;
 
@@ -95,8 +107,6 @@ impl<G: Graphics> View<G> {
                 }
             }
         }
-
-        // TODO manage self.current_timing_point_index
 
         for &index in self.notes_below_screen_indices.iter().rev() {
             self.notes_on_screen_indices.swap_remove(index);
