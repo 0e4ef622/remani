@@ -6,8 +6,8 @@ if it matures to a satisfactory state.
 
 Remake of o2jam/osumania written in Rust.
 
-Basically a 7k VSRG that aims to support multiple skin formats (for gameplay at
-least) and multiple chart formats.
+Basically a modular fully customizable 7k VSRG that aims to support multiple
+skin formats (for gameplay at least) and multiple chart formats.
 
 The goal is not to _emulate_ other games, it's just to mimick the interface so
 that you don't have to learn how to read a new skin.
