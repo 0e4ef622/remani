@@ -66,7 +66,7 @@ pub fn from_path<P, G, F>(
     factory: &mut F,
     path: P,
     config: &config::Config,
-) -> Result<Box<dyn Skin<G>>, ParseError>
+) -> Result<Box<dyn GameSkin<G>>, ParseError>
 where
     G: Graphics + 'static,
     G::Texture: CreateTexture<F>,
@@ -77,7 +77,7 @@ where
 }
 
 /// A skin. Should be returned by skin parsers.
-pub trait Skin<G: Graphics> {
+pub trait GameSkin<G: Graphics> {
     fn draw_play_scene(
         &mut self,
         transform: math::Matrix2d,

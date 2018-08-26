@@ -4,11 +4,11 @@ use graphics::{self, Context, Graphics};
 use piston::input::RenderArgs;
 
 use super::Model;
-use crate::{chart, config::Config, judgement::Judgement, skin::Skin};
+use crate::{chart, config::Config, judgement::Judgement, gameskin::GameSkin};
 
 /// Holds values and resources needed by the window to do drawing stuff
 pub struct View<G: Graphics> {
-    skin: Box<dyn Skin<G>>,
+    skin: Box<dyn GameSkin<G>>,
 
     /// Index of the next note that isn't on the screen yet
     next_note_index: usize,
@@ -31,7 +31,7 @@ pub struct View<G: Graphics> {
 
 impl<G: Graphics> View<G> {
     /// Create a view with some hardcoded defaults and stuffs
-    pub fn new(skin: Box<dyn Skin<G>>) -> Self {
+    pub fn new(skin: Box<dyn GameSkin<G>>) -> Self {
         View {
             skin,
             next_note_index: 0,

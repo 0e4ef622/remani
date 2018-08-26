@@ -16,10 +16,8 @@ use std::{
     rc::Rc, str, time,
 };
 
-use crate::{
-    judgement::Judgement,
-    skin::{ParseError, Skin},
-};
+use crate::judgement::Judgement;
+use super::{ParseError, GameSkin};
 
 #[derive(Copy, Clone, Debug)]
 enum NoteBodyStyle {
@@ -140,7 +138,7 @@ struct OsuSkin<G: Graphics> {
     judgement: Option<(Judgement, time::Instant)>,
 }
 
-impl<G: Graphics> Skin<G> for OsuSkin<G> {
+impl<G: Graphics> GameSkin<G> for OsuSkin<G> {
     fn draw_play_scene(
         &mut self,
         transform: math::Matrix2d,
@@ -843,7 +841,7 @@ pub fn from_path<F, G>(
     factory: &mut F,
     dir: &path::Path,
     default_dir: &path::Path,
-) -> Result<Box<dyn Skin<G>>, ParseError>
+) -> Result<Box<dyn GameSkin<G>>, ParseError>
 where
     G: Graphics + 'static,
     G::Texture: CreateTexture<F>,

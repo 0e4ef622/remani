@@ -11,7 +11,7 @@ mod audio;
 mod chart;
 mod config;
 mod judgement;
-mod skin;
+mod gameskin;
 mod window;
 
 fn main() {

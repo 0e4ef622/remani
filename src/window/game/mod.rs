@@ -14,7 +14,7 @@ mod view;
 use self::{model::Model, view::View};
 use super::Window;
 
-use crate::{audio, chart::Chart, config::Config, judgement::Judgement, skin};
+use crate::{audio, chart::Chart, config::Config, judgement::Judgement, gameskin};
 
 pub struct GameScene {
     chart: Chart,
@@ -34,7 +34,7 @@ impl GameScene {
             Path::new("test/test_chart").join(&chart.music_path),
             audio.format(),
         ).unwrap();
-        let the_skin = skin::from_path(&mut (), &config.skin_path, config).unwrap();
+        let the_skin = gameskin::from_path(&mut (), &config.skin_path, config).unwrap();
 
         let model = Model::new();
         let view = View::new(the_skin);
