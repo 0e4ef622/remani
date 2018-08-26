@@ -231,7 +231,7 @@ impl<G: Graphics> OsuSkin<G> {
         pos: f64,
         column_index: usize,
     ) {
-        // TODO figure out and render animations
+        // TODO mania-note is animatable
 
         let scale = stage_h / 480.0;
         let hit_p = self.config.hit_position as f64 * scale;
@@ -263,7 +263,7 @@ impl<G: Graphics> OsuSkin<G> {
         end_pos: f64,
         column_index: usize,
     ) {
-        // TODO figure out and render animations
+        // TODO mania-note#L is animatable
 
         let scale = stage_h / 480.0;
         let scale2 = stage_h / 768.0; // long note body height when cascading is scaled with this
@@ -610,7 +610,7 @@ impl<G: Graphics> OsuSkin<G> {
             match hit_anim {
                 HitAnimState::SingleNote(time) => {
                     let frame = (time.elapsed().as_secs() as f64
-                        + time.elapsed().subsec_nanos() as f64 / 1000_000_000.0)
+                        + time.elapsed().subsec_nanos() as f64 / 1_000_000_000.0)
                         * 60.0;
                     let uframe = frame as usize;
                     if uframe > self.textures.lighting_n.len() - 1 {
@@ -768,6 +768,7 @@ where
                 return Ok(Rc::clone(texture));
             }
 
+            // TODO can these join's be optimized? how much time does it take to allocate the pathbuf?
             path = $dir.join($name + "-0.png");
             if path.exists() {
                 textures.push(Rc::new(texture_from_path(factory, &path, texture_settings)?));
@@ -822,6 +823,7 @@ where
                 return Ok(Rc::clone(&texture[0]));
             }
 
+            // TODO can these join's be optimized? how much time does it take to allocate the pathbuf?
             let path = $dir.join($name + ".png");
             if path.exists() {
                 let texture = texture_from_path(factory, path, texture_settings)?;
@@ -926,7 +928,7 @@ where
     let mut colour_light = [[255, 255, 255]; 7];
     let mut hit_position = 402;
     let mut score_position = 240; // idk TODO
-    let mut light_position = 413; // idk TODO
+    let mut light_position = 413;
     let mut note_body_style = [NoteBodyStyle::CascadeFromTop; 7];
 
     // parse skin.ini
@@ -999,7 +1001,6 @@ where
                         }
                         // fancy macros
                         // used to match stuff like KeyImage{0..6}H more easily
-                        // only works with properties that specify images because of structural reasons
                         macro_rules! enumerate_match {
                             ($key:ident,
                              $(.$name1:tt => $varname1:ident = $value1:expr, [ $baseidx1:literal $($idx1:literal)* ],)*
@@ -1083,6 +1084,8 @@ where
     }
 
     let mut cache = HashMap::new();
+
+    // load all the textures into the gpu
 
     let miss = load_texture_anim(factory, &mut cache, dir, default_dir, &miss_name, &texture_settings)?;
     let hit50 = load_texture_anim(factory, &mut cache, dir, default_dir, &hit50_name, &texture_settings)?;
