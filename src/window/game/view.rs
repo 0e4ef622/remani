@@ -72,7 +72,7 @@ impl<G: Graphics> View<G> {
                 time,
                 note.time,
                 chart,
-                config.scroll_speed,
+                config.game.scroll_speed,
                 self.current_timing_point_index,
             );
             if note_pos > 1.0 {
@@ -122,7 +122,7 @@ impl<G: Graphics> View<G> {
                     time,
                     note.time,
                     chart,
-                    config.scroll_speed,
+                    config.game.scroll_speed,
                     current_timing_point_index,
                 );
                 let end_pos = note.end_time.map(|t| {
@@ -130,7 +130,7 @@ impl<G: Graphics> View<G> {
                         time,
                         t,
                         chart,
-                        config.scroll_speed,
+                        config.game.scroll_speed,
                         current_timing_point_index,
                     )
                 });

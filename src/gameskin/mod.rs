@@ -62,18 +62,21 @@ impl error::Error for ParseError {
 /// Parse from a directory specified by the path.
 ///
 /// For now, the osu parser is assumed (TODO).
-pub fn from_path<P, G, F>(
+pub fn from_path<G, F>(
     factory: &mut F,
-    path: P,
+    skin_entry: &config::SkinEntry,
     config: &config::Config,
 ) -> Result<Box<dyn GameSkin<G>>, ParseError>
 where
     G: Graphics + 'static,
     G::Texture: CreateTexture<F>,
     <G::Texture as CreateTexture<F>>::Error: ToString,
-    P: AsRef<path::Path>,
 {
-    osu_skin::from_path(factory, path.as_ref(), &config.default_osu_skin_path)
+    match skin_entry {
+        config::SkinEntry::Osu(p) =>
+            osu_skin::from_path(factory, p, &config.game.default_osu_skin_path),
+        config::SkinEntry::O2Jam(p) => unimplemented!(),
+    }
 }
 
 /// A skin. Should be returned by skin parsers.

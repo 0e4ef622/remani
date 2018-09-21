@@ -16,10 +16,13 @@ piston = "0.37.0"
 piston-texture = "0.6.0"
 pistoncore-glutin_window = "0.47.0"
 piston2d-graphics = "0.26.0"
-piston2d-opengl_graphics = "0.53.0"
-image = "0.19.0"
+piston2d-opengl_graphics = "0.54.0"
+image = "0.20.0"
 cpal = { git = "https://github.com/0e4ef622/cpal", rev = "buffer-size-request" }
 simplemad = { optional = true, version = "0.9.0" }
+toml = "0.4.6"
+serde = "1.0"
+serde_derive = "1.0"
 
 [features]
 default = ["mp3"]

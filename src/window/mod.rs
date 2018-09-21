@@ -51,14 +51,14 @@ pub fn start(config: Config) {
 
     let opengl = OpenGL::V3_2;
 
-    let mut glutin_window: GlutinWindow = WindowSettings::new("Remani", config.resolution)
+    let mut glutin_window: GlutinWindow = WindowSettings::new("Remani", config.general.resolution)
         .opengl(opengl)
         .srgb(false)
         .build()
         .expect("Could not create window");
     let gl = GlGraphics::new(opengl);
 
-    let audio = match audio::start_audio_thread(config.audio_buffer_size) {
+    let audio = match audio::start_audio_thread(config.general.audio_buffer_size) {
         Ok(a) => a,
         Err(e) => {
             eprintln!("{}", e);

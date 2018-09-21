@@ -95,8 +95,7 @@ impl Model {
     ) {
         let next_notes = &mut self.next_notes;
 
-        config
-            .key_bindings
+        config.game.key_bindings
             .iter()
             .enumerate()
             .zip(self.keys_down.iter_mut())
@@ -130,8 +129,7 @@ impl Model {
         _time: f64,
         mut callback: F,
     ) {
-        config
-            .key_bindings
+        config.game.key_bindings
             .iter()
             .enumerate()
             .zip(self.keys_down.iter_mut())

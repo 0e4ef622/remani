@@ -1,4 +1,5 @@
 #![feature(macro_literal_matcher)]
+#![feature(custom_attribute)]
 
 macro_rules! remani_warn {
     ($fmt:expr) => (eprintln!(concat!("WARNING: ", $fmt)));
