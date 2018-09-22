@@ -37,8 +37,11 @@ pub struct GameConfig {
     pub scroll_speed: f64,
 
     pub default_osu_skin_path: path::PathBuf,
-    pub current_skin: SkinEntry,
-    pub current_judge: Judge,
+
+    /// An index into the `skins` field
+    current_skin_index: usize,
+    /// An index into the `judges` field
+    current_judge_index: usize,
 
     pub skins: Vec<(String, SkinEntry)>,
     pub judges: Vec<(String, Judge)>,
@@ -55,19 +58,45 @@ pub enum GameConfigVerifyError {
 
 impl UnverifiedGameConfig {
     fn verify(self) -> Result<GameConfig, GameConfigVerifyError> {
+
+        let skins: Vec<(String, SkinEntry)> = self.skins.into_iter().collect();
+        let judges: Vec<(String, Judge)> = self.judges.into_iter().collect();
+
+        let current_skin: String = self.current_skin;
+        let current_judge: String = self.current_judge;
+
         Ok(GameConfig {
             offset: self.offset,
             scroll_speed: self.scroll_speed,
             default_osu_skin_path: self.default_osu_skin_path,
 
-            current_skin: self.skins.get(&self.current_skin).ok_or(GameConfigVerifyError::BadCurrentSkin)?.clone(), // TODO use pin api to avoid clone
-            current_judge: self.judges.get(&self.current_judge).ok_or(GameConfigVerifyError::BadCurrentJudge)?.clone(),
+            current_skin_index: skins
+                .iter()
+                .enumerate()
+                .find(|(_, (s, _))| *s == current_skin)
+                .ok_or(GameConfigVerifyError::BadCurrentSkin)?
+                .0,
+            current_judge_index: judges
+                .iter()
+                .enumerate()
+                .find(|(_, (s, _))| *s == current_judge)
+                .ok_or(GameConfigVerifyError::BadCurrentJudge)?
+                .0,
 
-            skins: self.skins.into_iter().collect(),
-            judges: self.judges.into_iter().collect(),
+            skins,
+            judges,
 
             key_bindings: self.key_bindings,
         })
+    }
+}
+
+impl GameConfig {
+    pub fn current_skin(&self) -> &(String, SkinEntry) {
+        &self.skins[self.current_skin_index]
+    }
+    pub fn current_judge(&self) -> &(String, Judge) {
+        &self.judges[self.current_judge_index]
     }
 }
 

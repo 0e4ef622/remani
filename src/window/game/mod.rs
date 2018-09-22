@@ -34,7 +34,7 @@ impl GameScene {
             Path::new("test/test_chart").join(&chart.music_path),
             audio.format(),
         ).unwrap();
-        let the_skin = gameskin::from_path(&mut (), &config.game.current_skin, config).unwrap();
+        let the_skin = gameskin::from_path(&mut (), &config.game.current_skin().1, config).unwrap();
 
         let model = Model::new();
         let view = View::new(the_skin);
