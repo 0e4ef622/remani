@@ -45,7 +45,7 @@ impl Model {
     /// Called when an update event occurs
     pub fn update<F: FnMut(usize)>(
         &mut self,
-        _args: &UpdateArgs,
+        _args: UpdateArgs,
         chart: &Chart,
         time: f64,
         mut miss_callback: F,

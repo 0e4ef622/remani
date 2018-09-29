@@ -195,7 +195,7 @@ fn default_config() -> Config {
             current_judge: "easy".into(),
             skins: skin_map,
             judges: judge_map,
-            scroll_speed: 1.3,
+            scroll_speed: 1.7,
             offset: -0.1,
         }.verify().unwrap(),
     }

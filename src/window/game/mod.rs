@@ -87,7 +87,7 @@ impl GameScene {
 
         if let Some(u) = e.update_args() {
             let view = &mut self.view;
-            self.model.update(&u, &self.chart, self.time, |k| {
+            self.model.update(u, &self.chart, self.time, |k| {
                 view.draw_judgement(k, Judgement::Miss)
             });
         }

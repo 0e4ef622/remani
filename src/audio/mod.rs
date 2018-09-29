@@ -44,7 +44,7 @@ pub struct ArcIter<T: Copy> {
 impl<T: Copy> ArcIter<T> {
     pub fn new(inner: Arc<Vec<T>>) -> ArcIter<T> {
         ArcIter {
-            inner: inner,
+            inner,
             index: 0,
         }
     }
@@ -208,7 +208,7 @@ pub fn start_audio_thread(mut audio_buffer_size: cpal::BufferSize) -> Result<Aud
                 music = Some(m);
                 current_music_frame_index = 0;
             }
-            if let Ok(_) = request_playhead_rx.try_recv() {
+            if request_playhead_rx.try_recv().is_ok() {
                 send_playhead_tx.try_send((time::Instant::now(), current_music_frame_index as f64 / sample_rate as f64));
             }
 
@@ -279,7 +279,7 @@ pub fn start_audio_thread(mut audio_buffer_size: cpal::BufferSize) -> Result<Aud
         request_playhead_sender: request_playhead_tx,
         playhead_rcv: send_playhead_rx,
 
-        format: format,
+        format,
     })
 }
 

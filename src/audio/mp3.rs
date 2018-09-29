@@ -22,7 +22,7 @@ struct MP3Samples<R: io::Read + Send> {
 impl<R: io::Read + Send> MP3Samples<R> {
     fn new(decoder: Peekable<Decoder<R>>) -> MP3Samples<R> {
         MP3Samples {
-            decoder: decoder,
+            decoder,
             current_samples: None,
             current_samples_index: 0,
             current_channel: 0,
@@ -109,6 +109,6 @@ pub fn decode<R: io::Read + Send + 'static>(reader: R) -> Result<MusicStream<f32
     Ok(MusicStream {
         samples: Box::new(MP3Samples::new(decoder)),
         channel_count: channel_count as u8,
-        sample_rate: sample_rate,
+        sample_rate,
     })
 }

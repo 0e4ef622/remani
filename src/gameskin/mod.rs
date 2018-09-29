@@ -4,7 +4,7 @@ use graphics::{math, Graphics};
 use image;
 use texture::CreateTexture;
 
-use std::{error, fmt, io, path};
+use std::{error, fmt, io};
 
 use crate::{config, judgement::Judgement};
 
@@ -17,7 +17,6 @@ pub enum ParseError {
     Io(String, io::Error),
     /// Parsing error
     Parse(String, Option<Box<dyn error::Error>>),
-    InvalidFile,
     ImageError(String, image::ImageError),
 }
 
@@ -27,7 +26,6 @@ impl fmt::Display for ParseError {
             ParseError::Io(ref s, ref e) => write!(f, "{}: {}", s, e),
             ParseError::Parse(ref s, Some(ref e)) => write!(f, "{}: {}", s, e),
             ParseError::Parse(ref s, None) => write!(f, "{}", s),
-            ParseError::InvalidFile => write!(f, "Invalid skin"),
             ParseError::ImageError(ref s, _) => write!(f, "Error reading image {}", s),
         }
     }
@@ -44,7 +42,6 @@ impl error::Error for ParseError {
         match *self {
             ParseError::Io(_, _) => "IO error",
             ParseError::Parse(_, _) => "Parse error",
-            ParseError::InvalidFile => "Invalid skin",
             ParseError::ImageError(_, _) => "Error reading image",
         }
     }
@@ -75,7 +72,7 @@ where
     match skin_entry {
         config::SkinEntry::Osu(p) =>
             osu_skin::from_path(factory, p, &config.game.default_osu_skin_path),
-        config::SkinEntry::O2Jam(p) => unimplemented!(),
+        config::SkinEntry::O2Jam(_p) => unimplemented!(),
     }
 }
 

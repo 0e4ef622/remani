@@ -33,10 +33,7 @@ pub struct Resample<S: cpal::Sample> {
 impl<S: cpal::Sample> Iterator for Resample<S> {
     type Item = f32;
     fn next(&mut self) -> Option<f32> {
-        let return_value;
-        if self.previous_values.len() < self.channel_count
-            && self.next_values.len() < self.channel_count
-        {
+        let return_value = if self.previous_values.len() < self.channel_count && self.next_values.len() < self.channel_count {
             let next_sample = match self.samples.next() {
                 Some(s) => s,
                 None => return None,
@@ -47,7 +44,7 @@ impl<S: cpal::Sample> Iterator for Resample<S> {
             };
             self.previous_values.push(next_sample);
             self.next_values.push(next_next_sample);
-            return_value = Some(next_sample.to_f32());
+            Some(next_sample.to_f32())
         } else {
             if self.channel_offset == 0 {
                 self.sampling_offset += self.from_sample_rate;
@@ -65,12 +62,10 @@ impl<S: cpal::Sample> Iterator for Resample<S> {
             }
             let prev_sample = self.previous_values[self.channel_offset];
             let next_sample = self.next_values[self.channel_offset];
-            return_value = Some(
-                prev_sample.to_f32()
-                    + (next_sample.to_f32() - prev_sample.to_f32()) * self.sampling_offset as f32
-                        / self.to_sample_rate as f32,
-            );
-        }
+            Some(prev_sample.to_f32()
+                 + (next_sample.to_f32() - prev_sample.to_f32())
+                 * self.sampling_offset as f32 / self.to_sample_rate as f32)
+        };
         self.channel_offset += 1;
         if self.channel_offset >= self.channel_count {
             self.channel_offset = 0;

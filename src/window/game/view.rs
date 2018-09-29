@@ -98,13 +98,11 @@ impl<G: Graphics> View<G> {
                     self.long_notes_held[note.column] = false;
                     continue;
                 }
-            } else {
-                if note.time - time < 0.0 {
-                    // TODO only display hit animation if the player successfully hits the note
-                    self.skin.single_note_hit_anim(note.column);
-                    self.notes_below_screen_indices.push(index);
-                    continue;
-                }
+            } else if note.time - time < 0.0 {
+                // TODO only display hit animation if the player successfully hits the note
+                self.skin.single_note_hit_anim(note.column);
+                self.notes_below_screen_indices.push(index);
+                continue;
             }
         }
 

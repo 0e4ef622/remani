@@ -193,7 +193,7 @@ fn parse_timing_point(line: &str, chart: &mut IncompleteChart) -> Result<(), Par
 /// Parse a line from the HitObjects section and add the hit object to the chart passed in
 fn parse_hit_object(line: &str, chart: &mut IncompleteChart) -> Result<(), ParseError> {
     let mut last_index = 0;
-    const ERR_STRING: &'static str = "Error parsing hit object";
+    const ERR_STRING: &str = "Error parsing hit object";
 
     let mut ln = false;
     let mut hit_obj = HitObject::default();
@@ -349,7 +349,7 @@ fn parse_hit_object(line: &str, chart: &mut IncompleteChart) -> Result<(), Parse
                         // hitsound from file
                         4 => if !v.is_empty() {
                             hit_obj.sounds.push(HitSound {
-                                volume: volume,
+                                volume,
                                 source: HitSoundSource::File(PathBuf::from(v)),
                             });
                         },
@@ -384,7 +384,7 @@ struct HitObject {
 
 impl HitObject {
     //fn to_note(self, sound: Rc<something>) {
-    fn to_note(self) -> Note {
+    fn into_note(self) -> Note {
         Note {
             time: self.time,
             column: self.column,
@@ -463,7 +463,7 @@ impl IncompleteChart {
         let notes = self
             .hit_objects
             .into_iter()
-            .map(HitObject::to_note)
+            .map(HitObject::into_note)
             .collect::<Vec<_>>();
 
         let last_note_time = match notes.last() {
@@ -548,7 +548,7 @@ pub struct OsuParser {
 
 impl OsuParser {
     fn parse_line(&mut self, line: &str) -> Result<(), ParseError> {
-        if line.len() == 0 {
+        if line.is_empty() {
             return Ok(());
         }
         match &line[0..1] {

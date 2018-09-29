@@ -94,25 +94,25 @@ impl<'de> Visitor<'de> for KeyBindingsVisitor {
         }
         let keys = [
             seq.next_element::<InputButton>()?
-                .ok_or(A::Error::invalid_length(0, &self))?
+                .ok_or_else(|| A::Error::invalid_length(0, &self))?
                 .into(),
             seq.next_element::<InputButton>()?
-                .ok_or(A::Error::invalid_length(1, &self))?
+                .ok_or_else(|| A::Error::invalid_length(1, &self))?
                 .into(),
             seq.next_element::<InputButton>()?
-                .ok_or(A::Error::invalid_length(2, &self))?
+                .ok_or_else(|| A::Error::invalid_length(2, &self))?
                 .into(),
             seq.next_element::<InputButton>()?
-                .ok_or(A::Error::invalid_length(3, &self))?
+                .ok_or_else(|| A::Error::invalid_length(3, &self))?
                 .into(),
             seq.next_element::<InputButton>()?
-                .ok_or(A::Error::invalid_length(4, &self))?
+                .ok_or_else(|| A::Error::invalid_length(4, &self))?
                 .into(),
             seq.next_element::<InputButton>()?
-                .ok_or(A::Error::invalid_length(5, &self))?
+                .ok_or_else(|| A::Error::invalid_length(5, &self))?
                 .into(),
             seq.next_element::<InputButton>()?
-                .ok_or(A::Error::invalid_length(6, &self))?
+                .ok_or_else(|| A::Error::invalid_length(6, &self))?
                 .into(),
         ];
 

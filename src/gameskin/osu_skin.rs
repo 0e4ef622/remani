@@ -321,7 +321,7 @@ impl<G: Graphics> OsuSkin<G> {
                     rect[1] += note_body_h;
                     i += note_body_h;
                 }
-                let mut mod_rect = rect.clone();
+                let mut mod_rect = rect;
                 mod_rect[3] = bottom_y - top_y - i;
                 let src_rect = [0.0, 0.0, note_body.get_width() as f64, mod_rect[3]];
                 note_body_img = note_body_img.src_rect(src_rect).rect(mod_rect);
@@ -333,7 +333,7 @@ impl<G: Graphics> OsuSkin<G> {
 
                 let offset = (real_bottom_y - top_y) % note_body_h;
 
-                let mut mod_rect = rect.clone();
+                let mut mod_rect = rect;
                 mod_rect[3] = offset;
                 let src_rect = [
                     0.0,
@@ -363,7 +363,7 @@ impl<G: Graphics> OsuSkin<G> {
                     i += note_body_h;
                 }
 
-                mod_rect = rect.clone();
+                mod_rect = rect;
                 mod_rect[3] = bottom_y - top_y - i;
                 let src_rect = [
                     0.0,
@@ -632,7 +632,7 @@ impl<G: Graphics> OsuSkin<G> {
                 }
                 HitAnimState::LongNote(time) => {
                     let frame = (time.elapsed().as_secs() as f64
-                        + time.elapsed().subsec_nanos() as f64 / 1000_000_000.0)
+                        + time.elapsed().subsec_nanos() as f64 / 1_000_000_000.0)
                         * 60.0;
                     let uframe = frame as usize % self.textures.lighting_l.len();
                     let hit_w = self.textures.lighting_l[uframe].get_width() as f64 * scale2;
@@ -699,7 +699,7 @@ fn image_reverse_srgb(mut img: image::RgbaImage) -> image::RgbaImage {
             let mut v = *c as f32 / U8_MAX;
 
             if v <= 0.04045 {
-                v = v / 12.92
+                v /= 12.92
             } else {
                 v = ((v + 0.055) / 1.055).powf(2.4)
             }
@@ -942,7 +942,7 @@ where
             let line = line.trim();
 
             // section declarations look like [section name]
-            if line.starts_with("[") && line.ends_with("]") {
+            if line.starts_with('[') && line.ends_with(']') {
                 section = line[1..line.len() - 1].to_string();
                 continue;
             }
@@ -953,7 +953,7 @@ where
             }
 
             // key: value
-            let mut line_parts = line.splitn(2, ":");
+            let mut line_parts = line.splitn(2, ':');
 
             // parse but with some error handling
             macro_rules! parse {
