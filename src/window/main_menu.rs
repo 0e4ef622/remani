@@ -21,9 +21,9 @@ impl MainMenu {
     pub fn new() -> MainMenu {
         let ts = TextureSettings::new();
 
-        let play_texture = Texture::from_path("play.png", &ts).unwrap();
-        let options_texture = Texture::from_path("options.png", &ts).unwrap();
-        let exit_texture = Texture::from_path("exit.png", &ts).unwrap();
+        let play_texture = Texture::from_path("rsc/play.png", &ts).unwrap();
+        let options_texture = Texture::from_path("rsc/options.png", &ts).unwrap();
+        let exit_texture = Texture::from_path("rsc/exit.png", &ts).unwrap();
 
         MainMenu {
             play_texture,

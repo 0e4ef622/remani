@@ -46,7 +46,6 @@ pub struct GameConfig {
     pub skins: Vec<(String, SkinEntry)>,
     pub judges: Vec<(String, Judge)>,
 
-    #[serde(with = "serde_key_bindings")]
     pub key_bindings: [input::Button; 7],
 }
 
@@ -190,7 +189,7 @@ fn default_config() -> Config {
             ],
 
             // TODO decide whether to include this in the binary or not
-            default_osu_skin_path: path::PathBuf::from("default_osu_skin"),
+            default_osu_skin_path: path::PathBuf::from("rsc/default_osu_skin"),
             current_skin: "test".into(),
             current_judge: "easy".into(),
             skins: skin_map,
