@@ -1,4 +1,3 @@
-cargo-features = ["edition"]
 [package]
 name = "remani"
 version = "0.1.0"
@@ -9,7 +8,6 @@ repository = "https://github.com/0e4ef622/remani"
 license = "MIT"
 keywords = ["7k", "vsrg", "o2jam", "osumania"]
 categories = ["games"]
-maintenence = { status = "actively-developed" }
 
 [dependencies]
 piston = "0.37.0"
