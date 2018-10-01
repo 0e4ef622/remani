@@ -23,6 +23,7 @@ simplemad = { optional = true, version = "0.9.0" }
 toml = "0.4.6"
 serde = "1.0"
 serde_derive = "1.0"
+directories = "1.0"
 
 [features]
 default = ["mp3"]

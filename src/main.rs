@@ -15,7 +15,10 @@ mod judgement;
 mod gameskin;
 mod window;
 
+use directories::ProjectDirs;
+
 fn main() {
+    println!("{:?}", ProjectDirs::from("", "0e4ef622", "Remani").unwrap().config_dir());
     let config = config::get_config();
     window::start(config);
 }
