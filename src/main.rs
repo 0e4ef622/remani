@@ -16,9 +16,15 @@ mod gameskin;
 mod window;
 
 use directories::ProjectDirs;
+use std::env;
+use std::path::PathBuf;
 
 fn main() {
-    println!("{:?}", ProjectDirs::from("", "0e4ef622", "Remani").unwrap().config_dir());
-    let config = config::get_config();
+
+    let config_path: PathBuf = env::var_os("REMANI_CONF")
+        .map(|s| s.into())
+        .unwrap_or(ProjectDirs::from("", "0e4ef622", "Remani").unwrap().config_dir().join("remani.conf"));
+
+    let config = config::get_config(&config_path);
     window::start(config);
 }

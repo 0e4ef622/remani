@@ -1,41 +1,48 @@
+[general]
+resolution = [1024, 768]
+audio_buffer_size = 1024
+chart_path = [
+    { type = "osu", path = "test/" },
+]
+
 [game]
 key_bindings = [
-    something,
-    something,
-    something,
-    something,
-    something,
-    something,
-    something,
+    { type = "keyboard", value = 115 }, # s
+    { type = "keyboard", value = 100 }, # d
+    { type = "keyboard", value = 102 }, # f
+    { type = "keyboard", value = 32 },  # <Space>
+    { type = "keyboard", value = 106 }, # j
+    { type = "keyboard", value = 107 }, # k
+    { type = "keyboard", value = 108 }, # l
 ]
 current_skin = "o2jamu"
 scroll_speed = 1.3
 offset = -0.1
-resolution = [1024, 768]
-audio_buffer_size = 1024
-current_judge = "osu"
+current_judge = "easy"
 default_osu_skin_path = "default_osu_skin"
 
-[skins.o2jamu]
+[game.skins.o2jamu]
 type = "osu"
 path = "test/test_skin"
 
-[skins.jhlee]
+[game.skins.jhlee]
 type = "osu"
 path = "jhlee"
 
-[skins.o2jamdefault]
+[game.skins.o2jamdefault]
 type = "o2jam"
 path = "help i don't have the default o2jam skin :("
 
-[judge.easy] # positive = early, negative = late
-window_1 = [0.05, -0.05] # perfect
-window_2 = [0.1, -0.1] # good
-window_3 = [0.2, -0.2] # bad
+[game.judges.easy] # positive = early, negative = late
+windows = [
+    [0.05, -0.05], # perfect
+    [0.1, -0.1], # good
+    [0.2, -0.2], # bad
+]
 miss_tolerance = 1.0 # if you hit earlier than one second, it's ignored, if you hit between one second early and the highest accepted timing window, it's counted as a miss
 
-[judge.hell]
-window_1 = [0.005, -0.005]
-window_2 = [0.008, -0.008]
-window_3 = [0.013, -0.013]
-miss_tolerance = 2.0
+# [game.judges.hell]
+# window_1 = [0.005, -0.005]
+# window_2 = [0.008, -0.008]
+# window_3 = [0.013, -0.013]
+# miss_tolerance = 2.0

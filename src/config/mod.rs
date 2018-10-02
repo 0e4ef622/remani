@@ -3,7 +3,7 @@
 use cpal;
 use piston::input;
 use serde_derive::{Deserialize, Serialize};
-use std::{collections::BTreeMap, path};
+use std::{collections::BTreeMap, fmt, fs, io, path};
 use toml;
 
 mod serde_buffer_size;
@@ -141,11 +141,70 @@ pub struct Config {
     pub game: GameConfig,
 }
 
+#[derive(Debug)]
+pub enum ConfigReadError {
+    /// An error in the toml formatting
+    Toml(toml::de::Error),
+    /// An error somewhere in file IO
+    Io(io::Error),
+    /// An error in the values of the config
+    ConfigError(GameConfigVerifyError),
+}
+
+impl From<io::Error> for ConfigReadError {
+    fn from(t: io::Error) -> Self {
+        ConfigReadError::Io(t)
+    }
+}
+
+impl From<toml::de::Error> for ConfigReadError {
+    fn from(t: toml::de::Error) -> Self {
+        ConfigReadError::Toml(t)
+    }
+}
+
+impl From<GameConfigVerifyError> for ConfigReadError {
+    fn from(t: GameConfigVerifyError) -> Self {
+        ConfigReadError::ConfigError(t)
+    }
+}
+
+impl fmt::Display for ConfigReadError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            ConfigReadError::Toml(e) => write!(f, "Formatting error: {}", e),
+            ConfigReadError::Io(e) => write!(f, "IO error: {}", e),
+            ConfigReadError::ConfigError(e) => write!(f, "Config error: {:?}", e),
+        }
+    }
+}
 
 /// Load configuration from a file except that part isn't implemented yet. TODO
-pub fn get_config() -> Config {
-    // TODO get config path from env var and read/write it
-    default_config()
+fn try_read_config(config_file_path: &path::Path) -> Result<Config, ConfigReadError> {
+    let config_dir_path = {
+        let mut c = config_file_path.components();
+        c.next_back(); // remove the last component
+        c
+    };
+    //fs::create_dir_all(config_dir_path)?;
+    let file_data = fs::read(config_file_path)?;
+    let config = toml::from_slice::<UnverifiedConfig>(&file_data)?;
+
+    Ok(Config {
+        general: config.general,
+        game: config.game.verify()?,
+    })
+}
+
+pub fn get_config(config_file_path: &path::Path) -> Config {
+    match try_read_config(config_file_path) {
+        Ok(c) => c,
+        Err(e) => {
+            remani_warn!("Error reading from {}: {}", config_file_path.display(), e);
+            remani_warn!("Using default config");
+            default_config()
+        }
+    }
 }
 
 /// Create the default configuration
