@@ -46,6 +46,7 @@ impl Model {
     pub fn update<F: FnMut(usize)>(
         &mut self,
         _args: UpdateArgs,
+        config: &Config,
         chart: &Chart,
         time: f64,
         mut miss_callback: F,
@@ -75,9 +76,10 @@ impl Model {
             }
         }
 
-        while self.current_note_index < chart.notes.len()
-            && chart.notes[self.current_note_index].time - time < 1.0
-        {
+        while chart.notes.get(self.current_note_index)
+            .map(|n| n.time - time < config.game.current_judge().1.miss_tolerance)
+            .unwrap_or(false) {
+
             self.next_notes[chart.notes[self.current_note_index].column]
                 .push_back(self.current_note_index);
             self.current_note_index += 1;
@@ -94,6 +96,7 @@ impl Model {
         mut callback: F,
     ) {
         let next_notes = &mut self.next_notes;
+        let long_notes_held = &mut self.long_notes_held;
 
         config.game.key_bindings
             .iter()
@@ -105,8 +108,15 @@ impl Model {
                         let note = &chart.notes[note_index];
                         next_notes[key_index].pop_front();
 
+                        let timing = note.time - time;
+                        if note.end_time.is_some() {
+                            println!("LN {} press: {:+.3}", key_index, timing);
+                            debug_assert_eq!(long_notes_held[key_index], None);
+                            long_notes_held[key_index] = Some(note_index);
+                        }
+
                         // TODO dont hardcode timing windows
-                        if (note.time - time).abs() < 0.1 {
+                        if timing.abs() < 0.1 {
                             Some(Judgement::Perfect)
                         } else {
                             Some(Judgement::Miss)
@@ -126,9 +136,11 @@ impl Model {
         &mut self,
         args: &Button,
         config: &Config,
-        _time: f64,
+        chart: &Chart,
+        time: f64,
         mut callback: F,
     ) {
+        let long_notes_held = &mut self.long_notes_held;
         config.game.key_bindings
             .iter()
             .enumerate()
@@ -137,6 +149,10 @@ impl Model {
                 if *args == *key_binding {
                     callback(key_index);
                     *key_down = false;
+                    if let Some(note_index) = long_notes_held[key_index] {
+                        println!("LN {} release: {:+.3}", key_index, chart.notes[note_index].end_time.unwrap() - time);
+                        long_notes_held[key_index] = None;
+                    }
                 }
             });
     }
