@@ -234,7 +234,7 @@ fn default_config() -> Config {
 
     Config {
         general: GeneralConfig {
-            resolution: [1600, 900],
+            resolution: [1024, 768],
             audio_buffer_size: cpal::BufferSize::Fixed(1024),
             chart_path: vec![], // TODO use directories crate
         },
