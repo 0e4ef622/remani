@@ -91,9 +91,11 @@ impl UnverifiedGameConfig {
 }
 
 impl GameConfig {
+    /// The string is the name of the skin
     pub fn current_skin(&self) -> &(String, SkinEntry) {
         &self.skins[self.current_skin_index]
     }
+    /// The string is the name of the judge
     pub fn current_judge(&self) -> &(String, Judge) {
         &self.judges[self.current_judge_index]
     }

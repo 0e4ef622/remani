@@ -64,7 +64,9 @@ impl GameScene {
         }
 
         if !self.first_playhead_request {
-            audio.request_playhead();
+            if let Err(e) = audio.request_playhead() {
+                remani_warn!("Error requesting audio playhead: {}", e);
+            }
             self.first_playhead_request = true;
         } else if let Some((instant, playhead)) = audio.get_playhead() {
             let d = instant.elapsed();
@@ -78,7 +80,10 @@ impl GameScene {
                 self.time = (self.time + new_time) / 2.0;
             }
             self.last_instant = time::Instant::now();
-            audio.request_playhead();
+
+            if let Err(e) = audio.request_playhead() {
+                remani_warn!("Error requesting audio playhead: {}", e);
+            }
         } else {
             let d = self.last_instant.elapsed();
             self.time += d.as_secs() as f64 + d.subsec_nanos() as f64 / 1_000_000_000.0;
