@@ -1,7 +1,7 @@
 TODO list
 =========
 
-- [ ] Fix long note hitburst animation ending (currently just abruptly disappears)
+- [x] Fix long note hitburst animation ending (currently just abruptly disappears)
 - [ ] Config file and more fleshed out config system in general
 - [ ] Options menu (waiting on config system)
 

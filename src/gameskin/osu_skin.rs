@@ -51,6 +51,9 @@ impl fmt::Display for NoteBodyStyleParseError {
 enum HitAnimState {
     SingleNote(time::Instant),
     LongNote(time::Instant),
+    /// Time when the animation started, and time when the animation was told to
+    /// finish whatever is left.
+    LongNoteFinal(time::Instant, time::Instant),
     None,
 }
 
@@ -105,7 +108,7 @@ struct OsuSkinConfig {
     column_start: u16,
     column_width: [u16; 7],
     column_spacing: [u16; 6],
-    column_line_width: [u16; 8],
+    column_line_width: [u16; 8], // TODO implement
     hit_position: u16,
     score_position: u16,
     light_position: u16,
@@ -159,7 +162,7 @@ impl<G: Graphics> GameSkin<G> for OsuSkin<G> {
                 self.draw_note(draw_state, transform, g, stage_height, pos, column);
             }
         }
-        // TODO the weird fade in/out thing osu does
+
         self.draw_hit_anims(
             &DrawState::default().blend(draw_state::Blend::Add),
             transform,
@@ -215,7 +218,10 @@ impl<G: Graphics> GameSkin<G> for OsuSkin<G> {
     }
 
     fn long_note_hit_anim_stop(&mut self, column: usize) {
-        self.anim_states.hit_anim[column] = HitAnimState::None;
+        match self.anim_states.hit_anim[column] {
+            HitAnimState::LongNote(time) => self.anim_states.hit_anim[column] = HitAnimState::LongNoteFinal(time, time::Instant::now()),
+            _ => self.anim_states.hit_anim[column] = HitAnimState::None,
+        }
     }
 }
 
@@ -605,17 +611,14 @@ impl<G: Graphics> OsuSkin<G> {
                     + self.config.column_width[0..i].iter().sum::<u16>() as f64
                     + self.config.column_spacing[0..i].iter().sum::<u16>() as f64);
 
-            match hit_anim {
+            match *hit_anim {
                 HitAnimState::SingleNote(time) => {
-                    let frame = (time.elapsed().as_secs() as f64
-                        + time.elapsed().subsec_nanos() as f64 / 1_000_000_000.0)
-                        * 60.0;
-                    let uframe = frame as usize;
-                    if uframe > self.textures.lighting_n.len() - 1 {
+                    let frame = (time.elapsed() * 60).as_secs() as usize;
+                    if frame > self.textures.lighting_n.len() - 1 {
                         *hit_anim = HitAnimState::None;
                     } else {
-                        let hit_w = self.textures.lighting_n[uframe].get_width() as f64 * scale2;
-                        let hit_h = self.textures.lighting_n[uframe].get_height() as f64 * scale2;
+                        let hit_w = self.textures.lighting_n[frame].get_width() as f64 * scale2;
+                        let hit_h = self.textures.lighting_n[frame].get_height() as f64 * scale2;
                         let hit_img = Image::new().rect([
                             hit_x - hit_w / 2.0 + key_width / 2.0,
                             hit_p - hit_h / 2.0,
@@ -623,7 +626,7 @@ impl<G: Graphics> OsuSkin<G> {
                             hit_h,
                         ]);
                         hit_img.draw(
-                            self.textures.lighting_n[uframe].deref(),
+                            self.textures.lighting_n[frame].deref(),
                             draw_state,
                             transform,
                             g,
@@ -631,12 +634,9 @@ impl<G: Graphics> OsuSkin<G> {
                     }
                 }
                 HitAnimState::LongNote(time) => {
-                    let frame = (time.elapsed().as_secs() as f64
-                        + time.elapsed().subsec_nanos() as f64 / 1_000_000_000.0)
-                        * 60.0;
-                    let uframe = frame as usize % self.textures.lighting_l.len();
-                    let hit_w = self.textures.lighting_l[uframe].get_width() as f64 * scale2;
-                    let hit_h = self.textures.lighting_l[uframe].get_height() as f64 * scale2;
+                    let frame = (time.elapsed() * 60).as_secs() as usize % self.textures.lighting_l.len();
+                    let hit_w = self.textures.lighting_l[frame].get_width() as f64 * scale2;
+                    let hit_h = self.textures.lighting_l[frame].get_height() as f64 * scale2;
                     let hit_img = Image::new().rect([
                         hit_x - hit_w / 2.0 + key_width / 2.0,
                         hit_p - hit_h / 2.0,
@@ -644,11 +644,38 @@ impl<G: Graphics> OsuSkin<G> {
                         hit_h,
                     ]);
                     hit_img.draw(
-                        self.textures.lighting_l[uframe].deref(),
+                        self.textures.lighting_l[frame].deref(),
                         draw_state,
                         transform,
                         g,
                     );
+                }
+                HitAnimState::LongNoteFinal(start, end) => {
+                    let diff = end - start;
+                    let elapsed = start.elapsed();
+
+                    let anim_count1 = (diff * 60 / self.textures.lighting_l.len() as u32).as_secs();
+                    let anim_count2 = (elapsed * 60 / self.textures.lighting_l.len() as u32).as_secs();
+
+                    if anim_count2 > anim_count1 {
+                        *hit_anim = HitAnimState::None;
+                    } else {
+                        let frame = (elapsed * 60).as_secs() as usize % self.textures.lighting_l.len();
+                        let hit_w = self.textures.lighting_l[frame].get_width() as f64 * scale2;
+                        let hit_h = self.textures.lighting_l[frame].get_height() as f64 * scale2;
+                        let hit_img = Image::new().rect([
+                            hit_x - hit_w / 2.0 + key_width / 2.0,
+                            hit_p - hit_h / 2.0,
+                            hit_w,
+                            hit_h,
+                        ]);
+                        hit_img.draw(
+                            self.textures.lighting_l[frame].deref(),
+                            draw_state,
+                            transform,
+                            g,
+                        );
+                    }
                 }
                 HitAnimState::None => (),
             }
