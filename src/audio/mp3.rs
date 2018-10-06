@@ -1,6 +1,6 @@
 //! Load MP3 files
 
-use crate::audio::MusicStream;
+use crate::audio::GenericMusicStream;
 
 use std::{io, iter::Peekable};
 
@@ -84,7 +84,7 @@ impl<R: io::Read + Send> Iterator for MP3Samples<R> {
 unsafe impl<R: io::Read + Send> Send for MP3Samples<R> {}
 
 /// Create a stream that reads from an mp3
-pub fn decode<R: io::Read + Send + 'static>(reader: R) -> Result<MusicStream<f32>, String> {
+pub(super) fn decode<R: io::Read + Send + 'static>(reader: R) -> Result<GenericMusicStream<impl Iterator<Item = f32> + Send, f32>, String> {
     let mut decoder = match Decoder::decode(reader) {
         Ok(d) => d.peekable(),
         Err(e) => return Err(format!("{:?}", e)),
@@ -106,8 +106,8 @@ pub fn decode<R: io::Read + Send + 'static>(reader: R) -> Result<MusicStream<f32
         channel_count = frame.samples.len();
     }
 
-    Ok(MusicStream {
-        samples: Box::new(MP3Samples::new(decoder)),
+    Ok(GenericMusicStream {
+        samples: MP3Samples::new(decoder),
         channel_count: channel_count as u8,
         sample_rate,
     })

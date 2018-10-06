@@ -23,6 +23,7 @@ serde = "1.0"
 serde_derive = "1.0"
 directories = "1.0"
 hound = { optional = true, version = "3.4" }
+either = "1.5"
 
 [features]
 default = ["mp3", "wav"]

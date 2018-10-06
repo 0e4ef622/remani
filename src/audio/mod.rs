@@ -30,6 +30,14 @@ pub struct MusicStream<S: cpal::Sample> {
     sample_rate: u32,
 }
 
+/// Gets converted into a MusicStream after resampling. Used to avoid
+/// unnecessary extra dynamic dispatch.
+struct GenericMusicStream<I: Iterator<Item = S> + Send, S: cpal::Sample> {
+    samples: I,
+    channel_count: u8,
+    sample_rate: u32,
+}
+
 impl<S: cpal::Sample> Iterator for MusicStream<S> {
     type Item = S;
     fn next(&mut self) -> Option<S> {
@@ -336,9 +344,19 @@ impl error::Error for AudioLoadError {
     }
 }
 
-fn maybe_resample(stream: MusicStream<f32>, format: &cpal::Format) -> MusicStream<f32> {
+fn maybe_resample<I>(
+    stream: GenericMusicStream<I, f32>,
+    format: &cpal::Format
+) -> MusicStream<f32>
+where
+    I: Iterator<Item = f32> + Send + 'static
+{
     if stream.sample_rate == format.sample_rate.0 {
-        stream
+        MusicStream {
+            samples: Box::new(stream.samples),
+            channel_count: stream.channel_count,
+            sample_rate: stream.sample_rate,
+        }
     } else {
         resample::from_music_stream(stream, format.sample_rate.0)
     }
@@ -357,13 +375,13 @@ pub fn music_from_path<P: AsRef<Path>>(
 
     let stream = match extension.as_ref().map(String::as_str) {
         #[cfg(feature = "mp3")]
-        Some("mp3") => mp3::decode(file).map_err(AudioLoadError::from)?,
+        Some("mp3") => maybe_resample(mp3::decode(file).map_err(AudioLoadError::from)?, format),
 
         #[cfg(feature = "wav")]
-        Some("wav") => wav::decode(file).map_err(AudioLoadError::from)?,
+        Some("wav") => maybe_resample(wav::decode(file).map_err(AudioLoadError::from)?, format),
 
         Some(s) => return Err(AudioLoadError::UnsupportedFormat(s.into())),
         None => return Err(AudioLoadError::UnsupportedFormat("No extension".into())),
     };
-    Ok(maybe_resample(stream, format))
+    Ok(stream)
 }
