@@ -110,7 +110,6 @@ impl Model {
 
                         let timing = note.time - time;
                         if note.end_time.is_some() {
-                            println!("LN {} press: {:+.3}", key_index, timing);
                             debug_assert_eq!(long_notes_held[key_index], None);
                             long_notes_held[key_index] = Some(note_index);
                         }
@@ -150,7 +149,7 @@ impl Model {
                     callback(key_index);
                     *key_down = false;
                     if let Some(note_index) = long_notes_held[key_index] {
-                        println!("LN {} release: {:+.3}", key_index, chart.notes[note_index].end_time.unwrap() - time);
+                        let _timing = chart.notes[note_index].end_time.unwrap() - time;
                         long_notes_held[key_index] = None;
                     }
                 }
