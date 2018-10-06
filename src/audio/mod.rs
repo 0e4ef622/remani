@@ -2,6 +2,8 @@
 
 #[cfg(feature = "mp3")]
 mod mp3;
+#[cfg(feature = "wav")]
+mod wav;
 
 mod resample;
 
@@ -292,6 +294,7 @@ use std::path::Path;
 pub enum AudioLoadError {
     Io(io::Error),
     Decode(String),
+    UnsupportedFormat(String),
 }
 
 impl From<io::Error> for AudioLoadError {
@@ -311,6 +314,7 @@ impl fmt::Display for AudioLoadError {
         match *self {
             AudioLoadError::Io(ref e) => write!(f, "IO error: {}", e),
             AudioLoadError::Decode(ref s) => write!(f, "Decode error: {}", s),
+            AudioLoadError::UnsupportedFormat(ref s) => write!(f, "Unsupported format: {}", s),
         }
     }
 }
@@ -320,13 +324,23 @@ impl error::Error for AudioLoadError {
         match *self {
             AudioLoadError::Io(_) => "IO error",
             AudioLoadError::Decode(_) => "Decode error",
+            AudioLoadError::UnsupportedFormat(_) => "Unsupported format",
         }
     }
     fn cause(&self) -> Option<&dyn error::Error> {
         match *self {
             AudioLoadError::Io(ref e) => Some(e),
             AudioLoadError::Decode(_) => None,
+            AudioLoadError::UnsupportedFormat(_) => None,
         }
+    }
+}
+
+fn maybe_resample(stream: MusicStream<f32>, format: &cpal::Format) -> MusicStream<f32> {
+    if stream.sample_rate == format.sample_rate.0 {
+        stream
+    } else {
+        resample::from_music_stream(stream, format.sample_rate.0)
     }
 }
 
@@ -341,17 +355,15 @@ pub fn music_from_path<P: AsRef<Path>>(
         .and_then(ffi::OsStr::to_str)
         .map(str::to_lowercase);
 
-    match extension.as_ref().map(String::as_str) {
+    let stream = match extension.as_ref().map(String::as_str) {
         #[cfg(feature = "mp3")]
-        Some("mp3") => {
-            let stream = mp3::decode(file).map_err(AudioLoadError::from)?;
-            if stream.sample_rate == format.sample_rate.0 {
-                Ok(stream)
-            } else {
-                Ok(resample::from_music_stream(stream, format.sample_rate.0))
-            }
-        }
+        Some("mp3") => mp3::decode(file).map_err(AudioLoadError::from)?,
 
-        _ => panic!("Unsupported format"),
-    }
+        #[cfg(feature = "wav")]
+        Some("wav") => wav::decode(file).map_err(AudioLoadError::from)?,
+
+        Some(s) => return Err(AudioLoadError::UnsupportedFormat(s.into())),
+        None => return Err(AudioLoadError::UnsupportedFormat("No extension".into())),
+    };
+    Ok(maybe_resample(stream, format))
 }
