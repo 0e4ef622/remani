@@ -2,7 +2,7 @@
 
 use remani::audio;
 
-use std::{ffi::OsStr, env, path, error::Error, thread};
+use std::{ffi::OsStr, env, path, error::Error, thread, time};
 
 fn output_help(binary_name: &OsStr) {
     println!("Usage:  {} path/to/music/file", binary_name.to_string_lossy());
@@ -24,5 +24,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     if audio.play_music(music).is_err() {
         Err("Error sending music to audio thread")?;
     }
-    loop { thread::park(); }
+    audio.request_status();
+    while audio.get_status().map(|s| {
+        audio.request_status();
+        s.is_playing_music
+    }).unwrap_or(true) {
+        thread::sleep(time::Duration::from_millis(500));
+    }
+    Ok(())
 }

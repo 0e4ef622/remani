@@ -77,6 +77,12 @@ impl<T: Copy> Iterator for ArcIter<T> {
     }
 }
 
+/// Contains information such as whether the audio thread is currently playing music or not.
+#[derive(Debug, Clone, Copy)]
+pub struct AudioStatus {
+    pub is_playing_music: bool,
+}
+
 /// A handle to the audio thread that lets you send music and effects to play.
 pub struct Audio<S: cpal::Sample> {
     music_sender: mpsc::SyncSender<MusicStream<S>>,
@@ -85,8 +91,16 @@ pub struct Audio<S: cpal::Sample> {
     /// Used by `request_playhead()` to ask the audio thread to send the playback time to playhead_rcv.
     request_playhead_sender: mpsc::SyncSender<()>,
 
-    /// Gives the time of the samples that were just sent. (See request_playhead)
+    /// Used by `request_status` to ask the audio thread to send it's status the next time it
+    /// loops.
+    request_status_sender: mpsc::SyncSender<()>,
+
+    /// Gives the time of the samples that were just sent. (See `request_playhead`)
     playhead_rcv: mpsc::Receiver<(time::Instant, f64)>,
+
+    /// Gives the status of the audio thread. (See `request_status` and `AudioStatus` for more
+    /// information)
+    status_rcv: mpsc::Receiver<AudioStatus>,
 
     /// The format of the audio device being used
     format: cpal::Format,
@@ -114,7 +128,8 @@ impl<S: cpal::Sample> Audio<S> {
             })
     }
 
-    /// Sends a request to the audio thread for the current playhead of the music.
+    /// Sends a request to the audio thread for the current playhead of the music. `get_playhead`
+    /// needs to be called afterwards to actually get the playhead.
     pub fn request_playhead(&self) -> Result<(), mpsc::TrySendError<()>> {
         self.request_playhead_sender.try_send(())
     }
@@ -123,6 +138,14 @@ impl<S: cpal::Sample> Audio<S> {
     /// that the playhead was sent, and the playhead in seconds.
     pub fn get_playhead(&self) -> Option<(time::Instant, f64)> {
         self.playhead_rcv.try_recv().ok()
+    }
+
+    pub fn request_status(&self) -> Result<(), mpsc::TrySendError<()>> {
+        self.request_status_sender.try_send(())
+    }
+
+    pub fn get_status(&self) -> Option<AudioStatus> {
+        self.status_rcv.try_recv().ok()
     }
 
     pub fn format(&self) -> &cpal::Format {
@@ -193,7 +216,9 @@ pub fn start_audio_thread(mut audio_buffer_size: cpal::BufferSize) -> Result<Aud
     event_loop.play_stream(stream_id.clone());
 
     let (request_playhead_tx, request_playhead_rx) = mpsc::sync_channel(1);
+    let (request_status_tx, request_status_rx) = mpsc::sync_channel(1);
     let (send_playhead_tx, send_playhead_rx) = mpsc::sync_channel(4);
+    let (send_status_tx, send_status_rx) = mpsc::sync_channel(4);
     let (music_tx, music_rx) = mpsc::sync_channel(2);
     let (effect_tx, effect_rx) = mpsc::sync_channel::<ArcIter<f32>>(128);
 
@@ -221,6 +246,9 @@ pub fn start_audio_thread(mut audio_buffer_size: cpal::BufferSize) -> Result<Aud
             if request_playhead_rx.try_recv().is_ok() {
                 send_playhead_tx.try_send((time::Instant::now(), current_music_frame_index as f64 / sample_rate as f64));
             }
+            if request_status_rx.try_recv().is_ok() {
+                send_status_tx.try_send(AudioStatus { is_playing_music: music.is_some() });
+            }
 
             // Get samples and mix them
             let mut s = |effects: &mut VecDeque<Peekable<ArcIter<f32>>>| {
@@ -242,7 +270,7 @@ pub fn start_audio_thread(mut audio_buffer_size: cpal::BufferSize) -> Result<Aud
                 s / 2.0 // TODO don't do this and maybe have a volume setting control this? ¯\_(ツ)_/¯
             };
 
-            match data {
+            match data { // TODO vectorize?
                 cpal::StreamData::Output { buffer: cpal::UnknownTypeOutputBuffer::U16(mut buffer) } => {
                     for frame in buffer.chunks_mut(channel_count) {
                         for sample in frame.iter_mut() {
@@ -288,6 +316,8 @@ pub fn start_audio_thread(mut audio_buffer_size: cpal::BufferSize) -> Result<Aud
 
         request_playhead_sender: request_playhead_tx,
         playhead_rcv: send_playhead_rx,
+        request_status_sender: request_status_tx,
+        status_rcv: send_status_rx,
 
         format,
     })
