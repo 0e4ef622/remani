@@ -4,6 +4,8 @@
 mod mp3;
 #[cfg(feature = "wav")]
 mod wav;
+#[cfg(feature = "ogg")]
+mod ogg;
 
 mod resample;
 
@@ -409,6 +411,9 @@ pub fn music_from_path<P: AsRef<Path>>(
 
         #[cfg(feature = "wav")]
         Some("wav") => maybe_resample(wav::decode(file).map_err(AudioLoadError::from)?, format),
+
+        #[cfg(feature = "ogg")]
+        Some("ogg") => maybe_resample(ogg::decode(file).map_err(AudioLoadError::from)?, format),
 
         Some(s) => return Err(AudioLoadError::UnsupportedFormat(s.into())),
         None => return Err(AudioLoadError::UnsupportedFormat("No extension".into())),
