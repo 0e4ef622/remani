@@ -24,8 +24,10 @@ serde_derive = "1.0"
 directories = "1.0"
 hound = { optional = true, version = "3.4" }
 either = "1.5"
+lewton = { optional = true, version = "0.9" }
 
 [features]
-default = ["mp3", "wav"]
+default = ["mp3", "wav", "ogg"]
 mp3 = ["simplemad"]
 wav = ["hound"]
+ogg = ["lewton"]
