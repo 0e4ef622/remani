@@ -2,8 +2,6 @@
 
 use nom::*;
 
-use std::io::Read;
-
 #[derive(Debug)]
 struct Header {
     songid: i32,
@@ -91,12 +89,129 @@ named!(header(&[u8]) -> Header,
     )
 );
 
-use std::path::Path;
-use std::fs::File;
+/// Documentation largely copied from https://open2jam.wordpress.com/2010/10/05/the-notes-section/
+#[derive(Debug)]
+struct PackageHeader {
+    /// This is the measure in which the events inside this package will appear.
+    measure: i32,
+    /// channel meaning
+    ///
+    /// 0 measure fraction
+    ///
+    /// 1 BPM change
+    ///
+    /// 2 note on 1st lane
+    ///
+    /// 3 note on 2nd lane
+    ///
+    /// 4 note on 3rd lane
+    ///
+    /// 5 note on 4th lane(middle button)
+    ///
+    /// 6 note on 5th lane
+    ///
+    /// 7 note on 6th lane
+    ///
+    /// 8 note on 7th lane
+    ///
+    /// 9~22 auto-play samples(?)
+    channel: i16,
+    /// The number of events inside this package
+    events: i16,
+}
 
-pub fn dump_header<P: AsRef<Path>>(path: P) {
-    let mut buffer = [0; 300];
+named!(package_header(&[u8]) -> PackageHeader,
+    do_parse!(
+        measure: le_i32 >>
+        channel: le_i16 >>
+        events: le_i16 >>
+        (PackageHeader { measure, channel, events })
+    )
+);
+
+/// Documentation largely copied from https://open2jam.wordpress.com/2010/10/05/the-notes-section/
+#[derive(Debug)]
+struct NoteEvent {
+    /// Reference to the sample in the OJM file, unless this value is 0, in which case the entire
+    /// event is ignored
+    value: i16,
+    /// 0..=15, 0 is max volume,
+    volume: u8,
+    /// The panning of the sample, although this can also be controlled using stereo samples,
+    /// further control can be given by using different pans with the same sample (I guess).
+    ///
+    /// 1~7 = left -> center, 0 or 8 = center, 9~15 = center -> right.
+    pan: u8,
+    /// 0 = normal note
+    ///
+    /// 2 = long note start
+    ///
+    /// 3 = long note end
+    ///
+    /// 4 = "OGG sample" (???)
+    note_type: u8,
+}
+
+#[derive(Debug)]
+enum Events {
+    MeasureFraction(Vec<f32>),
+    BpmChange(Vec<f32>),
+    /// The first `usize` specifies the column
+    NoteEvent(usize, Vec<NoteEvent>),
+    /// The first i16 specifies the event id
+    Unknown(i16, Vec<[u8; 4]>),
+}
+
+named!(note_event(&[u8]) -> NoteEvent,
+    do_parse!(
+        value: le_i16 >>
+        volume_pan: le_u8 >>
+        note_type: le_u8 >>
+        (NoteEvent { value, volume: volume_pan >> 4, pan: volume_pan & 0xF, note_type })
+    )
+);
+
+#[derive(Debug)]
+struct Package {
+    measure: i32,
+    events: Events,
+}
+
+fn events(input: &[u8], channel: i16, event_count: i16) -> IResult<&[u8], Events> {
+    let event_count = event_count as usize;
+    match channel {
+        0 => map!(input, count!(le_f32, event_count), |v| Events::MeasureFraction(v)),
+        1 => map!(input, count!(le_f32, event_count), |v| Events::BpmChange(v)),
+        n @ 2..=8 => map!(input, count!(note_event, event_count), |v| Events::NoteEvent(n as usize, v)),
+        n => map!(input, count!(count_fixed!(u8, le_u8, 4), event_count), |v| Events::Unknown(n, v)),
+    }
+}
+
+named!(package(&[u8]) -> Package,
+    do_parse!(
+        header: package_header >>
+        events: apply!(events, header.channel, header.events) >>
+        (Package { measure: header.measure, events })
+    )
+);
+
+use std::{
+    fs::File,
+    io::{Read, Seek, SeekFrom},
+    path::Path,
+};
+
+pub fn dump_data<P: AsRef<Path>>(path: P) {
+    let mut hdr_buffer = [0; 300];
     let mut file = File::open(path).expect("Failed to open ojn file");
-    file.read_exact(&mut buffer).expect("error reading ojn file");
-    println!("{:#?}", header(&buffer));
+    file.read_exact(&mut hdr_buffer).expect("error reading ojn file");
+    let (_, hdr) = header(&hdr_buffer).unwrap();
+    println!("{:#?}", hdr);
+    let len = hdr.cover_offset - hdr.note_offset[2];
+    let mut notesection_buffer = vec![0; len as usize];
+    file.seek(SeekFrom::Start(hdr.note_offset[2] as u64)).unwrap();
+    file.read_exact(&mut notesection_buffer).expect("Error reading ojn file");
+    let (remaining, first_package) = package(&notesection_buffer).unwrap();
+    println!("first package: {:#?}", first_package);
+    //println!("second package: {:#?}", package(remaining).unwrap().1);
 }
