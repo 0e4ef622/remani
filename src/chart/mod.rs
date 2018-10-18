@@ -8,6 +8,7 @@ use std::{
 };
 
 mod osu;
+mod ojn;
 
 use self::osu::OsuParser;
 

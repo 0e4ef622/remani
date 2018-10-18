@@ -25,6 +25,7 @@ directories = "1.0"
 hound = { optional = true, version = "3.4" }
 either = "1.5"
 lewton = { optional = true, version = "0.9" }
+nom = "4.0"
 
 [features]
 default = ["mp3", "wav", "ogg"]
