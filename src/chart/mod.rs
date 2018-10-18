@@ -7,9 +7,9 @@ use std::{
     path::{Path, PathBuf},
 };
 
-mod osu_parser;
+mod osu;
 
-use self::osu_parser::OsuParser;
+use self::osu::OsuParser;
 
 /// Either a long note or a regular note. The existence of end_time signifies whether this is a long
 /// note or not.

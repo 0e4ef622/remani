@@ -48,7 +48,7 @@ pub(super) fn decode<R: io::Read + io::Seek + Send + 'static>(
     reader: R,
 ) -> Result<GenericMusicStream<impl Iterator<Item = f32> + Send, f32>, String> {
 
-    let mut ogg_reader = lewton::inside_ogg::OggStreamReader::new(reader)
+    let ogg_reader = lewton::inside_ogg::OggStreamReader::new(reader)
         .map_err(|e| format!("Failed to read ogg: {}", e))?;
 
     let channel_count = ogg_reader.ident_hdr.audio_channels;

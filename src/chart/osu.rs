@@ -593,6 +593,7 @@ impl ChartParser for OsuParser {
         for (line_num, line) in lines.enumerate() {
             match line {
                 Ok(line) => cvt_err!(
+                    // + 1 because 0 based index, + 1 for the line we read earlier
                     format!("Error on line {} of .osu file", line_num + 2),
                     self.parse_line(line.trim())
                 )?,
@@ -606,7 +607,7 @@ impl ChartParser for OsuParser {
 
 #[cfg(test)]
 mod tests {
-    use crate::chart::osu_parser::*;
+    use crate::chart::osu::*;
 
     /// Test hit object parser
     #[test]
