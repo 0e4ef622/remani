@@ -1,8 +1,13 @@
 //! Osu chart parser module
 
-use std::{cmp::Ordering, io, path::PathBuf};
+use std::{
+    cmp::Ordering,
+    fs::File,
+    io::{self, BufRead},
+    path::{Path, PathBuf}
+};
 
-use crate::chart::{self, Chart, ChartParser, Note, ParseError};
+use crate::chart::{self, audio, Chart, Note, ParseError};
 
 /// Convert Err values to ParseError
 macro_rules! cvt_err {
@@ -450,8 +455,57 @@ struct IncompleteChart {
     music_path: Option<PathBuf>,
 }
 
+/// See [`Chart`]
+///
+/// [`Chart`]: ../trait.Chart.html
+struct OsuChart {
+    notes: Vec<Note>,
+    timing_points: Vec<chart::TimingPoint>,
+    primary_bpm: f64,
+    creator: Option<String>,
+    artist: Option<String>,
+    artist_unicode: Option<String>,
+    song_name: Option<String>,
+    song_name_unicode: Option<String>,
+    difficulty_name: String,
+    music: PathBuf,
+}
+
+impl Chart for OsuChart {
+    fn notes(&self) -> &[Note] {
+        &self.notes
+    }
+    fn timing_points(&self) -> &[chart::TimingPoint] {
+        &self.timing_points
+    }
+    fn primary_bpm(&self) -> f64 {
+        self.primary_bpm
+    }
+    fn creator(&self) -> Option<&str> {
+        self.creator.as_ref().map(|s| &**s)
+    }
+    fn artist(&self) -> Option<&str> {
+        self.artist.as_ref().map(|s| &**s)
+    }
+    fn artist_unicode(&self) -> Option<&str> {
+        self.artist_unicode.as_ref().map(|s| &**s)
+    }
+    fn song_name(&self) -> Option<&str> {
+        self.song_name.as_ref().map(|s| &**s)
+    }
+    fn song_name_unicode(&self) -> Option<&str> {
+        self.song_name_unicode.as_ref().map(|s| &**s)
+    }
+    fn difficulty_name(&self) -> &str {
+        &self.difficulty_name
+    }
+    fn music(&mut self, format: &cpal::Format) -> Result<audio::MusicStream, audio::AudioLoadError> {
+        audio::music_from_path(&self.music, format)
+    }
+}
+
 impl IncompleteChart {
-    fn finalize(self) -> Result<Chart, ParseError> {
+    fn finalize(self, chart_path: impl AsRef<Path>) -> Result<OsuChart, ParseError> {
         let timing_points = self
             .timing_points
             .into_iter()
@@ -504,7 +558,7 @@ impl IncompleteChart {
                 .unwrap_or(150.0)
         };
 
-        Ok(Chart {
+        Ok(OsuChart {
             notes,
             timing_points,
             primary_bpm,
@@ -515,15 +569,11 @@ impl IncompleteChart {
             song_name_unicode: self.song_name_unicode,
             difficulty_name: self.difficulty_name.unwrap_or(String::from("Unnamed")),
 
-            music_path: match self.music_path {
-                Some(s) => s,
-                None => {
-                    return Err(ParseError::Parse(
-                        String::from("Could not find audio file"),
-                        None,
-                    ))
-                }
-            },
+            music: chart_path
+                .as_ref()
+                .join(self
+                    .music_path
+                    .ok_or(ParseError::Parse(String::from("Could not find audio file"), None))?)
         })
     }
 }
@@ -541,7 +591,7 @@ struct OsuTimingPoint {
 
 /// Parses .osu charts and returns a `Chart`
 #[derive(Default)]
-pub struct OsuParser {
+struct OsuParser {
     current_section: Option<String>,
     chart: IncompleteChart,
 }
@@ -570,39 +620,47 @@ impl OsuParser {
     }
 }
 
-impl ChartParser for OsuParser {
-    fn parse<R: io::BufRead>(mut self, reader: R) -> Result<Chart, ParseError> {
-        macro_rules! read_error {
-            ($e:expr) => {
-                Err(ParseError::Io(String::from("Error reading chart"), $e))
-            };
+/// Takes a path to the .osu file
+pub fn from_path<P: AsRef<Path>>(path: P) -> Result<impl Chart, ParseError> {
+    let file = match File::open(&path) {
+        Ok(f) => f,
+        Err(e) => {
+            return Err(ParseError::Io(format!("Error opening {}", path.as_ref().display()), e))
         }
-
-        let mut lines = reader.lines();
-        let line = match lines.next() {
-            Some(r) => match r {
-                Ok(s) => s,
-                Err(e) => return read_error!(e),
-            },
-            None => return Err(ParseError::InvalidFile),
+    };
+    let reader = io::BufReader::new(file);
+    let mut parser = OsuParser::default();
+    macro_rules! read_error {
+        ($e:expr) => {
+            Err(ParseError::Io(String::from("Error reading chart"), $e))
         };
-
-        let version = verify(line.as_str())?;
-        println!("File Format Version {}", version);
-
-        for (line_num, line) in lines.enumerate() {
-            match line {
-                Ok(line) => cvt_err!(
-                    // + 1 because 0 based index, + 1 for the line we read earlier
-                    format!("Error on line {} of .osu file", line_num + 2),
-                    self.parse_line(line.trim())
-                )?,
-                Err(e) => return read_error!(e),
-            }
-        }
-
-        Ok(self.chart.finalize()?)
     }
+
+    let mut lines = reader.lines();
+    let line = match lines.next() {
+        Some(r) => match r {
+            Ok(s) => s,
+            Err(e) => return read_error!(e),
+        },
+        None => return Err(ParseError::InvalidFile),
+    };
+
+    let version = verify(line.as_str())?;
+    println!("File Format Version {}", version);
+
+    for (line_num, line) in lines.enumerate() {
+        match line {
+            Ok(line) => cvt_err!(
+                // + 1 because 0 based index, + 1 for the line we read earlier
+                format!("Error on line {} of .osu file", line_num + 2),
+                parser.parse_line(line.trim())
+            )?,
+            Err(e) => return read_error!(e),
+        }
+    }
+    // this unwrap shouldn't ever panic since an error would've been returned from trying to open
+    // the file earlier
+    Ok(parser.chart.finalize(path.as_ref().parent().unwrap())?)
 }
 
 #[cfg(test)]

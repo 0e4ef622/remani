@@ -47,7 +47,7 @@ impl Model {
         &mut self,
         _args: UpdateArgs,
         config: &Config,
-        chart: &Chart,
+        chart: &dyn Chart,
         time: f64,
         mut miss_callback: F,
     ) {
@@ -56,7 +56,7 @@ impl Model {
 
         for (column, note_vec) in self.next_notes.iter().enumerate() {
             for &note_index in note_vec {
-                let note = &chart.notes[note_index];
+                let note = &chart.notes()[note_index];
                 if let Some(end_time) = note.end_time {
                     // TODO dont hardcode timing windows
                     if end_time - time < -0.3 {
@@ -76,11 +76,11 @@ impl Model {
             }
         }
 
-        while chart.notes.get(self.current_note_index)
+        while chart.notes().get(self.current_note_index)
             .map(|n| n.time - time < config.game.current_judge().1.miss_tolerance)
             .unwrap_or(false) {
 
-            self.next_notes[chart.notes[self.current_note_index].column]
+            self.next_notes[chart.notes()[self.current_note_index].column]
                 .push_back(self.current_note_index);
             self.current_note_index += 1;
         }
@@ -91,7 +91,7 @@ impl Model {
         &mut self,
         args: &Button,
         config: &Config,
-        chart: &Chart,
+        chart: &dyn Chart,
         time: f64,
         mut callback: F,
     ) {
@@ -105,7 +105,7 @@ impl Model {
             .for_each(|((key_index, key_binding), key_down)| {
                 if *args == *key_binding && !*key_down {
                     let judgement = if let Some(&note_index) = next_notes[key_index].get(0) {
-                        let note = &chart.notes[note_index];
+                        let note = &chart.notes()[note_index];
                         next_notes[key_index].pop_front();
 
                         let timing = note.time - time;
@@ -135,7 +135,7 @@ impl Model {
         &mut self,
         args: &Button,
         config: &Config,
-        chart: &Chart,
+        chart: &dyn Chart,
         time: f64,
         mut callback: F,
     ) {
@@ -149,7 +149,7 @@ impl Model {
                     callback(key_index);
                     *key_down = false;
                     if let Some(note_index) = long_notes_held[key_index] {
-                        let _timing = chart.notes[note_index].end_time.unwrap() - time;
+                        let _timing = chart.notes()[note_index].end_time.unwrap() - time;
                         long_notes_held[key_index] = None;
                     }
                 }

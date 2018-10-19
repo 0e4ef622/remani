@@ -1,4 +1,3 @@
-use cpal;
 use crate::audio::{GenericMusicStream, MusicStream};
 use std::iter::Peekable;
 

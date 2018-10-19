@@ -1,6 +1,6 @@
 //! Holds the main game logic
 
-use std::{path::Path, time};
+use std::time;
 
 use opengl_graphics;
 use piston::{
@@ -17,7 +17,7 @@ use super::Window;
 use crate::{audio, chart::Chart, config::Config, judgement::Judgement, gameskin};
 
 pub struct GameScene {
-    chart: Chart,
+    chart: Box<dyn Chart>,
     music: Option<audio::MusicStream>,
     view: View<opengl_graphics::GlGraphics>,
     model: Model,
@@ -29,11 +29,9 @@ pub struct GameScene {
 
 impl GameScene {
     /// Allocate and initialize everything
-    pub fn new(chart: Chart, config: &Config, audio: &audio::Audio) -> Self {
-        let music = audio::music_from_path(
-            Path::new("test/test_chart").join(&chart.music_path),
-            audio.format(),
-        ).unwrap();
+    pub fn new(mut chart: Box<dyn Chart>, config: &Config, audio: &audio::Audio) -> Self {
+        // FIXME this unwrap
+        let music = chart.music(audio.format()).unwrap();
         let the_skin = gameskin::from_path(&mut (), &config.game.current_skin().1, config).unwrap();
 
         let model = Model::new();
@@ -92,7 +90,7 @@ impl GameScene {
 
         if let Some(u) = e.update_args() {
             let view = &mut self.view;
-            self.model.update(u, config, &self.chart, self.time, |k| {
+            self.model.update(u, config, &*self.chart, self.time, |k| {
                 view.draw_judgement(k, Judgement::Miss)
             });
         }
@@ -100,7 +98,7 @@ impl GameScene {
         if let Some(i) = e.press_args() {
             let view = &mut self.view;
             self.model
-                .press(&i, config, &self.chart, self.time, |k, j| {
+                .press(&i, config, &*self.chart, self.time, |k, j| {
                     if let Some(j) = j {
                         view.draw_judgement(k, j);
                     }
@@ -111,13 +109,13 @@ impl GameScene {
         if let Some(i) = e.release_args() {
             let view = &mut self.view;
             self.model
-                .release(&i, config, &self.chart, self.time, |k| view.key_up(k));
+                .release(&i, config, &*self.chart, self.time, |k| view.key_up(k));
         }
 
         if let Some(r) = e.render_args() {
             window.gl.draw(r.viewport(), |c, mut gl| {
                 self.view
-                    .render(c, &mut gl, &r, config, &self.chart, &self.model, self.time);
+                    .render(c, &mut gl, &r, config, &*self.chart, &self.model, self.time);
             });
         }
     }

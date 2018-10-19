@@ -7,7 +7,7 @@ use piston::{
 use texture::{ImageSize, TextureSettings};
 
 use super::{game, Scene, Window};
-use crate::{audio, chart::Chart, config::Config};
+use crate::{audio, chart, config::Config};
 
 pub struct MainMenu {
     play_texture: Texture,
@@ -48,14 +48,14 @@ impl MainMenu {
 
         if let Some(i) = e.press_args() {
             if i == Button::Mouse(mouse::MouseButton::Left) && self.mouse_position[1] < self.window_height / 3.0 {
-                let chart = match Chart::from_path("test/test_chart/test.osu") {
+                let chart = match chart::osu::from_path("test/test_chart/test.osu") {
                     Ok(x) => x,
                     Err(e) => {
                         println!("{}", e);
                         panic!();
                     }
                 };
-                window.change_scene(Scene::Game(game::GameScene::new(chart, config, audio)));
+                window.change_scene(Scene::Game(game::GameScene::new(Box::new(chart), config, audio)));
             }
         }
 

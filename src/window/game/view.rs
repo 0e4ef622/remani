@@ -50,14 +50,14 @@ impl<G: Graphics> View<G> {
         g: &mut G,
         args: &RenderArgs,
         config: &Config,
-        chart: &chart::Chart,
+        chart: &dyn chart::Chart,
         model: &Model,
         time: f64,
     ) {
         graphics::clear([0.0; 4], g);
 
         // manage self.current_timing_point_index
-        while chart.timing_points
+        while chart.timing_points()
             .get(self.current_timing_point_index + 1)
             .filter(|tp| time > tp.offset)
             .is_some()
@@ -67,7 +67,7 @@ impl<G: Graphics> View<G> {
 
         let mut add_next_note_index = 0;
 
-        for (index, note) in chart.notes[self.next_note_index..].iter().enumerate() {
+        for (index, note) in chart.notes()[self.next_note_index..].iter().enumerate() {
             let note_pos = calc_pos(
                 time,
                 note.time,
@@ -86,7 +86,7 @@ impl<G: Graphics> View<G> {
         self.next_note_index += add_next_note_index;
 
         for (index, &note_index) in self.notes_on_screen_indices.iter().enumerate() {
-            let note = &chart.notes[note_index];
+            let note = &chart.notes()[note_index];
             if let Some(end_time) = note.end_time {
                 if note.time - time < 0.0 && !self.long_notes_held[note.column] {
                     self.skin.long_note_hit_anim_start(note.column);
@@ -114,7 +114,7 @@ impl<G: Graphics> View<G> {
         let current_timing_point_index = self.current_timing_point_index; // rust pls fix closures
         self.notes_pos
             .extend(self.notes_on_screen_indices.iter().map(|&i| {
-                let note = &chart.notes[i];
+                let note = &chart.notes()[i];
 
                 let pos = calc_pos(
                     time,
@@ -166,11 +166,11 @@ impl<G: Graphics> View<G> {
 fn calc_pos(
     current_time: f64,
     time: f64,
-    chart: &chart::Chart,
+    chart: &dyn chart::Chart,
     scroll_speed: f64,
     current_timing_point_index: usize,
 ) -> f64 {
-    let mut iterator = chart.timing_points[current_timing_point_index..]
+    let mut iterator = chart.timing_points()[current_timing_point_index..]
         .iter()
         .take_while(|tp| tp.offset < time)
         .peekable();
@@ -178,7 +178,7 @@ fn calc_pos(
     let mut last_sv_tp: Option<&chart::TimingPoint> = None;
     let mut last_bpm_tp: Option<&chart::TimingPoint> = {
         // it should be the first timing point, but if it's not, the map is still playable
-        match chart.timing_points.first() {
+        match chart.timing_points().first() {
             Some(tp) if tp.is_bpm() => Some(tp),
             Some(_) => None,
             None => {
@@ -205,7 +205,7 @@ fn calc_pos(
     let mut pos: f64;
 
     let value = last_bpm_tp
-        .map(|t| t.value.inner() / chart.primary_bpm)
+        .map(|t| t.value.inner() / chart.primary_bpm())
         .unwrap_or(1.0)
         * last_sv_tp.map(|t| t.value.inner()).unwrap_or(1.0);
 
@@ -218,13 +218,13 @@ fn calc_pos(
     while let Some(tp) = iterator.next() {
         let value = if tp.is_sv() {
             last_bpm_tp
-                .map(|t| t.value.inner() / chart.primary_bpm)
+                .map(|t| t.value.inner() / chart.primary_bpm())
                 .unwrap_or(1.0)
                 * tp.value.inner()
         } else {
             // bpm timing point
             last_bpm_tp = Some(tp);
-            tp.value.inner() / chart.primary_bpm
+            tp.value.inner() / chart.primary_bpm()
         };
 
         if let Some(ntp) = iterator.peek() {
