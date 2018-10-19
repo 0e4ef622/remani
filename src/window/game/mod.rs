@@ -18,7 +18,7 @@ use crate::{audio, chart::Chart, config::Config, judgement::Judgement, gameskin}
 
 pub struct GameScene {
     chart: Chart,
-    music: Option<audio::MusicStream<f32>>,
+    music: Option<audio::MusicStream>,
     view: View<opengl_graphics::GlGraphics>,
     model: Model,
     time: f64,
@@ -29,7 +29,7 @@ pub struct GameScene {
 
 impl GameScene {
     /// Allocate and initialize everything
-    pub fn new(chart: Chart, config: &Config, audio: &audio::Audio<f32>) -> Self {
+    pub fn new(chart: Chart, config: &Config, audio: &audio::Audio) -> Self {
         let music = audio::music_from_path(
             Path::new("test/test_chart").join(&chart.music_path),
             audio.format(),
@@ -56,7 +56,7 @@ impl GameScene {
         &mut self,
         e: piston::input::Event,
         config: &Config,
-        audio: &audio::Audio<f32>,
+        audio: &audio::Audio,
         window: &mut Window,
     ) {
         if self.music.is_some() {

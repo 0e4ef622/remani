@@ -19,7 +19,7 @@ impl Scene {
         &mut self,
         e: piston::input::Event,
         cfg: &Config,
-        audio: &audio::Audio<f32>,
+        audio: &audio::Audio,
         window: &mut Window,
     ) {
         match *self {

@@ -16,7 +16,7 @@ use std::{
 use cpal::{self, Sample};
 
 #[derive(Debug, Clone)]
-pub struct EffectStream<S: cpal::Sample>(Arc<Vec<S>>);
+pub struct EffectStream<S: cpal::Sample = f32>(Arc<Vec<S>>);
 
 impl<S: cpal::Sample> From<Arc<Vec<S>>> for EffectStream<S> {
     fn from(a: Arc<Vec<S>>) -> Self {
@@ -25,7 +25,7 @@ impl<S: cpal::Sample> From<Arc<Vec<S>>> for EffectStream<S> {
 }
 
 /// A struct that encapsulates a lazy iterator over audio samples with metadata.
-pub struct MusicStream<S: cpal::Sample> {
+pub struct MusicStream<S: cpal::Sample = f32> {
     /// An interleaved iterator of samples
     samples: Box<dyn Iterator<Item = S> + Send>,
     channel_count: u8,
@@ -34,7 +34,7 @@ pub struct MusicStream<S: cpal::Sample> {
 
 /// Gets converted into a MusicStream after resampling. Used to avoid
 /// unnecessary extra dynamic dispatch.
-struct GenericMusicStream<I: Iterator<Item = S> + Send, S: cpal::Sample> {
+struct GenericMusicStream<I: Iterator<Item = S> + Send, S: cpal::Sample = f32> {
     samples: I,
     channel_count: u8,
     sample_rate: u32,
@@ -86,7 +86,7 @@ pub struct AudioStatus {
 }
 
 /// A handle to the audio thread that lets you send music and effects to play.
-pub struct Audio<S: cpal::Sample> {
+pub struct Audio<S: cpal::Sample = f32> {
     music_sender: mpsc::SyncSender<MusicStream<S>>,
     effect_sender: mpsc::SyncSender<ArcIter<S>>,
 
@@ -205,7 +205,7 @@ impl error::Error for AudioThreadError {
 
 /// Starts the audio thread and returns an object that can be used to communicate with the audio
 /// thread.
-pub fn start_audio_thread(mut audio_buffer_size: cpal::BufferSize) -> Result<Audio<f32>, AudioThreadError> {
+pub fn start_audio_thread(mut audio_buffer_size: cpal::BufferSize) -> Result<Audio, AudioThreadError> {
     let device = cpal::default_output_device().ok_or(AudioThreadError::NoOutputDevice)?;
 
     println!("Using device {}", device.name());
@@ -230,7 +230,7 @@ pub fn start_audio_thread(mut audio_buffer_size: cpal::BufferSize) -> Result<Aud
     // Spawn the audio thread
     thread::spawn(move || {
         let mut effects: VecDeque<Peekable<ArcIter<f32>>> = VecDeque::with_capacity(128);
-        let mut music: Option<MusicStream<f32>> = None;
+        let mut music: Option<MusicStream> = None;
 
         // hopefully u64 is big enough and no one tries to play a 3 million year 192kHz audio file
         let mut current_music_frame_index: u64 = 0;
@@ -377,9 +377,9 @@ impl error::Error for AudioLoadError {
 }
 
 fn maybe_resample<I>(
-    stream: GenericMusicStream<I, f32>,
+    stream: GenericMusicStream<I>,
     format: &cpal::Format
-) -> MusicStream<f32>
+) -> MusicStream
 where
     I: Iterator<Item = f32> + Send + 'static
 {
@@ -397,7 +397,7 @@ where
 pub fn music_from_path<P: AsRef<Path>>(
     path: P,
     format: &cpal::Format,
-) -> Result<MusicStream<f32>, AudioLoadError> {
+) -> Result<MusicStream, AudioLoadError> {
     let file = File::open(&path)?;
     let extension = path
         .as_ref()

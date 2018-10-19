@@ -77,7 +77,7 @@ impl<I: Iterator<Item = f32> + Send> Iterator for Resample<I> {
 pub(super) fn from_music_stream<I>(
     stream: GenericMusicStream<I, f32>,
     target_sample_rate: u32,
-) -> MusicStream<f32>
+) -> MusicStream
 where
     I: Iterator<Item = f32> + Send + 'static
 {

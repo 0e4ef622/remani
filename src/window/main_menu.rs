@@ -39,7 +39,7 @@ impl MainMenu {
         &mut self,
         e: piston::input::Event,
         config: &Config,
-        audio: &audio::Audio<f32>,
+        audio: &audio::Audio,
         window: &mut Window,
     ) {
         if let Some(p) = e.mouse_cursor_args() {
