@@ -195,23 +195,29 @@ named!(package(&[u8]) -> Package,
     )
 );
 
+fn notes_section(input: &[u8], package_count: usize) -> IResult<&[u8], Vec<Package>> {
+    count!(input, package, package_count)
+}
+
 use std::{
     fs::File,
     io::{Read, Seek, SeekFrom},
     path::Path,
 };
 
+fn into_chart(hdr: Header, packages: Vec<Package>) {
+}
+
 pub fn dump_data<P: AsRef<Path>>(path: P) {
     let mut hdr_buffer = [0; 300];
     let mut file = File::open(path).expect("Failed to open ojn file");
     file.read_exact(&mut hdr_buffer).expect("error reading ojn file");
     let (_, hdr) = header(&hdr_buffer).unwrap();
-    println!("{:#?}", hdr);
-    let len = hdr.cover_offset - hdr.note_offset[2];
-    let mut notesection_buffer = vec![0; len as usize];
-    file.seek(SeekFrom::Start(hdr.note_offset[2] as u64)).unwrap();
-    file.read_exact(&mut notesection_buffer).expect("Error reading ojn file");
-    let (remaining, first_package) = package(&notesection_buffer).unwrap();
-    println!("first package: {:#?}", first_package);
-    //println!("second package: {:#?}", package(remaining).unwrap().1);
+    println!("header: {:#?}", hdr);
+    //let len = hdr.note_offset[1] - hdr.note_offset[0];
+    //let mut notesection_buffer = vec![0; len as usize];
+    //file.seek(SeekFrom::Start(hdr.note_offset[0] as u64)).unwrap();
+    //file.read_exact(&mut notesection_buffer).expect("Error reading ojn file");
+    //let (remaining, packages) = notes_section(&notesection_buffer, hdr.package_count[0] as usize).unwrap();
+    //println!("packages: {:#?}", packages);
 }
