@@ -8,6 +8,7 @@ repository = "https://github.com/0e4ef622/remani"
 license = "MIT"
 keywords = ["7k", "vsrg", "o2jam", "osumania"]
 categories = ["games"]
+exclude = ["test/*"]
 
 [dependencies]
 piston = "0.37"
@@ -16,7 +17,7 @@ pistoncore-glutin_window = "0.47"
 piston2d-graphics = "0.26"
 piston2d-opengl_graphics = "0.54"
 image = "0.20.0"
-cpal = { git = "https://github.com/0e4ef622/cpal", rev = "buffer-size-request" }
+cpal = "0.8"
 simplemad = { optional = true, version = "0.9" }
 toml = "0.4"
 serde = "1.0"
@@ -26,6 +27,9 @@ hound = { optional = true, version = "3.4" }
 either = "1.5"
 lewton = { optional = true, version = "0.9" }
 nom = "4.0"
+
+[patch.crates-io]
+cpal = { git = "https://github.com/0e4ef622/cpal", rev = "buffer-size-request" }
 
 [features]
 default = ["mp3", "wav", "ogg"]
