@@ -2,6 +2,8 @@
 
 use nom::*;
 
+mod ojm;
+
 #[derive(Debug)]
 struct Header {
     songid: i32,
