@@ -32,3 +32,8 @@ default = ["mp3", "wav", "ogg"]
 mp3 = ["simplemad"]
 wav = ["hound"]
 ogg = ["lewton"]
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
