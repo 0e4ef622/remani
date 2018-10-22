@@ -208,16 +208,58 @@ use std::{
 fn into_chart(hdr: Header, packages: Vec<Package>) {
 }
 
+fn print_note_count(packages: &[Package]) {
+    let note_count = packages.iter()
+        .filter_map(|p| match &p.events {
+            Events::NoteEvent(_, v) => Some(v),
+            _ => None,
+        })
+        .flatten()
+        .count();
+
+    println!("Note count: {}", note_count);
+}
+
 pub fn dump_data<P: AsRef<Path>>(path: P) {
     let mut hdr_buffer = [0; 300];
     let mut file = File::open(path).expect("Failed to open ojn file");
     file.read_exact(&mut hdr_buffer).expect("error reading ojn file");
     let (_, hdr) = header(&hdr_buffer).unwrap();
-    println!("header: {:#?}", hdr);
-    //let len = hdr.note_offset[1] - hdr.note_offset[0];
-    //let mut notesection_buffer = vec![0; len as usize];
-    //file.seek(SeekFrom::Start(hdr.note_offset[0] as u64)).unwrap();
-    //file.read_exact(&mut notesection_buffer).expect("Error reading ojn file");
-    //let (remaining, packages) = notes_section(&notesection_buffer, hdr.package_count[0] as usize).unwrap();
-    //println!("packages: {:#?}", packages);
+    // println!("header: {:#?}", hdr);
+
+    let easy_len = (hdr.note_offset[1] - hdr.note_offset[0]) as usize;
+    let normal_len = (hdr.note_offset[2] - hdr.note_offset[1]) as usize;
+    let hard_len = (hdr.cover_offset - hdr.note_offset[2]) as usize;
+    let mut notesection_buffer = vec![0; easy_len.max(normal_len).max(hard_len)];
+
+    file.seek(SeekFrom::Start(hdr.note_offset[0] as u64)).unwrap();
+    file.read_exact(&mut notesection_buffer[0..easy_len]).expect("Error reading ojn file");
+    let (_, easy_packages) = notes_section(&notesection_buffer, hdr.package_count[0] as usize).unwrap();
+
+    file.seek(SeekFrom::Start(hdr.note_offset[1] as u64)).unwrap();
+    file.read_exact(&mut notesection_buffer[0..normal_len]).expect("Error reading ojn file");
+    let (_, normal_packages) = notes_section(&notesection_buffer, hdr.package_count[0] as usize).unwrap();
+
+    file.seek(SeekFrom::Start(hdr.note_offset[2] as u64)).unwrap();
+    file.read_exact(&mut notesection_buffer[0..hard_len]).expect("Error reading ojn file");
+    let (_, hard_packages) = notes_section(&notesection_buffer, hdr.package_count[0] as usize).unwrap();
+
+    println!("Easy difficulty info");
+    println!("Length: {}:{:02}", hdr.time[0] / 60, hdr.time[0] % 60);
+    println!("Level: {}", hdr.level[0]);
+    print_note_count(&easy_packages);
+
+    println!();
+
+    println!("Normal difficulty info");
+    println!("Length: {}:{:02}", hdr.time[1] / 60, hdr.time[1] % 60);
+    println!("Level: {}", hdr.level[1]);
+    print_note_count(&normal_packages);
+
+    println!();
+
+    println!("Hard difficulty info");
+    println!("Length: {}:{:02}", hdr.time[2] / 60, hdr.time[2] % 60);
+    println!("Level: {}", hdr.level[2]);
+    print_note_count(&hard_packages);
 }
