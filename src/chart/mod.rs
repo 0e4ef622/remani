@@ -11,6 +11,7 @@ pub mod ojn;
 
 // TODO temporary for testing
 pub use self::ojn::dump_data as ojn_dump;
+pub use self::ojn::ojm_dump;
 
 /// Either a long note or a regular note. The existence of end_time signifies whether this is a long
 /// note or not.

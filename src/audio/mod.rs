@@ -10,7 +10,15 @@ mod ogg;
 mod resample;
 
 use std::{
-    collections::VecDeque, error, fmt, iter::Peekable, sync::mpsc, sync::Arc, thread, time,
+    collections::VecDeque,
+    error,
+    fmt,
+    io::{Read, Seek},
+    iter::Peekable,
+    sync::mpsc,
+    sync::Arc,
+    thread,
+    time,
 };
 
 use cpal::{self, Sample};
@@ -376,6 +384,29 @@ impl error::Error for AudioLoadError {
     }
 }
 
+#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
+pub enum MusicFormat {
+    Mp3,
+    Ogg,
+    Wav,
+}
+
+impl From<MusicFormat> for &'static str {
+    fn from(f: MusicFormat) -> Self {
+        match f {
+            MusicFormat::Mp3 => "mp3",
+            MusicFormat::Ogg => "ogg",
+            MusicFormat::Wav => "wav",
+        }
+    }
+}
+
+impl From<MusicFormat> for String {
+    fn from(f: MusicFormat) -> Self {
+        <&str>::from(f).into()
+    }
+}
+
 fn maybe_resample<I>(
     stream: GenericMusicStream<I>,
     format: &cpal::Format
@@ -419,4 +450,23 @@ pub fn music_from_path<P: AsRef<Path>>(
         None => return Err(AudioLoadError::UnsupportedFormat("No extension".into())),
     };
     Ok(stream)
+}
+
+pub fn music_from_reader<R: io::Read + io::Seek + Send + 'static>(
+    reader: R,
+    cpal_format: &cpal::Format,
+    music_format: MusicFormat,
+) -> Result<MusicStream, AudioLoadError> {
+    Ok(match music_format {
+        #[cfg(feature = "mp3")]
+        MusicFormat::Mp3 => maybe_resample(mp3::decode(reader).map_err(AudioLoadError::from)?, cpal_format),
+
+        #[cfg(feature = "wav")]
+        MusicFormat::Wav => maybe_resample(wav::decode(reader).map_err(AudioLoadError::from)?, cpal_format),
+
+        #[cfg(feature = "ogg")]
+        MusicFormat::Ogg => maybe_resample(ogg::decode(reader).map_err(AudioLoadError::from)?, cpal_format),
+
+        f => return Err(AudioLoadError::UnsupportedFormat(f.into())),
+    })
 }

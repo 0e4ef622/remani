@@ -2,7 +2,22 @@
 
 use nom::*;
 
+use crate::chart::{Chart, Note, TimingPoint, TimingPointValue};
+
+use std::fmt;
+
+fn string_from_slice(s: &[u8]) -> String {
+    String::from_utf8_lossy(s).into_owned()
+}
+
+macro_rules! string_block {
+    ($i:expr, $n:expr) => (flat_map!($i, take!($n), map!(take_until!("\0"), string_from_slice)));
+}
+
 mod ojm;
+
+// TODO temporary for testing
+pub use self::ojm::dump_data as ojm_dump;
 
 #[derive(Debug)]
 struct Header {
@@ -29,14 +44,6 @@ struct Header {
     time: [i32; 3],
     note_offset: [i32; 3],
     cover_offset: i32,
-}
-
-fn string_from_slice(s: &[u8]) -> String {
-    String::from_utf8_lossy(s).into_owned()
-}
-
-macro_rules! string_block {
-    ($i:expr, $n:expr) => (flat_map!($i, take!($n), map!(take_until!("\0"), string_from_slice)));
 }
 
 named!(header(&[u8]) -> Header,
@@ -207,7 +214,30 @@ use std::{
     path::Path,
 };
 
-fn into_chart(hdr: Header, packages: Vec<Package>) {
+enum Difficulty {
+    Easy,
+    Normal,
+    Hard,
+}
+
+impl From<Difficulty> for &'static str {
+    fn from(t: Difficulty) -> &'static str {
+        match t {
+            Difficulty::Easy => "Easy",
+            Difficulty::Normal => "Normal",
+            Difficulty::Hard => "Hard",
+        }
+    }
+}
+
+// TODO
+struct O2mChart {
+    notes: Vec<Note>,
+    bpm_changes: Vec<TimingPoint>,
+    creator: String,
+    artist: String,
+    song_name: String,
+    difficulty: Difficulty,
 }
 
 fn print_note_count(packages: &[Package]) {
