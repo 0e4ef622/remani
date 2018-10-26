@@ -140,7 +140,6 @@ pub trait Chart {
 
     fn difficulty_name(&self) -> &str;
 
-    /// A mutable reference to the music wrapped inside an `Option` so that you can call `take` on
-    /// it.
+    /// Loads and returns the music
     fn music(&mut self, format: &cpal::Format) -> Result<audio::MusicStream, audio::AudioLoadError>;
 }
