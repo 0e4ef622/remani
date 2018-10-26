@@ -1,11 +1,11 @@
 //! A binary for testing the OJN parser
 
-use remani::chart::ojn_dump;
+use remani::chart::ojm_dump;
 
 use std::{env, ffi::OsStr};
 
 fn output_help(binary_name: &OsStr) {
-    println!("Usage:  {} path/to/ojnfile", binary_name.to_string_lossy());
+    println!("Usage:  {} path/to/ojmfile", binary_name.to_string_lossy());
 }
 
 pub fn main() {
@@ -18,5 +18,5 @@ pub fn main() {
             return;
         }
     };
-    ojn_dump(path);
+    ojm_dump(path);
 }

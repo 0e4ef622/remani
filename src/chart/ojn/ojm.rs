@@ -330,9 +330,10 @@ pub fn dump_data<P: AsRef<Path>>(path: P) {
     let mut file = File::open(path).expect("Failed to open ojn file");
     file.read_exact(&mut file_data);
     let (_, hdr) = header(&file_data).unwrap();
-    println!("{:?}", hdr);
+    println!("{:#?}", hdr);
     match hdr {
         Header::Omc(h) => {
+            println!("Internal format: {}", if h.encrypted { "OMC" } else { "OJM" });
             let wav_section_len = h.ogg_start - h.wav_start;
             let ogg_section_len = h.filesize - h.ogg_start;
             let wav_section_len = wav_section_len as usize;
@@ -341,36 +342,53 @@ pub fn dump_data<P: AsRef<Path>>(path: P) {
             let wav_sounds;
             let ogg_sounds;
 
-            // if wav_section_len > 0 {
-                file.seek(SeekFrom::Start(h.wav_start as u64)).unwrap();
-                file.read_exact(&mut buffer[0..wav_section_len]).unwrap();
+            file.seek(SeekFrom::Start(h.wav_start as u64)).unwrap();
+            file.read_exact(&mut buffer[0..wav_section_len]).unwrap();
 
-                wav_sounds = omc_wav_sounds(&buffer[0..wav_section_len], &h).unwrap().1;
-            // } else {
-            //     wav_sounds = vec![];
-            // }
+            wav_sounds = omc_wav_sounds(&buffer[0..wav_section_len], &h).unwrap().1;
 
-            // if ogg_section_len > 0 {
+            file.seek(SeekFrom::Start(h.ogg_start as u64)).unwrap();
+            file.read_exact(&mut buffer[0..ogg_section_len]).unwrap();
 
-                file.seek(SeekFrom::Start(h.ogg_start as u64)).unwrap();
-                file.read_exact(&mut buffer[0..ogg_section_len]).unwrap();
-
-                ogg_sounds = omc_ogg_sounds(&buffer[0..ogg_section_len]).unwrap().1;
-            // } else {
-            //     ogg_sounds = vec![];
-            // }
+            ogg_sounds = omc_ogg_sounds(&buffer[0..ogg_section_len]).unwrap().1;
 
             println!("WAV sounds:");
-            wav_sounds.iter().for_each(|s| println!("{}", s.sound_name));
+            let mut i = 0;
+            for sound in &wav_sounds {
+                if i >= 4 {
+                    break;
+                }
+                println!("{}", sound.sound_name);
+                i += 1;
+            }
+            if wav_sounds.len() > 5 { println!("And {} others...", wav_sounds.len() - i - 1); }
             println!("OGG sounds:");
-            ogg_sounds.iter().for_each(|s| println!("{}", s.sound_name));
+            i = 0;
+            for sound in &ogg_sounds {
+                if i >= 4 {
+                    break;
+                }
+                println!("{}", sound.sound_name);
+                i += 1;
+            }
+            if ogg_sounds.len() > 5 { println!("And {} others...", ogg_sounds.len() - i - 1); }
         }
         Header::M30(h) => {
+            println!("Internal format: M30");
             let mut buffer = vec![];
             file.seek(SeekFrom::Start(h.samples_offset as u64)).unwrap();
             file.read_to_end(&mut buffer).unwrap();
             let sounds = m30_sounds(&buffer, &h).unwrap().1;
-            sounds.iter().for_each(|s| println!("{}", s.sound_name));
+            println!("Sounds:");
+            let mut i = 0;
+            for sound in &sounds {
+                if i >= 4 {
+                    break;
+                }
+                println!("{}", sound.sound_name);
+                i += 1;
+            }
+            if sounds.len() > 5 { println!("And {} others...", sounds.len() - i - 1); }
         }
     }
 }
