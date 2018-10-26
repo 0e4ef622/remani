@@ -116,6 +116,8 @@ fn m30_decrypt(data: &[u8], hdr: &M30Header) -> Vec<u8> {
             .map(|(a, b)| a^b)
             .collect(),
         _ => {
+            // We don't actually know how the others work, and apparently files using the other
+            // ones haven't been seen so ¯\_(ツ)_/¯
             remani_warn!("Unrecognized M30 encryption scheme");
             Vec::from(data)
         }
