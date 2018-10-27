@@ -270,11 +270,11 @@ pub fn dump_data<P: AsRef<Path>>(path: P) {
 
     file.seek(SeekFrom::Start(hdr.note_offset[1] as u64)).unwrap();
     file.read_exact(&mut notesection_buffer[0..normal_len]).expect("Error reading ojn file");
-    let (_, normal_packages) = notes_section(&notesection_buffer, hdr.package_count[0] as usize).unwrap();
+    let (_, normal_packages) = notes_section(&notesection_buffer, hdr.package_count[1] as usize).unwrap();
 
     file.seek(SeekFrom::Start(hdr.note_offset[2] as u64)).unwrap();
     file.read_exact(&mut notesection_buffer[0..hard_len]).expect("Error reading ojn file");
-    let (_, hard_packages) = notes_section(&notesection_buffer, hdr.package_count[0] as usize).unwrap();
+    let (_, hard_packages) = notes_section(&notesection_buffer, hdr.package_count[2] as usize).unwrap();
 
     println!("Easy difficulty info");
     println!("Length: {}:{:02}", hdr.time[0] / 60, hdr.time[0] % 60);
