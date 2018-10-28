@@ -69,7 +69,7 @@ impl GameScene {
         } else if let Some((instant, playhead)) = audio.get_playhead() {
             let d = instant.elapsed();
             let new_time =
-                playhead + d.as_secs() as f64 + d.subsec_nanos() as f64 / 1_000_000_000.0
+                playhead + d.as_secs() as f64 + d.subsec_nanos() as f64 / 1e9
                     + config.game.offset;
             if !self.first_playhead_received {
                 self.time = new_time;
@@ -84,7 +84,7 @@ impl GameScene {
             }
         } else {
             let d = self.last_instant.elapsed();
-            self.time += d.as_secs() as f64 + d.subsec_nanos() as f64 / 1_000_000_000.0;
+            self.time += d.as_secs() as f64 + d.subsec_nanos() as f64 / 1e9;
             self.last_instant = time::Instant::now();
         }
 

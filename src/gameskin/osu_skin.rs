@@ -512,7 +512,7 @@ impl<G: Graphics> OsuSkin<G> {
                 let current_time = time::Instant::now();
                 let elapsed_time = current_time - last_down_time;
                 let elapsed_time_secs = elapsed_time.as_secs() as f64
-                    + elapsed_time.subsec_nanos() as f64 / 1_000_000_000.0;
+                    + elapsed_time.subsec_nanos() as f64 / 1e9;
                 let fframe: f32 = elapsed_time_secs as f32 * 30.0;
                 let frame = fframe as usize;
                 if frame < 3 {
@@ -546,7 +546,7 @@ impl<G: Graphics> OsuSkin<G> {
         elapsed_time: time::Duration,
     ) {
         let elapsed =
-            elapsed_time.as_secs() as f64 + elapsed_time.subsec_nanos() as f64 / 1_000_000_000.0;
+            elapsed_time.as_secs() as f64 + elapsed_time.subsec_nanos() as f64 / 1e9;
         let frame = (elapsed * 30.0) as usize % self.textures.hit300g.len();
 
         let tx = self.textures.hit300g[frame].deref();
