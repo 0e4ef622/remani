@@ -16,10 +16,10 @@ key_bindings = [
     { type = "keyboard", value = 108 }, # l
 ]
 current_skin = "o2jamu"
-scroll_speed = 1.3
+scroll_speed = 1.7
 offset = -0.1
 current_judge = "easy"
-default_osu_skin_path = "default_osu_skin"
+default_osu_skin_path = "rsc/default_osu_skin"
 
 [game.skins.o2jamu]
 type = "osu"
@@ -41,8 +41,10 @@ windows = [
 ]
 miss_tolerance = 1.0 # if you hit earlier than one second, it's ignored, if you hit between one second early and the highest accepted timing window, it's counted as a miss
 
-# [game.judges.hell]
-# window_1 = [0.005, -0.005]
-# window_2 = [0.008, -0.008]
-# window_3 = [0.013, -0.013]
-# miss_tolerance = 2.0
+[game.judges.hell]
+windows = [
+    [0.005, -0.005],
+    [0.008, -0.008],
+    [0.013, -0.013],
+]
+miss_tolerance = 2.0
