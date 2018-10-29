@@ -58,8 +58,11 @@ pub enum GameConfigVerifyError {
 impl UnverifiedGameConfig {
     fn verify(self) -> Result<GameConfig, GameConfigVerifyError> {
 
-        let skins: Vec<(String, SkinEntry)> = self.skins.into_iter().collect();
-        let judges: Vec<(String, Judge)> = self.judges.into_iter().collect();
+        let mut skins: Vec<(String, SkinEntry)> = self.skins.into_iter().collect();
+        let mut judges: Vec<(String, Judge)> = self.judges.into_iter().collect();
+
+        skins.sort_unstable_by(|a, b| a.0.cmp(&b.0));
+        judges.sort_unstable_by(|a, b| a.0.cmp(&b.0));
 
         let current_skin: String = self.current_skin;
         let current_judge: String = self.current_judge;
@@ -70,17 +73,11 @@ impl UnverifiedGameConfig {
             default_osu_skin_path: self.default_osu_skin_path,
 
             current_skin_index: skins
-                .iter()
-                .enumerate()
-                .find(|(_, (s, _))| *s == current_skin)
-                .ok_or(GameConfigVerifyError::BadCurrentSkin)?
-                .0,
+                .binary_search_by_key(&&current_skin, |v| &v.0)
+                .map_err(|_| GameConfigVerifyError::BadCurrentSkin)?,
             current_judge_index: judges
-                .iter()
-                .enumerate()
-                .find(|(_, (s, _))| *s == current_judge)
-                .ok_or(GameConfigVerifyError::BadCurrentJudge)?
-                .0,
+                .binary_search_by_key(&&current_judge, |v| &v.0)
+                .map_err(|_| GameConfigVerifyError::BadCurrentJudge)?,
 
             skins,
             judges,

@@ -42,7 +42,9 @@ impl Model {
         }
     }
 
-    /// Called when an update event occurs
+    /// Called by `GameScene` when an update event occurs
+    ///
+    /// `miss_callback` is a function that takes a number representing the column
     pub fn update<F: FnMut(usize)>(
         &mut self,
         _args: UpdateArgs,
@@ -57,25 +59,21 @@ impl Model {
         for (column, note_vec) in self.next_notes.iter().enumerate() {
             for &note_index in note_vec {
                 let note = &chart.notes()[note_index];
-                if let Some(end_time) = note.end_time {
-                    // TODO dont hardcode timing windows
-                    if end_time - time < -0.3 {
-                        miss_callback(note_index);
-                        to_be_removed[column] += 1;
-                    }
-                } else if note.time - time < -0.3 {
-                    miss_callback(note_index);
+                if note.end_time.unwrap_or(note.time) - time < config.game.current_judge().1.windows.last().unwrap()[1] {
+                    miss_callback(column);
                     to_be_removed[column] += 1;
                 }
             }
         }
 
+        // actually remove the notes from each vecdeque
         for (column, &n) in to_be_removed.iter().enumerate() {
             for _ in 0..n {
                 self.next_notes[column].pop_front();
             }
         }
 
+        // sort the next notes by column into next_notes up to {miss_tolerance} seconds ahead
         while chart.notes().get(self.current_note_index)
             .map(|n| n.time - time < config.game.current_judge().1.miss_tolerance)
             .unwrap_or(false) {
@@ -86,7 +84,10 @@ impl Model {
         }
     }
 
-    /// Called when a press event occurs
+    /// Called by `GameScene` when a press event occurs
+    ///
+    /// `callback` is a function that takes a number representing the column and a judgement
+    /// if there was one
     pub fn press<F: FnMut(usize, Option<Judgement>)>(
         &mut self,
         args: &Button,
@@ -131,6 +132,10 @@ impl Model {
             });
     }
 
+    /// Called by `GameScene` when a release event occurs
+    ///
+    /// `callback` is a function that takes a number representing the column and a judgement
+    /// if there was one
     pub fn release<F: FnMut(usize)>(
         &mut self,
         args: &Button,

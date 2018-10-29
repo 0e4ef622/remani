@@ -185,8 +185,8 @@ impl<G: Graphics> GameSkin<G> for OsuSkin<G> {
                 };
                 match judgement {
                     Judgement::Miss => self.draw_miss(draw_state, transform, g, stage_height),
-                    Judgement::Bad => (), // TODO
-                    Judgement::Good => (),
+                    Judgement::Bad => remani_warn!("draw Bad judgement is not implemented for osu skin"), // TODO
+                    Judgement::Good => remani_warn!("draw Bad judgement is not implemented for osu skin"),
                     Judgement::Perfect => {
                         self.draw_perfect(draw_state, transform, scale, g, stage_height, elapsed)
                     }
