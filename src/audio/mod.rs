@@ -14,7 +14,7 @@ use std::{
     error,
     fmt,
     io::{Read, Seek},
-    iter::Peekable,
+    iter::{self, Peekable},
     sync::mpsc,
     sync::Arc,
     thread,
@@ -23,12 +23,46 @@ use std::{
 
 use cpal::{self, Sample};
 
+fn mix<I1, I2>(i1: I1, i2: I2) -> impl Iterator<Item = f32>
+where
+    I1: Iterator<Item = f32>,
+    I2: Iterator<Item = f32>,
+{
+    let i1 = i1.map(|v| Some(v)).chain(iter::repeat(None));
+    let i2 = i2.map(|v| Some(v)).chain(iter::repeat(None));
+    i1.zip(i2)
+        .take_while(|&(o1, o2)| o1 != None || o2 != None)
+        .map(|(o1, o2)| o1.unwrap_or(0.0) + o2.unwrap_or(0.0))
+}
+
 #[derive(Debug, Clone)]
 pub struct EffectStream<S: cpal::Sample = f32>(Arc<Vec<S>>);
 
+impl EffectStream {
+    pub fn mix(&self, other: &EffectStream) -> EffectStream {
+        EffectStream(
+            Arc::new(
+                mix(
+                    self.0.iter().cloned(),
+                    other.0.iter().cloned(),
+                ).collect()
+            )
+        )
+    }
+    pub fn empty() -> EffectStream {
+        EffectStream(Arc::new(vec![]))
+    }
+}
+
 impl<S: cpal::Sample> From<Arc<Vec<S>>> for EffectStream<S> {
     fn from(a: Arc<Vec<S>>) -> Self {
-        EffectStream::<S>(a)
+        EffectStream(a)
+    }
+}
+
+impl<S: cpal::Sample> From<MusicStream<S>> for EffectStream<S> {
+    fn from(a: MusicStream<S>) -> Self {
+        EffectStream(Arc::new(a.samples.collect()))
     }
 }
 
@@ -52,6 +86,16 @@ impl<S: cpal::Sample> Iterator for MusicStream<S> {
     type Item = S;
     fn next(&mut self) -> Option<S> {
         self.samples.next()
+    }
+}
+
+impl MusicStream {
+    pub fn empty() -> Self {
+        MusicStream {
+            samples: Box::new(iter::repeat(0.0)),
+            channel_count: 1,
+            sample_rate: 1,
+        }
     }
 }
 

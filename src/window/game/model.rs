@@ -86,9 +86,9 @@ impl Model {
 
     /// Called by `GameScene` when a press event occurs
     ///
-    /// `callback` is a function that takes a number representing the column and a judgement
-    /// if there was one
-    pub fn press<F: FnMut(usize, Option<Judgement>)>(
+    /// `callback` is a function that takes a number representing the note index and a judgement
+    /// if there was one along with its corresponding note index
+    pub fn press<F: FnMut(usize, Option<(usize, Judgement)>)>(
         &mut self,
         args: &Button,
         config: &Config,
@@ -117,9 +117,9 @@ impl Model {
 
                         // TODO dont hardcode timing windows
                         if timing.abs() < 0.1 {
-                            Some(Judgement::Perfect)
+                            Some((note_index, Judgement::Perfect))
                         } else {
-                            Some(Judgement::Miss)
+                            Some((note_index, Judgement::Miss))
                         }
                     } else {
                         None

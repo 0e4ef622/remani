@@ -30,8 +30,14 @@ pub struct GameScene {
 impl GameScene {
     /// Allocate and initialize everything
     pub fn new(mut chart: Box<dyn Chart>, config: &Config, audio: &audio::Audio) -> Self {
-        // FIXME this unwrap
-        let music = chart.music(audio.format()).unwrap();
+        let music = match chart.music(audio.format()) {
+            Ok(m) => Some(m),
+            Err(e) => {
+                remani_warn!("Error loading chart music: {}", e);
+                Some(audio::MusicStream::empty())
+            }
+        };
+        chart.load_sounds(audio.format(), config);
         let the_skin = gameskin::from_path(&mut (), &config.game.current_skin().1, config).unwrap();
 
         let model = Model::new();
@@ -39,7 +45,7 @@ impl GameScene {
 
         GameScene {
             chart,
-            music: Some(music),
+            music,
             view,
             model,
             time: config.game.offset,
@@ -57,8 +63,8 @@ impl GameScene {
         audio: &audio::Audio,
         window: &mut Window,
     ) {
-        if self.music.is_some() {
-            audio.play_music(self.music.take().unwrap());
+        if let Some(m) = self.music.take() {
+            audio.play_music(m);
         }
 
         if !self.first_playhead_request {
@@ -97,10 +103,15 @@ impl GameScene {
 
         if let Some(i) = e.press_args() {
             let view = &mut self.view;
+            let chart = &*self.chart;
             self.model
-                .press(&i, config, &*self.chart, self.time, |k, j| {
-                    if let Some(j) = j {
+                .press(&i, config, chart, self.time, |k, j| {
+                    if let Some((note_index, j)) = j {
                         view.draw_judgement(k, j);
+                        // TODO move this out of this if
+                        chart.notes()[note_index].sound_index
+                            .and_then(|i| chart.get_sound(i))
+                            .map(|s| audio.play_effect(s));
                     }
                     view.key_down(k);
                 });

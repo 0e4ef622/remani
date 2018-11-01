@@ -2,7 +2,7 @@
 
 use cpal;
 
-use crate::audio;
+use crate::{audio, config::Config};
 
 use std::{error, fmt, io, rc::Rc};
 
@@ -25,9 +25,9 @@ pub struct Note {
 
     /// Where the note ends, in seconds. None means it's a regular note, Some means it's a long note.
     pub end_time: Option<f64>,
-    // TODO
-    // /// The sound to play when the note is hit.
-    // pub sound: Option<Rc<audio::EffectStream>>
+
+    /// The index of the sound to play when the note is hit.
+    pub sound_index: Option<usize>
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -142,4 +142,10 @@ pub trait Chart {
 
     /// Loads and returns the music
     fn music(&mut self, format: &cpal::Format) -> Result<audio::MusicStream, audio::AudioLoadError>;
+
+    /// Loads chart sounds
+    fn load_sounds(&mut self, format: &cpal::Format, config: &Config);
+
+    /// Always returns None unless `load_sounds` has been called
+    fn get_sound(&self, i: usize) -> Option<audio::EffectStream>;
 }

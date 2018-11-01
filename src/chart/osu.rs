@@ -2,12 +2,22 @@
 
 use std::{
     cmp::Ordering,
+    collections::HashMap,
     fs::File,
     io::{self, BufRead},
     path::{Path, PathBuf}
 };
 
-use crate::chart::{self, audio, Chart, Note, ParseError};
+use crate::{
+    config::{self, Config},
+    chart::{
+        self,
+        audio,
+        Chart,
+        Note,
+        ParseError,
+    },
+};
 
 /// Convert Err values to ParseError
 macro_rules! cvt_err {
@@ -150,7 +160,7 @@ fn parse_timing_point(line: &str, chart: &mut IncompleteChart) -> Result<(), Par
                     2 => SampleSet::Soft,
                     3 => SampleSet::Drum,
                     x => {
-                        println!("Unknown sample set {}", x);
+                        remani_warn!("Unknown sample set {}", x);
                         SampleSet::Auto
                     }
                 });
@@ -388,19 +398,19 @@ struct HitObject {
 }
 
 impl HitObject {
-    //fn to_note(self, sound: Rc<something>) {
-    fn into_note(self) -> Note {
+    fn into_note(self, sound_cache: &mut HashMap<Vec<HitSound>, usize>) -> Note {
+        let len = sound_cache.len();
         Note {
             time: self.time,
             column: self.column,
             end_time: self.end_time,
-            //sound: mixed?_hitsounds,
             // TODO
+            sound_index: Some(*sound_cache.entry(self.sounds).or_insert(len)),
         }
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug, Hash, Eq, PartialEq)]
 struct HitSound {
     /// The audio source of the sample.
     source: HitSoundSource,
@@ -409,15 +419,47 @@ struct HitSound {
     volume: u8,
 }
 
+impl HitSound {
+    fn load_sound(self,
+        chart: &OsuChart,
+        format: &cpal::Format,
+        config: &Config,
+        cache: &mut HashMap<PathBuf, audio::EffectStream>
+    ) -> Result<audio::EffectStream, (PathBuf, audio::AudioLoadError)> {
+        Ok(match self.source {
+            HitSoundSource::File(path) => {
+                let path = chart.chart_path.join(&path);
+                audio::music_from_path(&path, format)
+                .map_err(|e| (path, e))?.into()
+            }
+            HitSoundSource::SampleSet(shs) => {
+                let mut the_path = None;
+                for path in shs.possible_paths(config, chart) {
+                    if path.is_file() {
+                        the_path = Some(path);
+                        break;
+                    }
+                }
+                if let Some(path) = the_path {
+                    audio::music_from_path(&path, format).map_err(|e| (path, e))?.into()
+                } else {
+                    remani_warn!("Could not find hitsound: {:?}", self);
+                    audio::EffectStream::empty()
+                }
+            }
+        })
+    }
+}
+
 /// Where to get the audio source of the hit sound
-#[derive(Debug)]
+#[derive(Clone, Debug, Hash, Eq, PartialEq)]
 enum HitSoundSource {
     SampleSet(SampleHitSound),
     File(PathBuf),
 }
 
 /// A hit sound that comes from a sample set
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug, Hash, Eq, PartialEq)]
 struct SampleHitSound {
     set: SampleSet,
     sound: SampleHitSoundSound,
@@ -425,7 +467,7 @@ struct SampleHitSound {
 }
 
 /// A sample set
-#[derive(PartialEq, Eq, Copy, Clone, Debug)]
+#[derive(PartialEq, Eq, Copy, Clone, Debug, Hash)]
 enum SampleSet {
     Auto,
     Normal,
@@ -433,12 +475,48 @@ enum SampleSet {
     Drum,
 }
 
-#[derive(PartialEq, Eq, Copy, Clone, Debug)]
+#[derive(PartialEq, Eq, Copy, Clone, Debug, Hash)]
 enum SampleHitSoundSound {
     Normal,
     Whistle,
     Finish,
     Clap,
+}
+
+impl SampleHitSound {
+    fn possible_paths(self, config: &Config, chart: &OsuChart) -> Vec<PathBuf> {
+        let sample_set = match self.set {
+            SampleSet::Auto => "", // TODO inherit from timing point
+            SampleSet::Normal => "normal",
+            SampleSet::Soft => "soft",
+            SampleSet::Drum => "drum",
+        };
+        let sound = match self.sound {
+            SampleHitSoundSound::Normal => "normal",
+            SampleHitSoundSound::Whistle => "whistle",
+            SampleHitSoundSound::Finish => "finish",
+            SampleHitSoundSound::Clap => "clap",
+        };
+        let index = match self.index {
+            0 => String::new(), // TODO special things
+            1 => String::new(),
+            n => n.to_string(),
+        };
+        let filename_with_index = format!("{}-hit{}{}.wav", sample_set, sound, index);
+        let filename_without_index = format!("{}-hit{}.wav", sample_set, sound);
+        let path1 = chart.chart_path.join(&filename_with_index);
+        let path2 = match &config.game.current_skin().1 {
+            config::SkinEntry::Osu(path) => Some(path.join(&filename_without_index)),
+            config::SkinEntry::O2Jam(path) => None,
+        };
+        let path3 = config.game.default_osu_skin_path.join(&filename_without_index);
+
+        if let Some(p2) = path2 {
+            vec![path1, p2, path3]
+        } else {
+            vec![path1, path3]
+        }
+    }
 }
 
 /// Used during parsing, gets finalized into a Chart once all the values are obtained.
@@ -455,9 +533,14 @@ struct IncompleteChart {
     music_path: Option<PathBuf>,
 }
 
-/// See [`Chart`]
+enum MaybeLoadedSounds {
+    NotLoaded(Vec<Vec<HitSound>>),
+    Loaded(Vec<audio::EffectStream>),
+}
+
+/// See [`ChartNotes`]
 ///
-/// [`Chart`]: ../trait.Chart.html
+/// [`ChartNotes`]: ../trait.ChartNotes.html
 struct OsuChart {
     notes: Vec<Note>,
     timing_points: Vec<chart::TimingPoint>,
@@ -468,7 +551,9 @@ struct OsuChart {
     song_name: Option<String>,
     song_name_unicode: Option<String>,
     difficulty_name: String,
-    music: PathBuf,
+    music_path: PathBuf,
+    chart_path: PathBuf,
+    sounds: MaybeLoadedSounds,
 }
 
 impl Chart for OsuChart {
@@ -500,25 +585,64 @@ impl Chart for OsuChart {
         &self.difficulty_name
     }
     fn music(&mut self, format: &cpal::Format) -> Result<audio::MusicStream, audio::AudioLoadError> {
-        audio::music_from_path(&self.music, format)
+        audio::music_from_path(&self.chart_path.join(&self.music_path), format)
+    }
+    fn load_sounds(&mut self, format: &cpal::Format, config: &Config) {
+        println!("loading sounds");
+        let self_sounds = std::mem::replace(&mut self.sounds, MaybeLoadedSounds::NotLoaded(vec![]));
+        match self_sounds {
+            MaybeLoadedSounds::NotLoaded(v) => {
+                let mut loaded_sounds = Vec::with_capacity(v.len());
+                let mut cache = HashMap::new();
+                for sounds in v {
+                    let sound_results = sounds.into_iter().map(|s| s.load_sound(self, format, config, &mut cache));
+                    let mut mixed_sound = audio::EffectStream::empty();
+                    for sound_result in sound_results {
+                        match sound_result {
+                            Ok(sound) => mixed_sound = mixed_sound.mix(&sound),
+                            Err((path, e)) => remani_warn!("Error loading hitsound '{}': {}", path.display(), e),
+                        }
+                    }
+                    loaded_sounds.push(mixed_sound);
+                }
+                println!("loaded_sounds.len() = {}", loaded_sounds.len());
+                self.sounds = MaybeLoadedSounds::Loaded(loaded_sounds);
+            }
+            MaybeLoadedSounds::Loaded(..) => (),
+        }
+    }
+    fn get_sound(&self, i: usize) -> Option<audio::EffectStream> {
+        match &self.sounds {
+            MaybeLoadedSounds::Loaded(v) => v.get(i).cloned(),
+            MaybeLoadedSounds::NotLoaded(..) => {
+                remani_warn!("Hitsounds not loaded");
+                None
+            }
+        }
     }
 }
 
 impl IncompleteChart {
     fn finalize(self, chart_path: impl AsRef<Path>) -> Result<OsuChart, ParseError> {
-        let timing_points = self
+        let timing_points: Vec<_> = self
             .timing_points
             .into_iter()
             .map(|t| chart::TimingPoint {
                 offset: t.offset,
                 value: t.value,
-            }).collect::<Vec<_>>();
+            }).collect();
 
-        let notes = self
+        let mut sound_cache = HashMap::new();
+
+        let notes: Vec<_> = self
             .hit_objects
             .into_iter()
-            .map(HitObject::into_note)
-            .collect::<Vec<_>>();
+            .map(|h| h.into_note(&mut sound_cache))
+            .collect();
+
+        let mut sounds: Vec<_> = sound_cache.into_iter().collect();
+        sounds.sort_unstable_by_key(|t| t.1);
+        let sounds = sounds.into_iter().map(|t| t.0).collect();
 
         let last_note_time = match notes.last() {
             Some(n) => n.end_time.unwrap_or(n.time),
@@ -568,12 +692,11 @@ impl IncompleteChart {
             song_name: self.song_name,
             song_name_unicode: self.song_name_unicode,
             difficulty_name: self.difficulty_name.unwrap_or(String::from("Unnamed")),
+            sounds: MaybeLoadedSounds::NotLoaded(sounds),
 
-            music: chart_path
-                .as_ref()
-                .join(self
-                    .music_path
-                    .ok_or(ParseError::Parse(String::from("Could not find audio file"), None))?)
+            music_path: self.music_path
+                .ok_or(ParseError::Parse(String::from("Could not find audio file"), None))?,
+            chart_path: chart_path.as_ref().to_owned(),
         })
     }
 }
@@ -660,6 +783,7 @@ pub fn from_path<P: AsRef<Path>>(path: P) -> Result<impl Chart, ParseError> {
     }
     // this unwrap shouldn't ever panic since an error would've been returned from trying to open
     // the file earlier
+    println!("{}", path.as_ref().parent().unwrap().display());
     Ok(parser.chart.finalize(path.as_ref().parent().unwrap())?)
 }
 
