@@ -240,16 +240,22 @@ struct O2mChart {
     difficulty: Difficulty,
 }
 
-fn print_note_count(packages: &[Package]) {
-    let note_count = packages.iter()
-        .filter_map(|p| match &p.events {
-            Events::NoteEvent(_, v) => Some(v),
-            _ => None,
-        })
-        .flatten()
-        .count();
+fn print_packages(packages: &[Package]) {
+    let mut note_count = 0;
+    let mut bpm_change_count = 0;
+    let mut measure_fraction = 0;
+    for package in packages {
+        match package.events {
+            Events::NoteEvent(..) => note_count += 1,
+            Events::BpmChange(..) => bpm_change_count += 1,
+            Events::MeasureFraction(..) => measure_fraction += 1,
+            _ => (),
+        }
+    }
 
     println!("Note count: {}", note_count);
+    println!("BPM change count: {}", bpm_change_count);
+    println!("Measure fraction: {}", measure_fraction);
 }
 
 pub fn dump_data<P: AsRef<Path>>(path: P) {
@@ -279,19 +285,19 @@ pub fn dump_data<P: AsRef<Path>>(path: P) {
     println!("Easy difficulty info");
     println!("Length: {}:{:02}", hdr.time[0] / 60, hdr.time[0] % 60);
     println!("Level: {}", hdr.level[0]);
-    print_note_count(&easy_packages);
+    print_packages(&easy_packages);
 
     println!();
 
     println!("Normal difficulty info");
     println!("Length: {}:{:02}", hdr.time[1] / 60, hdr.time[1] % 60);
     println!("Level: {}", hdr.level[1]);
-    print_note_count(&normal_packages);
+    print_packages(&normal_packages);
 
     println!();
 
     println!("Hard difficulty info");
     println!("Length: {}:{:02}", hdr.time[2] / 60, hdr.time[2] % 60);
     println!("Level: {}", hdr.level[2]);
-    print_note_count(&hard_packages);
+    print_packages(&hard_packages);
 }
