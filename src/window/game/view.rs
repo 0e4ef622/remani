@@ -57,13 +57,21 @@ impl<G: Graphics> View<G> {
         graphics::clear([0.0; 4], g);
 
         // manage self.current_timing_point_index
-        while chart.timing_points()
-            .get(self.current_timing_point_index + 1)
-            .filter(|tp| time > tp.offset)
-            .is_some()
-        {
-            self.current_timing_point_index += 1;
-        }
+        //
+        // from the future: this is bugged, the calc_pos function needs the most recent bpm change
+        // timing point as well as the most recent sv timing point, this code only gives the most
+        // recent timing point, whichever it is, which is wrong.
+        //
+        // TODO fix (we only need to check the timing points between current_timing_point_index
+        // and the current time and take the minimum of the most recent bpm change and sv change
+        //
+        // while chart.timing_points()
+        //     .get(self.current_timing_point_index + 2)
+        //     .filter(|tp| time > tp.offset)
+        //     .is_some()
+        // {
+        //     self.current_timing_point_index += 1;
+        // }
 
         let mut add_next_note_index = 0;
 

@@ -308,6 +308,7 @@ pub fn start_audio_thread(mut audio_buffer_size: cpal::BufferSize) -> Result<Aud
             }
 
             // Get samples and mix them
+            // TODO use SIMD
             let mut s = |effects: &mut VecDeque<Peekable<ArcIter<f32>>>| {
                 let mut s = match music {
                     Some(ref mut m) => match m.next() {
