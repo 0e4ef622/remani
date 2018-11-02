@@ -39,6 +39,7 @@ where
 pub struct EffectStream<S: cpal::Sample = f32>(Arc<Vec<S>>);
 
 impl EffectStream {
+    /// Mix two `EffectStream`s together into a new EffectStream
     pub fn mix(&self, other: &EffectStream) -> EffectStream {
         EffectStream(
             Arc::new(
@@ -49,6 +50,8 @@ impl EffectStream {
             )
         )
     }
+    /// Returns a zero length `EffectStream` for when you need an `EffectStream` but you don't
+    /// actually have any sound data to put in it.
     pub fn empty() -> EffectStream {
         EffectStream(Arc::new(vec![]))
     }

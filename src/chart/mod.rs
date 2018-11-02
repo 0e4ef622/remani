@@ -143,9 +143,10 @@ pub trait Chart {
     /// Loads and returns the music
     fn music(&mut self, format: &cpal::Format) -> Result<audio::MusicStream, audio::AudioLoadError>;
 
-    /// Loads chart sounds
+    /// Loads chart sounds so that they can be accessed through the `get_sound` method
     fn load_sounds(&mut self, format: &cpal::Format, config: &Config);
 
-    /// Always returns None unless `load_sounds` has been called
+    /// Should always returns None until `load_sounds` has been called, in which case it might return
+    /// `None` or an empty `EffectStream`.
     fn get_sound(&self, i: usize) -> Option<audio::EffectStream>;
 }

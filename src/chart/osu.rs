@@ -589,6 +589,7 @@ impl Chart for OsuChart {
     }
     fn load_sounds(&mut self, format: &cpal::Format, config: &Config) {
         println!("loading sounds");
+        // Take ownership of the Vec of hitsounds
         let self_sounds = std::mem::replace(&mut self.sounds, MaybeLoadedSounds::NotLoaded(vec![]));
         match self_sounds {
             MaybeLoadedSounds::NotLoaded(v) => {
