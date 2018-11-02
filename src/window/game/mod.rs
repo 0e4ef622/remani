@@ -105,14 +105,14 @@ impl GameScene {
             let view = &mut self.view;
             let chart = &*self.chart;
             self.model
-                .press(&i, config, chart, self.time, |k, j| {
-                    if let Some((note_index, j)) = j {
+                .press(&i, config, chart, self.time, |k, j, note_index| {
+                    if let Some(j) = j {
                         view.draw_judgement(k, j);
-                        // TODO move this out of this if
-                        chart.notes()[note_index].sound_index
-                            .and_then(|i| chart.get_sound(i))
-                            .map(|s| audio.play_effect(s));
                     }
+                    note_index
+                        .and_then(|i| chart.notes()[i].sound_index)
+                        .and_then(|i| chart.get_sound(i))
+                        .map(|s| audio.play_effect(s));
                     view.key_down(k);
                 });
         }

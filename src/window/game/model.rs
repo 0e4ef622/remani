@@ -18,6 +18,13 @@ pub struct Model {
     /// column they are on.
     next_notes: [VecDeque<usize>; 7],
 
+    /// Contains the indices of the notes that we will use the hitsound for when the player presses
+    /// the corresponding key.
+    ///
+    /// We can't just use next_notes because then you can't spam the keys at the end of a song for
+    /// fun :P.
+    notes_for_hitsound: [Option<usize>; 7],
+
     /// Whether the column is currently holding a long note, and if so, contains the index of the
     /// note
     long_notes_held: [Option<usize>; 7],
@@ -38,6 +45,7 @@ impl Model {
                 VecDeque::with_capacity(32),
                 VecDeque::with_capacity(32),
             ],
+            notes_for_hitsound: [None; 7],
             long_notes_held: [None; 7],
         }
     }
@@ -82,13 +90,20 @@ impl Model {
                 .push_back(self.current_note_index);
             self.current_note_index += 1;
         }
+        for (column, opt) in self.notes_for_hitsound.iter_mut().enumerate() {
+            match self.next_notes[column].front() {
+                Some(&note_index) => *opt = Some(note_index),
+                None => (),
+            }
+        }
     }
 
     /// Called by `GameScene` when a press event occurs
     ///
     /// `callback` is a function that takes a number representing the note index and a judgement
-    /// if there was one along with its corresponding note index
-    pub fn press<F: FnMut(usize, Option<(usize, Judgement)>)>(
+    /// if there was one along with its corresponding note index or the index of whichever note's
+    /// hitsound is going to be played
+    pub fn press<F: FnMut(usize, Option<Judgement>, Option<usize>)>(
         &mut self,
         args: &Button,
         config: &Config,
@@ -97,6 +112,7 @@ impl Model {
         mut callback: F,
     ) {
         let next_notes = &mut self.next_notes;
+        let notes_for_hitsound = &mut self.notes_for_hitsound;
         let long_notes_held = &mut self.long_notes_held;
 
         config.game.key_bindings
@@ -117,9 +133,9 @@ impl Model {
 
                         // TODO dont hardcode timing windows
                         if timing.abs() < 0.1 {
-                            Some((note_index, Judgement::Perfect))
+                            Some(Judgement::Perfect)
                         } else {
-                            Some((note_index, Judgement::Miss))
+                            Some(Judgement::Miss)
                         }
                     } else {
                         None
@@ -127,7 +143,7 @@ impl Model {
 
                     *key_down = true;
 
-                    callback(key_index, judgement);
+                    callback(key_index, judgement, notes_for_hitsound[key_index]);
                 }
             });
     }
