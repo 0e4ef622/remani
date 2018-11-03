@@ -4,8 +4,10 @@ TODO list
 - [x] Fix long note hitburst animation ending (currently just abruptly disappears)
 - [x] Config file and more fleshed out config system in general
 - [ ] Osu module ogg keysound file support
+- [ ] Osu storyboard sounds support
 - [ ] Speed up osu module keysound loading
 - [ ] The rest of the TODOs in the osu module
+- [ ] Fix current\_timing\_point\_index management
 - [ ] Options menu (waiting on config system)
 
 - [ ] A Judgement module for fully customizable judges (waiting on config system)

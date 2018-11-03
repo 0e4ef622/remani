@@ -1,5 +1,7 @@
 //! Osu chart parser module
 
+use either::Either;
+
 use std::{
     cmp::Ordering,
     collections::HashMap,
@@ -404,7 +406,6 @@ impl HitObject {
             time: self.time,
             column: self.column,
             end_time: self.end_time,
-            // TODO
             sound_index: Some(*sound_cache.entry(self.sounds).or_insert(len)),
         }
     }
@@ -420,34 +421,51 @@ struct HitSound {
 }
 
 impl HitSound {
+    // TODO volume
     fn load_sound(self,
         chart: &OsuChart,
         format: &cpal::Format,
         config: &Config,
         cache: &mut HashMap<PathBuf, audio::EffectStream>
     ) -> Result<audio::EffectStream, (PathBuf, audio::AudioLoadError)> {
-        Ok(match self.source {
+        match self.source {
             HitSoundSource::File(path) => {
                 let path = chart.chart_path.join(&path);
-                audio::music_from_path(&path, format)
-                .map_err(|e| (path, e))?.into()
+                if let Some(effect_stream) = cache.get(&path) {
+                    return Ok(effect_stream.clone());
+                }
+                let effect_stream: audio::EffectStream = match audio::music_from_path(&path, format) {
+                    Ok(s) => s.into(),
+                    Err(e) => return Err((path, e)),
+                };
+                cache.insert(path, effect_stream.clone());
+                Ok(effect_stream)
             }
             HitSoundSource::SampleSet(shs) => {
                 let mut the_path = None;
                 for path in shs.possible_paths(config, chart) {
+                    if let Some(effect_stream) = cache.get(&path) {
+                        println!("cache hit!");
+                        return Ok(effect_stream.clone());
+                    }
                     if path.is_file() {
                         the_path = Some(path);
                         break;
                     }
                 }
                 if let Some(path) = the_path {
-                    audio::music_from_path(&path, format).map_err(|e| (path, e))?.into()
+                    let effect_stream: audio::EffectStream = match audio::music_from_path(&path, format) {
+                        Ok(s) => s.into(),
+                        Err(e) => return Err((path, e)),
+                    };
+                    cache.insert(path, effect_stream.clone());
+                    Ok(effect_stream)
                 } else {
                     remani_warn!("Could not find hitsound: {:?}", self);
-                    audio::EffectStream::empty()
+                    Ok(audio::EffectStream::empty())
                 }
             }
-        })
+        }
     }
 }
 
@@ -484,7 +502,7 @@ enum SampleHitSoundSound {
 }
 
 impl SampleHitSound {
-    fn possible_paths(self, config: &Config, chart: &OsuChart) -> Vec<PathBuf> {
+    fn possible_paths(self, config: &Config, chart: &OsuChart) -> impl Iterator<Item = PathBuf> {
         let sample_set = match self.set {
             SampleSet::Auto => "", // TODO inherit from timing point
             SampleSet::Normal => "normal",
@@ -502,6 +520,8 @@ impl SampleHitSound {
             1 => String::new(),
             n => n.to_string(),
         };
+
+        // TODO decide whether to defer the following two format! calls
         let filename_with_index = format!("{}-hit{}{}.wav", sample_set, sound, index);
         let filename_without_index = format!("{}-hit{}.wav", sample_set, sound);
         let path1 = chart.chart_path.join(&filename_with_index);
@@ -511,10 +531,15 @@ impl SampleHitSound {
         };
         let path3 = config.game.default_osu_skin_path.join(&filename_without_index);
 
+        macro_rules! iter {
+            ($item:expr) => (std::iter::once($item));
+            ($item:expr, $($rest:tt)*) => (std::iter::once($item).chain(iter!($($rest)*)));
+        }
+
         if let Some(p2) = path2 {
-            vec![path1, p2, path3]
+            Either::Left(iter![path1, p2, path3])
         } else {
-            vec![path1, path3]
+            Either::Right(iter![path1, path3])
         }
     }
 }
@@ -538,9 +563,9 @@ enum MaybeLoadedSounds {
     Loaded(Vec<audio::EffectStream>),
 }
 
-/// See [`ChartNotes`]
+/// See [`Chart`]
 ///
-/// [`ChartNotes`]: ../trait.ChartNotes.html
+/// [`Chart`]: ../trait.Chart.html
 struct OsuChart {
     notes: Vec<Note>,
     timing_points: Vec<chart::TimingPoint>,
