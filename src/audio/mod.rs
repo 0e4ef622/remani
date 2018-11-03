@@ -30,42 +30,72 @@ where
 {
     let i1 = i1.map(|v| Some(v)).chain(iter::repeat(None));
     let i2 = i2.map(|v| Some(v)).chain(iter::repeat(None));
+
+    // hand rolled variation of zip that stops at the end of the longest iterator as opposed to
+    // the shortest iterator
     i1.zip(i2)
         .take_while(|&(o1, o2)| o1 != None || o2 != None)
         .map(|(o1, o2)| o1.unwrap_or(0.0) + o2.unwrap_or(0.0))
 }
 
 #[derive(Debug, Clone)]
-pub struct EffectStream<S: cpal::Sample = f32>(Arc<Vec<S>>);
+pub struct EffectStream<S: cpal::Sample = f32> {
+    samples: Arc<Vec<S>>,
+    /// A number that the samples are multiplied by. i.e. 0.0 is 0% volume, 1.0 is 100% volume.
+    volume: f32,
+}
 
 impl EffectStream {
     /// Mix two `EffectStream`s together into a new EffectStream
     pub fn mix(&self, other: &EffectStream) -> EffectStream {
-        EffectStream(
-            Arc::new(
+        EffectStream {
+            samples: Arc::new(
                 mix(
-                    self.0.iter().cloned(),
-                    other.0.iter().cloned(),
+                    self.samples.iter().cloned().map(|s| s*self.volume),
+                    other.samples.iter().cloned().map(|s| s*other.volume),
                 ).collect()
-            )
-        )
+            ),
+            volume: 1.0,
+        }
     }
     /// Returns a zero length `EffectStream` for when you need an `EffectStream` but you don't
     /// actually have any sound data to put in it.
     pub fn empty() -> EffectStream {
-        EffectStream(Arc::new(vec![]))
+        EffectStream {
+            samples: Arc::new(vec![]),
+            volume: 1.0,
+        }
+    }
+
+    pub fn set_volume(&mut self, volume: f32) {
+        self.volume = volume;
+    }
+
+    pub fn with_volume(mut self, volume: f32) -> Self {
+        self.set_volume(volume);
+        self
+    }
+
+    pub fn volume(&mut self, volume: f32) {
+        self.volume = volume;
     }
 }
 
-impl<S: cpal::Sample> From<Arc<Vec<S>>> for EffectStream<S> {
-    fn from(a: Arc<Vec<S>>) -> Self {
-        EffectStream(a)
+impl<S: cpal::Sample> From<(f32, Arc<Vec<S>>)> for EffectStream<S> {
+    fn from(t: (f32, Arc<Vec<S>>)) -> Self {
+        EffectStream {
+            samples: t.1,
+            volume: t.0,
+        }
     }
 }
 
 impl<S: cpal::Sample> From<MusicStream<S>> for EffectStream<S> {
     fn from(a: MusicStream<S>) -> Self {
-        EffectStream(Arc::new(a.samples.collect()))
+        EffectStream {
+            samples: Arc::new(a.samples.collect()),
+            volume: 1.0,
+        }
     }
 }
 
@@ -143,7 +173,7 @@ pub struct AudioStatus {
 /// A handle to the audio thread that lets you send music and effects to play.
 pub struct Audio<S: cpal::Sample = f32> {
     music_sender: mpsc::SyncSender<MusicStream<S>>,
-    effect_sender: mpsc::SyncSender<ArcIter<S>>,
+    effect_sender: mpsc::SyncSender<(f32, ArcIter<S>)>,
 
     /// Used by `request_playhead()` to ask the audio thread to send the playback time to playhead_rcv.
     request_playhead_sender: mpsc::SyncSender<()>,
@@ -174,14 +204,15 @@ impl<S: cpal::Sample> Audio<S> {
 
     /// Play a sound effect/hitsound, returning the passed in effect stream if there was an error
     pub fn play_effect(&self, effect: EffectStream<S>) -> Result<(), EffectStream<S>> {
+        let volume = effect.volume;
         self.effect_sender
-            .try_send(ArcIter::new(effect.0))
-            .or_else(|e| {
-                Err(match e {
+            .try_send((volume, ArcIter::new(effect.samples)))
+            .map_err(|e| {
+                let s = match e {
                     mpsc::TrySendError::Full(m) => m,
                     mpsc::TrySendError::Disconnected(m) => m,
-                }.inner()
-                .into())
+                }.1.inner();
+                (volume, s).into()
             })
     }
 
@@ -277,14 +308,15 @@ pub fn start_audio_thread(mut audio_buffer_size: cpal::BufferSize) -> Result<Aud
     let (send_playhead_tx, send_playhead_rx) = mpsc::sync_channel(4);
     let (send_status_tx, send_status_rx) = mpsc::sync_channel(4);
     let (music_tx, music_rx) = mpsc::sync_channel(2);
-    let (effect_tx, effect_rx) = mpsc::sync_channel::<ArcIter<f32>>(128);
+    let (effect_tx, effect_rx) = mpsc::sync_channel::<(f32, ArcIter<f32>)>(128);
 
     let channel_count = format.channels as usize;
     let sample_rate = format.sample_rate.0;
 
     // Spawn the audio thread
     thread::spawn(move || {
-        let mut effects: VecDeque<Peekable<ArcIter<f32>>> = VecDeque::with_capacity(128);
+        // (f64, ArcIter<f32>) = (volume, effect_stream_samples_iterator)
+        let mut effects: VecDeque<(f32, Peekable<ArcIter<f32>>)> = VecDeque::with_capacity(128);
         let mut music: Option<MusicStream> = None;
 
         // hopefully u64 is big enough and no one tries to play a 3 million year 192kHz audio file
@@ -292,8 +324,8 @@ pub fn start_audio_thread(mut audio_buffer_size: cpal::BufferSize) -> Result<Aud
 
         // Audio loop
         event_loop.run(move |_, data| {
-            while let Ok(effect) = effect_rx.try_recv() {
-                effects.push_back(effect.peekable());
+            while let Ok((volume, effect)) = effect_rx.try_recv() {
+                effects.push_back((volume, effect.peekable()));
                 // TODO do things
             }
             while let Ok(m) = music_rx.try_recv() {
@@ -309,7 +341,7 @@ pub fn start_audio_thread(mut audio_buffer_size: cpal::BufferSize) -> Result<Aud
 
             // Get samples and mix them
             // TODO use SIMD
-            let mut s = |effects: &mut VecDeque<Peekable<ArcIter<f32>>>| {
+            let mut s = |effects: &mut VecDeque<(f32, Peekable<ArcIter<f32>>)>| {
                 let mut s = match music {
                     Some(ref mut m) => match m.next() {
                         Some(n) => n,
@@ -320,9 +352,9 @@ pub fn start_audio_thread(mut audio_buffer_size: cpal::BufferSize) -> Result<Aud
                     }
                     None => 0.0
                 };
-                for effect in effects.iter_mut() {
+                for (volume, effect) in effects.iter_mut() {
                     if let Some(sample) = effect.next() {
-                        s += sample.to_f32();
+                        s += sample.to_f32() * *volume;
                     }
                 }
                 s / 2.0 // TODO don't do this and maybe have a volume setting control this? ¯\_(ツ)_/¯
@@ -359,7 +391,7 @@ pub fn start_audio_thread(mut audio_buffer_size: cpal::BufferSize) -> Result<Aud
             }
 
             while let Some(effect) = effects.front_mut() {
-                if effect.peek().is_none() {
+                if effect.1.peek().is_none() {
                     effects.pop_front();
                 } else {
                     break;

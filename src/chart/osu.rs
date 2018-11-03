@@ -439,13 +439,12 @@ impl HitSound {
                     Err(e) => return Err((path, e)),
                 };
                 cache.insert(path, effect_stream.clone());
-                Ok(effect_stream)
+                Ok(effect_stream.with_volume(f32::from(self.volume) / 100.0))
             }
             HitSoundSource::SampleSet(shs) => {
                 let mut the_path = None;
                 for path in shs.possible_paths(config, chart) {
                     if let Some(effect_stream) = cache.get(&path) {
-                        println!("cache hit!");
                         return Ok(effect_stream.clone());
                     }
                     if path.is_file() {
@@ -459,7 +458,7 @@ impl HitSound {
                         Err(e) => return Err((path, e)),
                     };
                     cache.insert(path, effect_stream.clone());
-                    Ok(effect_stream)
+                    Ok(effect_stream.with_volume(f32::from(self.volume) / 100.0))
                 } else {
                     remani_warn!("Could not find hitsound: {:?}", self);
                     Ok(audio::EffectStream::empty())
@@ -631,7 +630,6 @@ impl Chart for OsuChart {
                     }
                     loaded_sounds.push(mixed_sound);
                 }
-                println!("loaded_sounds.len() = {}", loaded_sounds.len());
                 self.sounds = MaybeLoadedSounds::Loaded(loaded_sounds);
             }
             MaybeLoadedSounds::Loaded(..) => (),
