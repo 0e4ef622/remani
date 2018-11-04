@@ -13,7 +13,6 @@ enum Scene {
     Game(game::GameScene),
 }
 
-use piston;
 impl Scene {
     pub fn event(
         &mut self,

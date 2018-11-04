@@ -1,10 +1,8 @@
 //! Handles configuration of the game
 
-use cpal;
 use piston::input;
 use serde_derive::{Deserialize, Serialize};
 use std::{collections::BTreeMap, fmt, fs, io, path};
-use toml;
 
 mod serde_buffer_size;
 mod serde_key_bindings;
@@ -180,12 +178,12 @@ impl fmt::Display for ConfigReadError {
 
 /// Load configuration from a file except that part isn't implemented yet. TODO
 fn try_read_config(config_file_path: &path::Path) -> Result<Config, ConfigReadError> {
-    let config_dir_path = {
-        let mut c = config_file_path.components();
-        c.next_back(); // remove the last component
-        c
-    };
-    //fs::create_dir_all(config_dir_path)?;
+    // let config_dir_path = {
+    //     let mut c = config_file_path.components();
+    //     c.next_back(); // remove the last component
+    //     c
+    // };
+    // fs::create_dir_all(config_dir_path)?;
     let file_data = fs::read(config_file_path)?;
     let config = toml::from_slice::<UnverifiedConfig>(&file_data)?;
 

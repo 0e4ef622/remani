@@ -1,7 +1,6 @@
 //! A module for reading skins.
 
 use graphics::{math, Graphics};
-use image;
 use texture::CreateTexture;
 
 use std::{error, fmt, io};

@@ -2,7 +2,6 @@
 
 use std::time;
 
-use opengl_graphics;
 use piston::{
     self,
     input::{PressEvent, ReleaseEvent, RenderEvent, UpdateEvent},

@@ -1,8 +1,7 @@
 //! Osu skin directory parser module
 
-// TODO add support for hd textures
-
-use image;
+// TODO add support for hd textures (scaling shouldn't be an issue, just finding them and loading
+// them which shouldn't be hard but I'm just lazy
 
 use graphics::{
     draw_state::{self, DrawState},

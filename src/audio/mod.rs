@@ -1,3 +1,5 @@
+#![allow(unreachable_patterns)]
+
 //! This module deals with audio playback.
 
 #[cfg(feature = "mp3")]
@@ -13,7 +15,6 @@ use std::{
     collections::VecDeque,
     error,
     fmt,
-    io::{Read, Seek},
     iter::{self, Peekable},
     sync::mpsc,
     sync::Arc,

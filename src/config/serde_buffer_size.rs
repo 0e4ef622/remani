@@ -1,4 +1,3 @@
-use cpal;
 use serde::{
     de::{Deserializer, Error, Unexpected, Visitor},
     ser::Serializer,

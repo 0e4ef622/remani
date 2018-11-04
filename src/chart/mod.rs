@@ -1,10 +1,8 @@
 //! A module for reading charts, or beatmaps.
 
-use cpal;
-
 use crate::{audio, config::Config};
 
-use std::{error, fmt, io, rc::Rc};
+use std::{error, fmt, io};
 
 pub mod osu;
 pub mod ojn;

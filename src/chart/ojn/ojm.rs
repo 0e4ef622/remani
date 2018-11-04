@@ -242,19 +242,18 @@ fn omc_wav_decrypt(data: &[u8], state: &mut OmcWavDecryptState) -> Vec<u8> {
         decoded_data[block_start_decoded..block_start_decoded+block_size].copy_from_slice(&data[block_start_encoded .. block_start_encoded+block_size]);
         key += 1;
     }
-    // TODO the "acc_xor" thing
-    decoded_data.iter_mut()
-        .map(|n| {
-            let orig_byte = *n;
-            if ((state.acc_keybyte << state.acc_counter) & 0x80) != 0 {
-                *n = !*n;
-            }
-            state.acc_counter += 1;
-            if state.acc_counter > 7 {
-                state.acc_counter = 0;
-                state.acc_keybyte = orig_byte;
-            }
-        });
+
+    for n in &mut decoded_data {
+        let orig_byte = *n;
+        if ((state.acc_keybyte << state.acc_counter) & 0x80) != 0 {
+            *n = !*n;
+        }
+        state.acc_counter += 1;
+        if state.acc_counter > 7 {
+            state.acc_counter = 0;
+            state.acc_keybyte = orig_byte;
+        }
+    }
     decoded_data
 }
 
