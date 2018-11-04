@@ -23,7 +23,7 @@ Libraries used
 * [Piston](https://github.com/PistonDevelopers/piston) [MIT]
 * [Image](https://github.com/PistonDevelopers/image) [MIT]
 * [CPAL](https://github.com/tomaka/cpal) [Apache 2.0]
-* [libmad](https://www.underbit.com/products/mad/) [GPLv2] through [simplemad](https://github.com/bendykst/simple-mad.rs) [MIT]
+* [libmad](https://www.underbit.com/products/mad/) [GPLv2] through [simplemad](https://github.com/RustAudio/simple-mad.rs) [MIT]
 
 Other resources used
 ====================
