@@ -6,6 +6,7 @@ TODO list
 - [x] Speed up osu module keysound loading
 - [ ] Osu module ogg keysound file support
 - [ ] Osu storyboard sounds support (e.g. auto-play sounds)
+- [ ] Finish the ojn module (all that I really need is to calculate the time of a note from it's measure number, but the bpm can change and I'm unsure on what a "[measure fraction](https://open2jam.wordpress.com/2010/10/05/the-notes-section/)" is)
 - [ ] The rest of the TODOs in the osu module
 - [ ] Fix current\_timing\_point\_index management
 - [ ] Options menu (waiting on config system)
