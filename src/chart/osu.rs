@@ -432,13 +432,24 @@ impl HitSound {
     ) -> Result<audio::EffectStream, (PathBuf, audio::AudioLoadError)> {
         match self.source {
             HitSoundSource::File(path) => {
-                let path = chart.chart_path.join(&path);
+                let mut path = chart.chart_path.join(&path);
                 if let Some(effect_stream) = cache.get(&path) {
                     return Ok(effect_stream.clone());
                 }
+                path.set_extension("ogg"); // this is so stupid the file could say sound.wav but I have to check for sound.ogg as well
+                if let Some(effect_stream) = cache.get(&path) {
+                    return Ok(effect_stream.clone());
+                }
+                path.set_extension("wav");
                 let effect_stream: audio::EffectStream = match audio::music_from_path(&path, format) {
                     Ok(s) => s.into(),
-                    Err(e) => return Err((path, e)),
+                    Err(_) => {
+                        path.set_extension("ogg");
+                        match audio::music_from_path(&path, format) {
+                            Ok(s) => s.into(),
+                            Err(e) => return Err((path, e)),
+                        }
+                    }
                 };
                 cache.insert(path, effect_stream.clone());
                 Ok(effect_stream.with_volume(f32::from(self.volume) / 100.0))
