@@ -40,7 +40,12 @@ windows = [
     [0.1, -0.1], # good
     [0.2, -0.2], # bad
 ]
-miss_tolerance = 1.0 # if you hit earlier than one second, it's ignored, if you hit between one second early and the highest accepted timing window, it's counted as a miss
+
+# If you hit earlier than one second, it's ignored, if you hit between one
+# second early and the highest accepted timing window, it's counted as a miss.
+# Note that this default is absurdly large for sake of explanation, I would set
+# this to something like 0.4.
+miss_tolerance = 1.0
 
 [game.judges.hell]
 windows = [
@@ -48,4 +53,4 @@ windows = [
     [0.008, -0.008],
     [0.013, -0.013],
 ]
-miss_tolerance = 2.0
+miss_tolerance = 1.0
