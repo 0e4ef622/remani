@@ -19,6 +19,7 @@ struct UnverifiedGameConfig {
     default_osu_skin_path: path::PathBuf,
     current_skin: String,
     current_judge: String,
+    osu_hitsound_enable: bool,
 
     skins: BTreeMap<String, SkinEntry>,
     judges: BTreeMap<String, Judge>,
@@ -40,6 +41,13 @@ pub struct GameConfig {
     current_skin_index: usize,
     /// An index into the `judges` field
     current_judge_index: usize,
+
+    /// Osu mania has two types of sounds: hitsounds and keysounds. Keysounds are sounds that are
+    /// supposed to make up part of the music e.g. piano notes. Hitsounds are sounds that aren't
+    /// part of the music, but are meant to provide audio feedback, like a drum kick or whistle. I
+    /// don't know if there are any maps that put the keysounds where the hitsounds are supposed to
+    /// be, so this setting is here.
+    pub osu_hitsound_enable: bool,
 
     pub skins: Vec<(String, SkinEntry)>,
     pub judges: Vec<(String, Judge)>,
@@ -76,6 +84,8 @@ impl UnverifiedGameConfig {
             current_judge_index: judges
                 .binary_search_by_key(&&current_judge, |v| &v.0)
                 .map_err(|_| GameConfigVerifyError::BadCurrentJudge)?,
+
+            osu_hitsound_enable: self.osu_hitsound_enable,
 
             skins,
             judges,
@@ -248,6 +258,7 @@ fn default_config() -> Config {
             default_osu_skin_path: path::PathBuf::from("rsc/default_osu_skin"),
             current_skin: "test".into(),
             current_judge: "easy".into(),
+            osu_hitsound_enable: false,
             skins: skin_map,
             judges: judge_map,
             scroll_speed: 1.7,

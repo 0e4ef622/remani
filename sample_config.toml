@@ -20,6 +20,7 @@ scroll_speed = 1.7
 offset = -0.1
 current_judge = "easy"
 default_osu_skin_path = "rsc/default_osu_skin"
+osu_hitsound_enable = false
 
 [game.skins.o2jamu]
 type = "osu"

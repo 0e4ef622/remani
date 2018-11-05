@@ -400,7 +400,10 @@ struct HitObject {
 }
 
 impl HitObject {
-    fn into_note(self, sound_cache: &mut HashMap<Vec<HitSound>, usize>) -> Note {
+    fn into_note(mut self, sound_cache: &mut HashMap<Vec<HitSound>, usize>, timing_points: &[OsuTimingPoint]) -> Note {
+        for sound in &mut self.sounds {
+            sound.resolve_tp_inherit(self.time, timing_points);
+        }
         let len = sound_cache.len();
         Note {
             time: self.time,
@@ -421,7 +424,6 @@ struct HitSound {
 }
 
 impl HitSound {
-    // TODO volume
     fn load_sound(self,
         chart: &OsuChart,
         format: &cpal::Format,
@@ -441,7 +443,7 @@ impl HitSound {
                 cache.insert(path, effect_stream.clone());
                 Ok(effect_stream.with_volume(f32::from(self.volume) / 100.0))
             }
-            HitSoundSource::SampleSet(shs) => {
+            HitSoundSource::SampleSet(shs) if config.game.osu_hitsound_enable => {
                 let mut the_path = None;
                 for path in shs.possible_paths(config, chart) {
                     if let Some(effect_stream) = cache.get(&path) {
@@ -464,7 +466,47 @@ impl HitSound {
                     Ok(audio::EffectStream::empty())
                 }
             }
+            HitSoundSource::SampleSet(_) => Ok(audio::EffectStream::empty()),
         }
+    }
+    /// Figures out which timing point this hit sound inherits from, if any, and sets itself
+    /// accordingly.
+    fn resolve_tp_inherit(&mut self, time: f64, timing_points: &[OsuTimingPoint]) {
+        match &mut self.source {
+            HitSoundSource::SampleSet(sample) => {
+                let mut tp = None;
+                if sample.index == 0 {
+                    tp = find_tp_inherit_from(time, timing_points);
+                    sample.index = tp.map(|t| t.sample_index).unwrap_or(1);
+                }
+                if sample.set == SampleSet::Auto {
+                    tp = tp.or_else(|| find_tp_inherit_from(time, timing_points));
+                    sample.set = tp.map(|t| t.sample_set).unwrap_or(SampleSet::Normal);
+                }
+            }
+            HitSoundSource::File(_) => (),
+        }
+    }
+}
+
+/// Find the timing point to inherit from
+fn find_tp_inherit_from(time: f64, timing_points: &[OsuTimingPoint]) -> Option<&OsuTimingPoint> {
+    if let Some(tp) = timing_points.first() {
+        if time < tp.offset {
+            Some(tp)
+        } else {
+            let mut tp_index = 0;
+            for (i, timing_point) in timing_points.iter().enumerate() {
+                if timing_point.offset > time {
+                    break;
+                } else {
+                    tp_index = i;
+                }
+            }
+            Some(&timing_points[tp_index])
+        }
+    } else {
+        None
     }
 }
 
@@ -521,14 +563,14 @@ impl SampleHitSound {
         };
 
         // TODO decide whether to defer the following two format! calls
-        let filename_with_index = format!("{}-hit{}{}.wav", sample_set, sound, index);
-        let filename_without_index = format!("{}-hit{}.wav", sample_set, sound);
-        let path1 = chart.chart_path.join(&filename_with_index);
+        let filename_with_index_wav = format!("{}-hit{}{}.wav", sample_set, sound, index);
+        let filename_without_index_wav = format!("{}-hit{}.wav", sample_set, sound);
+        let path1 = chart.chart_path.join(&filename_with_index_wav);
         let path2 = match &config.game.current_skin().1 {
-            config::SkinEntry::Osu(path) => Some(path.join(&filename_without_index)),
+            config::SkinEntry::Osu(path) => Some(path.join(&filename_without_index_wav)),
             config::SkinEntry::O2Jam(path) => None,
         };
-        let path3 = config.game.default_osu_skin_path.join(&filename_without_index);
+        let path3 = config.game.default_osu_skin_path.join(&filename_without_index_wav);
 
         macro_rules! iter {
             ($item:expr) => (std::iter::once($item));
@@ -648,6 +690,19 @@ impl Chart for OsuChart {
 
 impl IncompleteChart {
     fn finalize(self, chart_path: impl AsRef<Path>) -> Result<OsuChart, ParseError> {
+        let mut sound_cache = HashMap::new();
+
+        let timing_points = &self.timing_points;
+        let notes: Vec<_> = self
+            .hit_objects
+            .into_iter()
+            .map(|h| h.into_note(&mut sound_cache, timing_points))
+            .collect();
+
+        let mut sounds: Vec<_> = sound_cache.into_iter().collect();
+        sounds.sort_unstable_by_key(|t| t.1);
+        let sounds = sounds.into_iter().map(|t| t.0).collect();
+
         let timing_points: Vec<_> = self
             .timing_points
             .into_iter()
@@ -656,17 +711,6 @@ impl IncompleteChart {
                 value: t.value,
             }).collect();
 
-        let mut sound_cache = HashMap::new();
-
-        let notes: Vec<_> = self
-            .hit_objects
-            .into_iter()
-            .map(|h| h.into_note(&mut sound_cache))
-            .collect();
-
-        let mut sounds: Vec<_> = sound_cache.into_iter().collect();
-        sounds.sort_unstable_by_key(|t| t.1);
-        let sounds = sounds.into_iter().map(|t| t.0).collect();
 
         let last_note_time = match notes.last() {
             Some(n) => n.end_time.unwrap_or(n.time),
