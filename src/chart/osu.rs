@@ -15,6 +15,7 @@ use crate::{
     chart::{
         self,
         audio,
+        AutoplaySound,
         Chart,
         Note,
         ParseError,
@@ -596,11 +597,77 @@ impl SampleHitSound {
     }
 }
 
+fn parse_events(line: &str, chart: &mut IncompleteChart) -> Result<(), ParseError> {
+    const ERR_STRING: &str = "Error parsing storyboard sound";
+    let mut items = line.split(',');
+    if items.next() != Some("Sample") {
+        return Ok(()); // we don't care about any other lines
+    }
+    let time = match items.next() {
+        Some(s) => cvt_err!(ERR_STRING, s.parse::<f64>())? / 1000.0,
+        None => return Err(ParseError::Parse(
+            ERR_STRING.to_owned(),
+            Some(Box::new(ParseError::EOL)))),
+    };
+    match items.next() { // layer_num, we don't care about this
+        Some(_) => (),
+        None => return Err(ParseError::Parse(
+            ERR_STRING.to_owned(),
+            Some(Box::new(ParseError::EOL)))),
+    };
+    let volume = match items.last() {
+        Some(s) => cvt_err!(ERR_STRING, s.parse::<f32>())? / 100.0,
+        None => return Err(ParseError::Parse(
+            format!("{}: malformed volume", ERR_STRING),
+            None,
+        )),
+    };
+    let mut quotes = line.split('"');
+    match quotes.next() {
+        Some(_) => (),
+        None => return Err(ParseError::Parse(
+            format!("{}: malformed line", ERR_STRING),
+            None,
+        )),
+    }
+    let sound_file = match quotes.next() {
+        Some(s) => s,
+        None => return Err(ParseError::Parse(
+            format!("{}: malformed line", ERR_STRING),
+            None,
+        )),
+    };
+    chart.autoplay_sounds.push(OsuAutoplaySound {
+        time,
+        volume,
+        sound_file: sound_file.into(),
+    });
+    Ok(())
+}
+
+struct OsuAutoplaySound {
+    time: f64,
+    volume: f32,
+    sound_file: PathBuf,
+}
+
+impl OsuAutoplaySound {
+    fn into_autoplay_sound(self, start_index: usize, cache: &mut HashMap<PathBuf, usize>) -> AutoplaySound {
+        let cache_len = cache.len();
+        AutoplaySound {
+            time: self.time,
+            volume: self.volume,
+            sound_index: *cache.entry(self.sound_file).or_insert(start_index + cache_len),
+        }
+    }
+}
+
 /// Used during parsing, gets finalized into a Chart once all the values are obtained.
 #[derive(Default)]
 struct IncompleteChart {
     hit_objects: Vec<HitObject>,
     timing_points: Vec<OsuTimingPoint>,
+    autoplay_sounds: Vec<OsuAutoplaySound>,
     creator: Option<String>,
     artist: Option<String>,
     artist_unicode: Option<String>,
@@ -615,12 +682,36 @@ enum MaybeLoadedSounds {
     Loaded(Vec<audio::EffectStream>),
 }
 
+impl MaybeLoadedSounds {
+    fn len(&self) -> usize {
+        match self {
+            MaybeLoadedSounds::NotLoaded(v) => v.len(),
+            MaybeLoadedSounds::Loaded(v) => v.len(),
+        }
+    }
+}
+
+enum MaybeLoadedAutoplaySounds {
+    NotLoaded(Vec<PathBuf>),
+    Loaded(Vec<audio::EffectStream>),
+}
+
+impl MaybeLoadedAutoplaySounds {
+    fn len(&self) -> usize {
+        match self {
+            MaybeLoadedAutoplaySounds::NotLoaded(v) => v.len(),
+            MaybeLoadedAutoplaySounds::Loaded(v) => v.len(),
+        }
+    }
+}
+
 /// See [`Chart`]
 ///
 /// [`Chart`]: ../trait.Chart.html
 struct OsuChart {
     notes: Vec<Note>,
     timing_points: Vec<chart::TimingPoint>,
+    autoplay_sounds: Vec<AutoplaySound>,
     primary_bpm: f64,
     creator: Option<String>,
     artist: Option<String>,
@@ -631,6 +722,7 @@ struct OsuChart {
     music_path: PathBuf,
     chart_path: PathBuf,
     sounds: MaybeLoadedSounds,
+    autoplay_sound_files: MaybeLoadedAutoplaySounds,
 }
 
 impl Chart for OsuChart {
@@ -661,17 +753,20 @@ impl Chart for OsuChart {
     fn difficulty_name(&self) -> &str {
         &self.difficulty_name
     }
+    fn autoplay_sounds(&self) -> &[AutoplaySound] {
+        &self.autoplay_sounds
+    }
     fn music(&mut self, format: &cpal::Format) -> Result<audio::MusicStream, audio::AudioLoadError> {
         audio::music_from_path(&self.chart_path.join(&self.music_path), format)
     }
     fn load_sounds(&mut self, format: &cpal::Format, config: &Config) {
         println!("loading sounds");
+        let mut cache = HashMap::new();
         // Take ownership of the Vec of hitsounds
         let self_sounds = std::mem::replace(&mut self.sounds, MaybeLoadedSounds::NotLoaded(vec![]));
         match self_sounds {
             MaybeLoadedSounds::NotLoaded(v) => {
                 let mut loaded_sounds = Vec::with_capacity(v.len());
-                let mut cache = HashMap::new();
                 for sounds in v {
                     let sound_results = sounds.into_iter().map(|s| s.load_sound(self, format, config, &mut cache));
                     let mut mixed_sound = audio::EffectStream::empty();
@@ -685,15 +780,59 @@ impl Chart for OsuChart {
                 }
                 self.sounds = MaybeLoadedSounds::Loaded(loaded_sounds);
             }
-            MaybeLoadedSounds::Loaded(..) => (),
+            MaybeLoadedSounds::Loaded(..) => self.sounds = self_sounds,
+        }
+        let self_autoplay_sound_files = std::mem::replace(&mut self.autoplay_sound_files, MaybeLoadedAutoplaySounds::NotLoaded(vec![]));
+        match self_autoplay_sound_files {
+            MaybeLoadedAutoplaySounds::NotLoaded(v) => {
+                let mut loaded_sounds = Vec::with_capacity(v.len());
+                for path in v {
+                    let mut path = self.chart_path.join(path);
+                    let sound = if let Some(s) = cache.get(&path) {
+                        s.clone()
+                    } else {
+                        let s = audio::music_from_path(&path, format)
+                            .or_else(|_| {
+                                path.set_extension("ogg");
+                                audio::music_from_path(&path, format)
+                            })
+                            .or_else(|_| {
+                                path.set_extension("mp3");
+                                audio::music_from_path(&path, format)
+                            })
+                            .map(Into::into)
+                            .unwrap_or_else(|e| {
+                                remani_warn!("Error loading autoplay sound '{}': {}", path.display(), e);
+                                audio::EffectStream::empty()
+                            });
+
+                        cache.insert(path, s.clone());
+                        s
+                    };
+                    loaded_sounds.push(sound);
+                }
+                self.autoplay_sound_files = MaybeLoadedAutoplaySounds::Loaded(loaded_sounds);
+            }
+            MaybeLoadedAutoplaySounds::Loaded(..) => self.autoplay_sound_files = self_autoplay_sound_files,
         }
     }
     fn get_sound(&self, i: usize) -> Option<audio::EffectStream> {
-        match &self.sounds {
-            MaybeLoadedSounds::Loaded(v) => v.get(i).cloned(),
-            MaybeLoadedSounds::NotLoaded(..) => {
-                remani_warn!("Hitsounds not loaded");
-                None
+        if i < self.sounds.len() {
+            match &self.sounds {
+                MaybeLoadedSounds::Loaded(v) => v.get(i).cloned(),
+                MaybeLoadedSounds::NotLoaded(..) => {
+                    remani_warn!("Hitsounds not loaded");
+                    None
+                }
+            }
+        } else {
+            let i = i - self.sounds.len();
+            match &self.autoplay_sound_files {
+                MaybeLoadedAutoplaySounds::Loaded(v) => v.get(i).cloned(),
+                MaybeLoadedAutoplaySounds::NotLoaded(..) => {
+                    remani_warn!("Autoplay sounds not loaded");
+                    None
+                }
             }
         }
     }
@@ -712,7 +851,16 @@ impl IncompleteChart {
 
         let mut sounds: Vec<_> = sound_cache.into_iter().collect();
         sounds.sort_unstable_by_key(|t| t.1);
-        let sounds = sounds.into_iter().map(|t| t.0).collect();
+        let sounds: Vec<_> = sounds.into_iter().map(|t| t.0).collect();
+
+        let mut autoplay_sounds_cache = HashMap::new();
+        let autoplay_sounds: Vec<_> = self.autoplay_sounds
+            .into_iter()
+            .map(|s| s.into_autoplay_sound(sounds.len(), &mut autoplay_sounds_cache))
+            .collect();
+        let mut autoplay_sound_files: Vec<_> = autoplay_sounds_cache.into_iter().collect();
+        autoplay_sound_files.sort_unstable_by_key(|t| t.1);
+        let autoplay_sound_files: Vec<_> = autoplay_sound_files.into_iter().map(|t| t.0).collect();
 
         let timing_points: Vec<_> = self
             .timing_points
@@ -765,6 +913,7 @@ impl IncompleteChart {
             notes,
             timing_points,
             primary_bpm,
+            autoplay_sounds,
             creator: self.creator,
             artist: self.artist,
             artist_unicode: self.artist_unicode,
@@ -772,6 +921,7 @@ impl IncompleteChart {
             song_name_unicode: self.song_name_unicode,
             difficulty_name: self.difficulty_name.unwrap_or(String::from("Unnamed")),
             sounds: MaybeLoadedSounds::NotLoaded(sounds),
+            autoplay_sound_files: MaybeLoadedAutoplaySounds::NotLoaded(autoplay_sound_files),
 
             music_path: self.music_path
                 .ok_or(ParseError::Parse(String::from("Could not find audio file"), None))?,
@@ -813,6 +963,7 @@ impl OsuParser {
                     "Metadata" => parse_metadata(line, &mut self.chart)?,
                     "TimingPoints" => parse_timing_point(line, &mut self.chart)?,
                     "HitObjects" => parse_hit_object(line, &mut self.chart)?,
+                    "Events" => parse_events(line, &mut self.chart)?,
                     _ => (),
                 },
                 None => return Err(ParseError::InvalidFile),

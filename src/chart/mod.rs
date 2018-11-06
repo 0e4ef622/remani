@@ -24,8 +24,18 @@ pub struct Note {
     /// Where the note ends, in seconds. None means it's a regular note, Some means it's a long note.
     pub end_time: Option<f64>,
 
-    /// The index of the sound to play when the note is hit.
+    /// The index of the sound to play when the note is hit. You can get the actual sound via
+    /// Chart::get_sound
     pub sound_index: Option<usize>
+}
+
+#[derive(Debug)]
+pub struct AutoplaySound {
+    /// When the sound should be played
+    pub time: f64,
+    /// The index of the sound. You can get the actual sound via Chart::get_sound
+    pub sound_index: usize,
+    pub volume: f32,
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -140,6 +150,9 @@ pub trait Chart {
 
     /// Loads and returns the music
     fn music(&mut self, format: &cpal::Format) -> Result<audio::MusicStream, audio::AudioLoadError>;
+
+    /// Returns the autoplay sounds sorted by time
+    fn autoplay_sounds(&self) -> &[AutoplaySound];
 
     /// Loads chart sounds so that they can be accessed through the `get_sound` method
     fn load_sounds(&mut self, format: &cpal::Format, config: &Config);

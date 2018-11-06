@@ -24,6 +24,7 @@ pub struct GameScene {
     last_instant: time::Instant,
     first_playhead_received: bool,
     first_playhead_request: bool,
+    current_autoplay_sound_index: usize,
 }
 
 impl GameScene {
@@ -51,6 +52,7 @@ impl GameScene {
             last_instant: time::Instant::now(),
             first_playhead_received: false,
             first_playhead_request: false,
+            current_autoplay_sound_index: 0,
         }
     }
 
@@ -98,6 +100,14 @@ impl GameScene {
             self.model.update(u, config, &*self.chart, self.time, |k| {
                 view.draw_judgement(k, Judgement::Miss)
             });
+            if let Some(autoplay_sound) = self.chart.autoplay_sounds().get(self.current_autoplay_sound_index) {
+                // Unapply the offset to make sure the autoplay sound lines up with the music
+                if self.time - config.game.offset >= autoplay_sound.time {
+                    self.current_autoplay_sound_index += 1;
+                    self.chart.get_sound(autoplay_sound.sound_index)
+                        .map(|s| audio.play_effect(s.with_volume(autoplay_sound.volume)));
+                }
+            }
         }
 
         if let Some(i) = e.press_args() {
