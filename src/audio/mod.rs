@@ -134,6 +134,7 @@ impl MusicStream {
 }
 
 /// An iterator over a Vec contained in an Arc
+#[derive(Debug)]
 pub struct ArcIter<T: Copy> {
     inner: Arc<Vec<T>>,
     index: usize,
@@ -391,11 +392,12 @@ pub fn start_audio_thread(mut audio_buffer_size: cpal::BufferSize) -> Result<Aud
                 _ => (),
             }
 
-            while let Some(effect) = effects.front_mut() {
-                if effect.1.peek().is_none() {
-                    effects.pop_front();
+            let mut i = 0;
+            while i < effects.len() {
+                if effects[i].1.peek().is_none() {
+                    effects.swap_remove_back(i);
                 } else {
-                    break;
+                    i += 1;
                 }
             }
         });
