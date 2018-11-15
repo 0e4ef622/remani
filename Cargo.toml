@@ -1,3 +1,4 @@
+cargo-features = ["default-run"]
 [package]
 name = "remani"
 version = "0.1.0"
@@ -9,6 +10,7 @@ license = "MIT"
 keywords = ["7k", "vsrg", "o2jam", "osumania"]
 categories = ["games"]
 exclude = ["test/*"]
+default-run = "remani"
 
 [dependencies]
 piston = "0.37"
