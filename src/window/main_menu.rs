@@ -1,19 +1,20 @@
-use graphics::{self, draw_state::DrawState, image::Image};
+use graphics::{draw_state::DrawState, image::Image};
 use opengl_graphics::Texture;
-use piston::{
-    self,
-    input::{mouse, Button, MouseCursorEvent, PressEvent, RenderEvent},
+use piston::input::{
+    mouse,
+    Button,
+    PressEvent,
+    RenderEvent,
 };
 use texture::{ImageSize, TextureSettings};
 
-use super::{game, Scene, Window};
+use super::{options, game, Window};
 use crate::{audio, chart, config::Config};
 
 pub struct MainMenu {
     play_texture: Texture,
     options_texture: Texture,
     exit_texture: Texture,
-    mouse_position: [f64; 2],
     window_height: f64,
 }
 
@@ -29,7 +30,6 @@ impl MainMenu {
             play_texture,
             options_texture,
             exit_texture,
-            mouse_position: [-1.0, -1.0],
             window_height: 0.0,
         }
     }
@@ -42,25 +42,16 @@ impl MainMenu {
         audio: &audio::Audio,
         window: &mut Window,
     ) {
-        if let Some(p) = e.mouse_cursor_args() {
-            self.mouse_position = p;
-        }
-
         if let Some(i) = e.press_args() {
-            if i == Button::Mouse(mouse::MouseButton::Left) && self.mouse_position[1] < self.window_height / 3.0 {
-                let chart = match chart::osu::from_path("test/test_chart/test.osu") {
-                    Ok(x) => x,
-                    Err(e) => {
-                        println!("{}", e);
-                        panic!();
-                    }
-                };
-                window.change_scene(Scene::Game(game::GameScene::new(Box::new(chart), config, audio)));
+            if i == Button::Mouse(mouse::MouseButton::Left) && window.mouse_position[1] < self.window_height / 3.0 {
+                match chart::osu::from_path("test/test_chart/test.osu") {
+                    Ok(x) => window.change_scene(game::GameScene::new(Box::new(x), config, audio)),
+                    Err(e) => println!("{}", e),
+                }
+            } else if i == Button::Mouse(mouse::MouseButton::Left) && window.mouse_position[1] < self.window_height / 3.0 * 2.0 {
+                window.change_scene(options::Options::new(window));
             }
         }
-
-        // if let Some(i) = e.release_args() {
-        // }
 
         if let Some(r) = e.render_args() {
             window.gl.draw(r.viewport(), |c, gl| {
