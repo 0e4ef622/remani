@@ -1,5 +1,5 @@
 [general]
-resolution = [1024, 768]
+resolution = [800, 600]
 audio_buffer_size = 1024
 chart_path = [
     { type = "osu", path = "test/" },

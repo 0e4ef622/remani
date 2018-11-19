@@ -711,29 +711,24 @@ impl error::Error for OsuSkinParseError {
     }
 }
 
-// Work around https://github.com/PistonDevelopers/opengl_graphics/issues/264
-// Performs a reverse sRGB transformation
-fn image_reverse_srgb(mut img: image::RgbaImage) -> image::RgbaImage {
+// Apparently I need to do this?
+fn fix_alpha(img: &mut image::RgbaImage) {
     use std::u8;
 
-    // We can't use graphics::color::gamma_srgb_to_linear(color) because it doesn't
-    // perform the transformation on the alpha channel, which we want
-    img.pixels_mut().for_each(|pixel| {
-        pixel.data.iter_mut().for_each(|c| {
-            const U8_MAX: f32 = u8::MAX as f32;
+    // linearize the alpha channel (wtf)
+    for pixel in img.pixels_mut() {
+        const U8_MAX: f32 = u8::MAX as f32;
 
-            let mut v = *c as f32 / U8_MAX;
+        let mut v = pixel.data[3] as f32 / U8_MAX;
 
-            if v <= 0.04045 {
-                v /= 12.92
-            } else {
-                v = ((v + 0.055) / 1.055).powf(2.4)
-            }
+        if v <= 0.04045 {
+            v /= 12.92
+        } else {
+            v = ((v + 0.055) / 1.055).powf(2.4)
+        }
 
-            *c = (v * U8_MAX).round() as u8;
-        });
-    });
-    img
+        pixel.data[3] = (v * U8_MAX).round() as u8;
+    }
 }
 
 fn texture_from_path<F, T, P>(
@@ -747,11 +742,11 @@ where
     T::Error: ToString,
 {
     let path_string = path.as_ref().to_string_lossy().into_owned();
-    let image = match image::open(&path) {
-        Ok(t) => t,
+    let mut image = match image::open(&path) {
+        Ok(t) => t.to_rgba(),
         Err(e) => return Err(ParseError::ImageError(path_string, e)),
     };
-    let image = image_reverse_srgb(image.to_rgba());
+    fix_alpha(&mut image); // ???
     let dimensions = image.dimensions();
     CreateTexture::create(
         factory,

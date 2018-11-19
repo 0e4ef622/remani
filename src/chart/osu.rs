@@ -433,6 +433,7 @@ impl HitSound {
     ) -> Result<audio::EffectStream, (PathBuf, audio::AudioLoadError)> {
         match self.source {
             HitSoundSource::File(path) => {
+                // the extension SHOULD be .wav, if it's not I don't know what to say...
                 let mut path = chart.chart_path.join(&path);
                 if let Some(effect_stream) = cache.get(&path) {
                     return Ok(effect_stream.clone());

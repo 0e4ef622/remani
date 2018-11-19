@@ -54,7 +54,7 @@ impl<G: Graphics> View<G> {
         model: &Model,
         time: f64,
     ) {
-        graphics::clear([0.0; 4], g);
+        graphics::clear([0.0, 0.0, 0.0, 1.0], g);
 
         // manage self.current_timing_point_index
         //
