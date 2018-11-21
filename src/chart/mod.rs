@@ -113,11 +113,10 @@ impl error::Error for ParseError {
             ParseError::EOL => "Unexpected end of line",
         }
     }
-    fn cause(&self) -> Option<&dyn error::Error> {
-        use std::ops::Deref;
+    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         match *self {
             ParseError::Io(_, ref e) => Some(e),
-            ParseError::Parse(_, Some(ref e)) => Some(e.deref()),
+            ParseError::Parse(_, Some(ref e)) => Some(&**e),
             _ => None,
         }
     }

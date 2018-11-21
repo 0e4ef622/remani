@@ -275,7 +275,7 @@ impl fmt::Display for AudioThreadError {
 }
 
 impl error::Error for AudioThreadError {
-    fn cause(&self) -> Option<&dyn error::Error> {
+    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         match *self {
             AudioThreadError::NoOutputDevice => None,
             AudioThreadError::DefaultFormatError(_) => None,
@@ -458,7 +458,7 @@ impl error::Error for AudioLoadError {
             AudioLoadError::UnsupportedFormat(_) => "Unsupported format",
         }
     }
-    fn cause(&self) -> Option<&dyn error::Error> {
+    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         match *self {
             AudioLoadError::Io(ref e) => Some(e),
             AudioLoadError::Decode(_) => None,

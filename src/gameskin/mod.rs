@@ -44,7 +44,7 @@ impl error::Error for ParseError {
             ParseError::ImageError(_, _) => "Error reading image",
         }
     }
-    fn cause(&self) -> Option<&dyn error::Error> {
+    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
         use std::ops::Deref;
         match *self {
             ParseError::Io(_, ref e) => Some(e),
