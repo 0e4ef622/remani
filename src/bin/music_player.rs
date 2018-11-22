@@ -23,7 +23,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     };
 
     let music = audio::music_from_path(audio_filename, audio.format())?;
-    if audio.play_music(music).is_err() {
+    if !audio.play_music(music) {
         Err("Error sending music to audio thread")?;
     }
     audio.request_status()?;
