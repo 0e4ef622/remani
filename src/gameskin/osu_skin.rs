@@ -11,8 +11,7 @@ use graphics::{
 use texture::{CreateTexture, Format, ImageSize, TextureSettings};
 
 use std::{
-    collections::HashMap, error, fmt, fs::File, io::BufRead, io::BufReader, ops::Deref, path,
-    rc::Rc, str, time,
+    collections::HashMap, error, fmt, fs::File, io::BufRead, io::BufReader, path, rc::Rc, str, time,
 };
 
 use crate::judgement::Judgement;
@@ -108,6 +107,7 @@ struct OsuSkinConfig {
     column_width: [u16; 7],
     column_spacing: [u16; 6],
     column_line_width: [u16; 8], // TODO implement
+    colour_column_line: [u8; 8], // TODO implement
     hit_position: u16,
     score_position: u16,
     light_position: u16,
@@ -241,6 +241,8 @@ impl<G: Graphics> OsuSkin<G> {
 
         let note_w = self.config.column_width[column_index] as f64 * scale;
         let note_h = self.config.width_for_note_height_scale * scale;
+        // Calculate X position from column start, column width sum, and column spacing sum up to
+        // column_index
         let note_x = scale
             * (self.config.column_start as f64
                 + self.config.column_width[0..column_index]
@@ -252,7 +254,7 @@ impl<G: Graphics> OsuSkin<G> {
 
         let note_y = hit_p * (1.0 - pos) - note_h;
 
-        let note = self.textures.notes[column_index][0].deref();
+        let note = &*self.textures.notes[column_index][0];
         let note_img = Image::new().rect([note_x, note_y, note_w, note_h]);
         note_img.draw(note, draw_state, transform, g);
     }
@@ -273,6 +275,8 @@ impl<G: Graphics> OsuSkin<G> {
         let hit_p = self.config.hit_position as f64 * scale;
 
         let note_w = self.config.column_width[column_index] as f64 * scale;
+        // Calculate X position from column start, column width sum, and column spacing sum up to
+        // column_index
         let note_x = scale
             * (self.config.column_start as f64
                 + self.config.column_width[0..column_index]
@@ -281,15 +285,16 @@ impl<G: Graphics> OsuSkin<G> {
                 + self.config.column_spacing[0..column_index]
                     .iter()
                     .sum::<u16>() as f64);
+        // Theoretical long note bottom
         let real_bottom_y = hit_p * (1.0 - pos);
+        // Long note bottom but clamped at the hit position/judgement line
+        // TODO Don't clamp if the long note isn't being held
         let bottom_y = if pos < 0.0 { hit_p } else { real_bottom_y };
         let top_y = hit_p * (1.0 - end_pos);
 
-        let note_head = self.textures.long_notes_head[column_index][0].deref();
-        let note_tail = self.textures.long_notes_tail[column_index]
-            .as_ref()
-            .map(|v| v[0].deref());
-        let note_body = self.textures.long_notes_body[column_index][0].deref();
+        let note_head = &*self.textures.long_notes_head[column_index][0];
+        let note_tail = self.textures.long_notes_tail[column_index].as_ref().map(|v| &*v[0]);
+        let note_body = &*self.textures.long_notes_body[column_index][0];
 
         let note_body_h = note_body.get_height() as f64 * scale2;
         let note_end_h = self.config.width_for_note_height_scale * scale;
@@ -300,6 +305,7 @@ impl<G: Graphics> OsuSkin<G> {
         let note_tail_img = Image::new().rect([note_x, note_tail_y, note_w, note_end_h]);
 
         match self.config.note_body_style[column_index] {
+            // Note body image is stretched to the height of the note
             NoteBodyStyle::Stretch => {
                 let note_body_img = Image::new()
                     .src_rect([
@@ -316,6 +322,7 @@ impl<G: Graphics> OsuSkin<G> {
                     ]);
                 note_body_img.draw(note_body, draw_state, transform, g);
             }
+            // Note body image is repeated, starting from the top
             NoteBodyStyle::CascadeFromTop => {
                 let mut rect = [note_x, top_y - note_end_h / 2.0, note_w, note_body_h];
                 let mut i = 0.0;
@@ -332,6 +339,7 @@ impl<G: Graphics> OsuSkin<G> {
                 note_body_img = note_body_img.src_rect(src_rect).rect(mod_rect);
                 note_body_img.draw(note_body, draw_state, transform, g);
             }
+            // Note body image is repeated, starting from the bottom
             NoteBodyStyle::CascadeFromBottom => {
                 let mut rect = [note_x, top_y - note_end_h / 2.0, note_w, note_body_h];
                 let mut note_body_img = Image::new();
@@ -354,6 +362,8 @@ impl<G: Graphics> OsuSkin<G> {
                 rect[1] += offset;
                 let mut i = offset;
 
+                // The rectangle is upside down to simplify the thinking, and the image source
+                // rectangle is also upside down so it's fine
                 let upside_down_rect = [
                     0.0,
                     note_body.get_height() as f64,
@@ -385,12 +395,10 @@ impl<G: Graphics> OsuSkin<G> {
             }
         }
 
-        if pos >= 0.0 {
-            note_head_img.draw(note_head, draw_state, transform, g);
-        }
-
         note_head_img.draw(note_head, draw_state, transform, g);
 
+        // If there's a separate note tail image, use it, otherwise, flip the note head image and
+        // use it
         if let Some(note_tail) = note_tail {
             note_tail_img.draw(note_tail, draw_state, transform, g);
         } else {
@@ -439,16 +447,16 @@ impl<G: Graphics> OsuSkin<G> {
         ]);
 
         stage_hint_img.draw(
-            self.textures.stage_hint[0].deref(),
+            &*self.textures.stage_hint[0],
             draw_state,
             transform,
             g,
         );
-        stage_l_img.draw(self.textures.stage_left.deref(), draw_state, transform, g);
-        stage_r_img.draw(self.textures.stage_right.deref(), draw_state, transform, g);
+        stage_l_img.draw(&*self.textures.stage_left, draw_state, transform, g);
+        stage_r_img.draw(&*self.textures.stage_right, draw_state, transform, g);
 
         if let Some(ref v) = self.textures.stage_bottom {
-            let stage_bottom = &v[0];
+            let stage_bottom = &*v[0];
             let stage_b_width = stage_bottom.get_width() as f64 * scale;
             let stage_b_height = stage_bottom.get_height() as f64 * scale;
             let stage_b_img = Image::new().rect([
@@ -457,7 +465,7 @@ impl<G: Graphics> OsuSkin<G> {
                 stage_b_width,
                 stage_b_height,
             ]);
-            stage_b_img.draw(stage_bottom.deref(), draw_state, transform, g);
+            stage_b_img.draw(stage_bottom, draw_state, transform, g);
         }
     }
 
@@ -548,7 +556,7 @@ impl<G: Graphics> OsuSkin<G> {
             elapsed_time.as_secs() as f64 + elapsed_time.subsec_nanos() as f64 / 1e9;
         let frame = (elapsed * 30.0) as usize % self.textures.hit300g.len();
 
-        let tx = self.textures.hit300g[frame].deref();
+        let tx = &*self.textures.hit300g[frame];
 
         let scale = stage_h / 480.0;
         let scale2 = stage_h / 768.0;
@@ -573,7 +581,7 @@ impl<G: Graphics> OsuSkin<G> {
         g: &mut G,
         stage_h: f64,
     ) {
-        let tx = self.textures.miss[0].deref();
+        let tx = &*self.textures.miss[0];
 
         let scale = stage_h / 480.0;
         let scale2 = stage_h / 768.0;
@@ -625,7 +633,7 @@ impl<G: Graphics> OsuSkin<G> {
                             hit_h,
                         ]);
                         hit_img.draw(
-                            self.textures.lighting_n[frame].deref(),
+                            &*self.textures.lighting_n[frame],
                             draw_state,
                             transform,
                             g,
@@ -643,7 +651,7 @@ impl<G: Graphics> OsuSkin<G> {
                         hit_h,
                     ]);
                     hit_img.draw(
-                        self.textures.lighting_l[frame].deref(),
+                        &*self.textures.lighting_l[frame],
                         draw_state,
                         transform,
                         g,
@@ -669,7 +677,7 @@ impl<G: Graphics> OsuSkin<G> {
                             hit_h,
                         ]);
                         hit_img.draw(
-                            self.textures.lighting_l[frame].deref(),
+                            &*self.textures.lighting_l[frame],
                             draw_state,
                             transform,
                             g,
@@ -781,13 +789,17 @@ where
     let mut path;
 
     macro_rules! repetitive_code {
+        // $dir should be a path::Path
         ($(($dir:ident, $name:expr)),*) => {$(
 
+            // Check the cache
             if let Some(texture) = cache.get(&$name) {
                 return Ok(Rc::clone(texture));
             }
 
             // TODO can these join's be optimized? how much time does it take to allocate the pathbuf?
+
+            // Check for an animation sequence
             path = $dir.join($name + "-0.png");
             if path.exists() {
                 textures.push(Rc::new(texture_from_path(factory, &path, texture_settings)?));
@@ -803,6 +815,7 @@ where
                 return Ok(anim);
             }
 
+            // Check for static image
             path = $dir.join($name + ".png");
             if path.exists() {
                 // help
@@ -811,10 +824,10 @@ where
                 cache.insert($name, Rc::clone(&anim));
                 return Ok(anim);
             }
-
         )*}
     }
 
+    // Check the skin directory, then the default skin directory
     repetitive_code!((dir, names.1.clone()), (default_dir, names.0.to_owned()));
 
     Err(OsuSkinParseError::NoDefaultTexture(String::from(names.0)).into())
@@ -836,8 +849,10 @@ where
     T::Error: ToString,
 {
     macro_rules! repetitive_code {
+        // $dir should be a path::Path
         ($(($dir:ident, $name:expr)),*) => {$(
 
+            // Check the cache
             if let Some(texture) = cache.get(&$name) {
                 return Ok(Rc::clone(&texture[0]));
             }
@@ -853,6 +868,7 @@ where
         )*}
     }
 
+    // Check the skin directory, then the default skin directory
     repetitive_code!((dir, names.1.clone()), (default_dir, names.0.to_owned()));
 
     Err(OsuSkinParseError::NoDefaultTexture(String::from(names.0)).into())
@@ -943,6 +959,7 @@ where
     let mut column_start = 136;
     let mut column_width = [30; 7];
     let mut column_line_width = [2; 8];
+    let mut colour_column_line = [255; 8];
     let mut column_spacing = [0; 6];
     let mut colour_light = [[255, 255, 255]; 7];
     let mut hit_position = 402;
@@ -1068,6 +1085,7 @@ where
                             "LightPosition" => light_position = parse!(value),
                             "ColumnWidth" => column_width = csv![column_width; 7],
                             "ColumnLineWidth" => column_line_width = csv![column_line_width; 8],
+                            "ColourColumnLine" => colour_column_line = csv![colour_column_line; 4],
                             "ColumnSpacing" => column_spacing = csv![column_spacing; 6],
                             "NoteBodyStyle" => note_body_style = [parse!(value); 7],
                             "Hit0" => miss_name.1 = value.to_owned(),
@@ -1213,6 +1231,7 @@ where
             column_width,
             column_spacing,
             column_line_width,
+            colour_column_line,
             hit_position,
             score_position,
             light_position,

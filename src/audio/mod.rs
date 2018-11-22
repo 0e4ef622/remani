@@ -100,12 +100,11 @@ impl<S: cpal::Sample> From<MusicStream<S>> for EffectStream<S> {
     }
 }
 
-/// A struct that encapsulates a lazy iterator over audio samples with metadata.
+/// A struct that encapsulates a lazy iterator over audio samples with metadata. Channels and
+/// sample rate aren't stored because they are expected to match the output device.
 pub struct MusicStream<S: cpal::Sample = f32> {
     /// An interleaved iterator of samples
     samples: Box<dyn Iterator<Item = S> + Send>,
-    channel_count: u8,
-    sample_rate: u32,
 }
 
 /// Gets converted into a MusicStream after resampling. Used to avoid
@@ -124,11 +123,9 @@ impl<S: cpal::Sample> Iterator for MusicStream<S> {
 }
 
 impl MusicStream {
-    pub fn empty() -> Self {
+    pub fn zero() -> Self {
         MusicStream {
             samples: Box::new(iter::repeat(0.0)),
-            channel_count: 1,
-            sample_rate: 1,
         }
     }
 }
@@ -196,26 +193,14 @@ pub struct Audio<S: cpal::Sample = f32> {
 }
 
 impl<S: cpal::Sample> Audio<S> {
-    /// Start playing music, returning the passed in music stream if there was an error
-    pub fn play_music(&self, music: MusicStream<S>) -> Result<(), MusicStream<S>> {
-        self.music_sender.try_send(music).or_else(|e| match e {
-            mpsc::TrySendError::Full(m) => Err(m),
-            mpsc::TrySendError::Disconnected(m) => Err(m),
-        })
+    /// Start playing music, returning a `bool` indicating whether it was successful or not
+    pub fn play_music(&self, music: MusicStream<S>) -> bool {
+        self.music_sender.try_send(music).is_ok()
     }
 
     /// Play a sound effect/hitsound, returning the passed in effect stream if there was an error
-    pub fn play_effect(&self, effect: EffectStream<S>) -> Result<(), EffectStream<S>> {
-        let volume = effect.volume;
-        self.effect_sender
-            .try_send((volume, ArcIter::new(effect.samples)))
-            .map_err(|e| {
-                let s = match e {
-                    mpsc::TrySendError::Full(m) => m,
-                    mpsc::TrySendError::Disconnected(m) => m,
-                }.1.inner();
-                (volume, s).into()
-            })
+    pub fn play_effect(&self, effect: EffectStream<S>) -> bool {
+        self.effect_sender.try_send((effect.volume, ArcIter::new(effect.samples))).is_ok()
     }
 
     /// Sends a request to the audio thread for the current playhead of the music. `get_playhead`
@@ -328,17 +313,30 @@ pub fn start_audio_thread(mut audio_buffer_size: cpal::BufferSize) -> Result<Aud
         event_loop.run(move |_, data| {
             while let Ok((volume, effect)) = effect_rx.try_recv() {
                 effects.push_back((volume, effect.peekable()));
-                // TODO do things
+                // TODO do things (i forgot what this was supposed to do maybe I already did them?)
             }
             while let Ok(m) = music_rx.try_recv() {
                 music = Some(m);
                 current_music_frame_index = 0;
             }
+            // If a playhead request was sent, send the playhead
             if request_playhead_rx.try_recv().is_ok() {
-                send_playhead_tx.try_send((time::Instant::now(), current_music_frame_index as f64 / sample_rate as f64));
+                if send_playhead_tx
+                    .try_send((time::Instant::now(), current_music_frame_index as f64 / sample_rate as f64))
+                    .is_err()
+                {
+                    remani_warn!("Failed to send audio playhead"); // this isn't supposed to happen, but just in case?
+                }
+
             }
+            // If a status request was sent, send the status
             if request_status_rx.try_recv().is_ok() {
-                send_status_tx.try_send(AudioStatus { is_playing_music: music.is_some() });
+                if send_status_tx
+                    .try_send(AudioStatus { is_playing_music: music.is_some() })
+                    .is_err()
+                {
+                    remani_warn!("Failed to send audio status"); // this isn't supposed to happen, but just in case?
+                }
             }
 
             // Get samples and mix them
@@ -392,8 +390,11 @@ pub fn start_audio_thread(mut audio_buffer_size: cpal::BufferSize) -> Result<Aud
                 _ => (),
             }
 
+            // Remove any effects that are finished playing
             let mut i = 0;
             while i < effects.len() {
+
+                // Check if there are any samples left in the effect
                 if effects[i].1.peek().is_none() {
                     effects.swap_remove_back(i);
                 } else {
@@ -500,8 +501,6 @@ where
     if stream.sample_rate == format.sample_rate.0 {
         MusicStream {
             samples: Box::new(stream.samples),
-            channel_count: stream.channel_count,
-            sample_rate: stream.sample_rate,
         }
     } else {
         resample::from_music_stream(stream, format.sample_rate.0)

@@ -93,7 +93,5 @@ where
 
     MusicStream {
         samples: Box::new(le_samples),
-        channel_count: stream.channel_count,
-        sample_rate: target_sample_rate,
     }
 }

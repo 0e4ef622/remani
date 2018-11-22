@@ -581,7 +581,7 @@ impl SampleHitSound {
         let path1 = chart.chart_path.join(&filename_with_index_wav);
         let path2 = match &config.game.current_skin().1 {
             config::SkinEntry::Osu(path) => Some(path.join(&filename_without_index_wav)),
-            config::SkinEntry::O2Jam(path) => None,
+            config::SkinEntry::O2Jam(_path) => None,
         };
         let path3 = config.game.default_osu_skin_path.join(&filename_without_index_wav);
 
@@ -695,15 +695,6 @@ impl MaybeLoadedSounds {
 enum MaybeLoadedAutoplaySounds {
     NotLoaded(Vec<PathBuf>),
     Loaded(Vec<audio::EffectStream>),
-}
-
-impl MaybeLoadedAutoplaySounds {
-    fn len(&self) -> usize {
-        match self {
-            MaybeLoadedAutoplaySounds::NotLoaded(v) => v.len(),
-            MaybeLoadedAutoplaySounds::Loaded(v) => v.len(),
-        }
-    }
 }
 
 /// See [`Chart`]
@@ -1026,7 +1017,7 @@ mod tests {
     #[test]
     fn test_ho_parse() {
         let mut chart = IncompleteChart::default();
-        parse_hit_object("0,0,5000,128,0,6000:0:0:0:70:", &mut chart);
+        parse_hit_object("0,0,5000,128,0,6000:0:0:0:70:", &mut chart).expect("Failed to parse hit object");
         {
             let ho = &chart.hit_objects[0];
             assert_eq!(5.0, ho.time);
@@ -1045,7 +1036,7 @@ mod tests {
 
         chart.hit_objects.clear();
 
-        parse_hit_object("75,0,1337,0,0,0:0:0:10:potato.wav", &mut chart);
+        parse_hit_object("75,0,1337,0,0,0:0:0:10:potato.wav", &mut chart).expect("Failed to parse hit object");
         {
             let ho = &chart.hit_objects[0];
             assert_eq!(1.337, ho.time);

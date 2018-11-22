@@ -33,8 +33,8 @@ impl GameScene {
         let music = match chart.music(audio.format()) {
             Ok(m) => Some(m),
             Err(e) => {
-                remani_warn!("Error loading chart music: {}", e);
-                Some(audio::MusicStream::empty())
+                remani_warn!("Error loading chart music `{}'", e);
+                Some(audio::MusicStream::zero())
             }
         };
         chart.load_sounds(audio.format(), config);
@@ -64,9 +64,8 @@ impl GameScene {
         audio: &audio::Audio,
         window: &mut Window,
     ) {
-        if let Some(m) = self.music.take() {
-            audio.play_music(m);
-        }
+        self.music.take()
+            .map(|m| audio.play_music(m) || panic!("Failed to play music"));
 
         if !self.first_playhead_request {
             if let Err(e) = audio.request_playhead() {
@@ -104,8 +103,12 @@ impl GameScene {
                 // Unapply the offset to make sure the autoplay sound lines up with the music
                 if self.time - config.game.offset >= autoplay_sound.time {
                     self.current_autoplay_sound_index += 1;
-                    self.chart.get_sound(autoplay_sound.sound_index)
-                        .map(|s| audio.play_effect(s.with_volume(autoplay_sound.volume)));
+                    self.chart
+                        .get_sound(autoplay_sound.sound_index)
+                        .map(|s|
+                            audio.play_effect(s.with_volume(autoplay_sound.volume))
+                            || panic!("Failed to play effect")
+                        );
                 }
             }
         }
@@ -121,7 +124,7 @@ impl GameScene {
                     note_index
                         .and_then(|i| chart.notes()[i].sound_index)
                         .and_then(|i| chart.get_sound(i))
-                        .map(|s| audio.play_effect(s));
+                        .map(|s| audio.play_effect(s) || panic!("Failed to play effect"));
                     view.key_down(k);
                 });
         }

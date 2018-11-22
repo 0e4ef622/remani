@@ -326,8 +326,8 @@ use std::{
 
 pub fn dump_data<P: AsRef<Path>>(path: P) {
     let mut file_data = [0; 32];
-    let mut file = File::open(path).expect("Failed to open ojn file");
-    file.read_exact(&mut file_data);
+    let mut file = File::open(path).expect("Failed to open ojm file");
+    file.read_exact(&mut file_data).expect("Failed to read ojm file");
     let (_, hdr) = header(&file_data).unwrap();
     println!("{:#?}", hdr);
     match hdr {
