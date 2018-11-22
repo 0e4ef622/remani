@@ -52,7 +52,7 @@ impl From<game::GameScene> for Scene {
 
 struct Window {
     gl: GlGraphics,
-    // glyph_cache: opengl_graphics::GlyphCache<'static>, // one font for now
+    glyph_cache: opengl_graphics::GlyphCache<'static>, // one font for now
 
     /// Kept track of here so that mouse coordinates don't get messed up when changing scenes.
     mouse_position: [f64; 2],
@@ -95,11 +95,11 @@ pub fn start(config: Config) {
     let mut window = Window {
         gl,
         next_scene: None,
-        // glyph_cache: opengl_graphics::GlyphCache::from_bytes(
-        //     include_bytes!("fonts/wqy/WenQuanYiMicroHei.ttf"),
-        //     (),
-        //     texture::TextureSettings::new(),
-        // ).expect("Failed to load Wen Quan Yi Micro Hei font"),
+        glyph_cache: opengl_graphics::GlyphCache::from_bytes(
+            include_bytes!("rsc/fonts/wqy/WenQuanYiMicroHei.ttf"),
+            (),
+            texture::TextureSettings::new(),
+        ).expect("Failed to load Wen Quan Yi Micro Hei font"),
         mouse_position: [-1.0, -1.0],
         window: glutin_window,
     };

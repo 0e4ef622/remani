@@ -33,7 +33,7 @@ conrod = { version = "0.62.0", features = ["piston"] }
 
 [patch.crates-io]
 cpal = { git = "https://github.com/0e4ef622/cpal", rev = "buffer-size-request" }
-conrod = { git = "https://github.com/bvssvni/conrod", rev = "2ba8002ec60ae7f749d366ee751c4d2222252b7c" }
+conrod = { git = "https://github.com/0e4ef622/conrod", rev = "rebase" } # my piston dpi patch rebased on a pull request to update conrod's dependencies
 
 [features]
 default = ["mp3", "wav", "ogg"]
