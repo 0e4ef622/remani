@@ -1,5 +1,3 @@
-#![feature(macro_literal_matcher)]
-
 macro_rules! remani_warn {
     ($fmt:expr) => (eprintln!(concat!("WARNING: ", $fmt)));
     ($fmt:expr, $($arg:tt)*) => {
