@@ -1,45 +1,17 @@
-cargo-features = ["default-run"]
-[package]
-name = "remani"
-version = "0.1.0"
-authors = ["Matthew Tran <0e4ef622@gmail.com>"]
-edition = '2018'
-description = "A modular 7k VSRG that aims to support multiple skin and chart formats"
-repository = "https://github.com/0e4ef622/remani"
-license = "MIT"
-keywords = ["7k", "vsrg", "o2jam", "osumania"]
-categories = ["games"]
-exclude = ["test/*"]
-default-run = "remani"
-
-[dependencies]
-piston = "0.39"
-piston-texture = "0.6"
-pistoncore-glutin_window = "0.51"
-piston2d-graphics = "0.28"
-piston2d-opengl_graphics = "0.57"
-image = "0.20.0"
-cpal = "0.8"
-simplemad = { optional = true, version = "0.9" }
-toml = "0.4"
-serde = "1.0"
-serde_derive = "1.0"
-directories = "1.0"
-hound = { optional = true, version = "3.4" }
-either = "1.5"
-lewton = { optional = true, version = "0.9" }
-nom = "4.0"
-conrod = { version = "0.62.0", features = ["piston"] }
+[workspace]
+members = [
+    "src/audio",
+    "src/chart",
+    "src/config",
+    "src/gameskin",
+    "src/judgement",
+    "src/remani",
+    "src/warn",
+]
 
 [patch.crates-io]
 cpal = { git = "https://github.com/0e4ef622/cpal", rev = "buffer-size-request" }
 conrod = { git = "https://github.com/0e4ef622/conrod", rev = "rebase" } # my piston dpi patch rebased on a pull request to update conrod's dependencies
-
-[features]
-default = ["mp3", "wav", "ogg"]
-mp3 = ["simplemad"]
-wav = ["hound"]
-ogg = ["lewton"]
 
 [profile.release]
 lto = true

@@ -3,7 +3,8 @@
 use nom::*;
 
 use super::string_from_slice;
-use crate::audio;
+use remani_audio as audio;
+use remani_warn::remani_warn;
 
 use std::iter;
 

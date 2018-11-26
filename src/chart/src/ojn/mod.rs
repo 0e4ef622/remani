@@ -2,7 +2,7 @@
 
 use nom::*;
 
-use crate::chart::{Note, TimingPoint};
+use crate::{Note, TimingPoint};
 
 fn string_from_slice(s: &[u8]) -> String {
     String::from_utf8_lossy(s).into_owned()

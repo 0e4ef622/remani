@@ -1,0 +1,17 @@
+[package]
+name = "remani_config"
+version = "0.1.0"
+authors = ["Matthew Tran <0e4ef622@gmail.com>"]
+edition = '2018'
+description = "A modular 7k VSRG that aims to support multiple skin and chart formats"
+repository = "https://github.com/0e4ef622/remani"
+license = "MIT"
+workspace = "../.."
+
+[dependencies]
+remani_warn = { path = "../warn" }
+piston = "0.39"
+serde = "1.0"
+serde_derive = "1.0"
+cpal = "0.8"
+toml = "0.4"

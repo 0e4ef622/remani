@@ -14,7 +14,8 @@ use std::{
     collections::HashMap, error, fmt, fs::File, io::BufRead, io::BufReader, path, rc::Rc, str, time,
 };
 
-use crate::judgement::Judgement;
+use remani_judgement::Judgement;
+use remani_warn::remani_warn;
 use super::{ParseError, GameSkin};
 
 #[derive(Copy, Clone, Debug)]

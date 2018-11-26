@@ -13,7 +13,7 @@ mod view;
 use self::{model::Model, view::View};
 use super::Window;
 
-use crate::{audio, chart::Chart, config::Config, judgement::Judgement, gameskin};
+use crate::{audio, chart::Chart, config::Config, judgement::Judgement, remani_warn, gameskin};
 
 pub struct GameScene {
     chart: Box<dyn Chart>,

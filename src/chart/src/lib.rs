@@ -1,6 +1,7 @@
 //! A module for reading charts, or beatmaps.
 
-use crate::{audio, config::Config};
+use remani_audio as audio;
+use remani_config::Config;
 
 use std::{error, fmt, io};
 

@@ -2,7 +2,14 @@ use directories::ProjectDirs;
 use std::env;
 use std::path::PathBuf;
 
-use remani::{config, window};
+use remani_judgement as judgement;
+use remani_gameskin as gameskin;
+use remani_chart as chart;
+use remani_config as config;
+use remani_audio as audio;
+use remani_warn::remani_warn;
+
+mod window;
 
 fn main() {
 

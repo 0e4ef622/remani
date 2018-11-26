@@ -1,3 +1,5 @@
+#![feature(macro_literal_matcher)]
+
 //! A module for reading skins.
 
 use graphics::{math, Graphics};
@@ -5,7 +7,8 @@ use texture::CreateTexture;
 
 use std::{error, fmt, io};
 
-use crate::{config, judgement::Judgement};
+use remani_config as config;
+use remani_judgement::Judgement;
 
 mod osu_skin;
 

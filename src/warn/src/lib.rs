@@ -1,5 +1,4 @@
-#![feature(macro_literal_matcher)]
-
+#[macro_export]
 macro_rules! remani_warn {
     ($fmt:expr) => (eprintln!(concat!("WARNING: ", $fmt)));
     ($fmt:expr, $($arg:tt)*) => {
@@ -7,9 +6,3 @@ macro_rules! remani_warn {
     };
 }
 
-pub mod audio;
-pub mod chart;
-pub mod config;
-pub mod judgement;
-pub mod gameskin;
-pub mod window;

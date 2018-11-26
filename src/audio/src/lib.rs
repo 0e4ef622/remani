@@ -2,6 +2,8 @@
 
 //! This module deals with audio playback.
 
+use remani_warn::remani_warn;
+
 #[cfg(feature = "mp3")]
 mod mp3;
 #[cfg(feature = "wav")]

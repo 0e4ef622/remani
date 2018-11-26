@@ -96,7 +96,7 @@ pub fn start(config: Config) {
         gl,
         next_scene: None,
         glyph_cache: opengl_graphics::GlyphCache::from_bytes(
-            include_bytes!("../../rsc/fonts/wqy/WenQuanYiMicroHei.ttf"),
+            include_bytes!("../../../../rsc/fonts/wqy/WenQuanYiMicroHei.ttf"),
             (),
             texture::TextureSettings::new(),
         ).expect("Failed to load Wen Quan Yi Micro Hei font"),

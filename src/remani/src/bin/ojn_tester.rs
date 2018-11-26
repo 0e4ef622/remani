@@ -1,6 +1,6 @@
 //! A binary for testing the OJN parser
 
-use remani::chart::ojn_dump;
+use remani_chart::ojn_dump;
 
 use std::{env, ffi::OsStr};
 

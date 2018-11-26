@@ -1,6 +1,6 @@
 //! A basic music player purely for testing the audio module
 
-use remani::audio;
+use remani_audio as audio;
 
 use std::{ffi::OsStr, env, error::Error, thread, time};
 

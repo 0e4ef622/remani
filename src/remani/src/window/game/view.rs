@@ -4,7 +4,7 @@ use graphics::{self, Context, Graphics};
 use piston::input::RenderArgs;
 
 use super::Model;
-use crate::{chart, config::Config, judgement::Judgement, gameskin::GameSkin};
+use crate::{chart, config::Config, judgement::Judgement, gameskin::GameSkin, remani_warn};
 
 /// Holds values and resources needed by the window to do drawing stuff
 pub struct View<G: Graphics> {

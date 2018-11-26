@@ -1,4 +1,4 @@
-use crate::audio::{GenericMusicStream, MusicStream};
+use crate::{GenericMusicStream, MusicStream};
 use std::iter::Peekable;
 
 // TODO maybe use higher quality resampling algorithm?

@@ -10,16 +10,15 @@ use std::{
     path::{Path, PathBuf}
 };
 
+use remani_config::{self as config, Config};
+use remani_warn::remani_warn;
 use crate::{
-    config::{self, Config},
-    chart::{
-        self,
-        audio,
-        AutoplaySound,
-        Chart,
-        Note,
-        ParseError,
-    },
+    self as chart,
+    audio,
+    AutoplaySound,
+    Chart,
+    Note,
+    ParseError,
 };
 
 /// Convert Err values to ParseError
@@ -1011,7 +1010,7 @@ pub fn from_path<P: AsRef<Path>>(path: P) -> Result<impl Chart, ParseError> {
 
 #[cfg(test)]
 mod tests {
-    use crate::chart::osu::*;
+    use super::*;
 
     /// Test hit object parser
     #[test]
