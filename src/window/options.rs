@@ -65,11 +65,11 @@ impl Options {
     pub(super) fn event(
         &mut self,
         e: piston::input::Event,
-        _config: &Config,
+        _config: &mut Config,
         _audio: &audio::Audio,
-        window: &mut Window,
+        window_context: &mut WindowContext,
     ) {
-        let size = window.window.size();
+        let size = window_context.window.size();
         if let Some(e) = conrod_piston::event::convert(e.clone(), size.width, size.height) {
             self.ui.handle_event(e);
         }
@@ -121,12 +121,12 @@ impl Options {
                 .set(self.ids.back_button, &mut ui)
                 .was_clicked()
             {
-                window.change_scene(MainMenu::new());
+                window_context.change_scene(MainMenu::new());
             }
 
         }
         if let Some(r) = e.render_args() {
-            window.gl.draw(r.viewport(), |c, gl| {
+            window_context.gl.draw(r.viewport(), |c, gl| {
                 graphics::clear([0.0, 0.0, 0.0, 1.0], gl);
                 if let Some(primitives) = Some(self.ui.draw()) {
                     conrod_piston::draw::primitives(
