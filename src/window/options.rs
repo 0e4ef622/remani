@@ -5,7 +5,7 @@ use piston::{
 use texture::CreateTexture;
 use conrod::{
     backend::piston as conrod_piston,
-    Borderable,
+    // Borderable,
     Colorable,
     Labelable,
     Positionable,
@@ -17,13 +17,19 @@ use conrod::{
 use super::{main_menu::MainMenu, WindowContext};
 use crate::{audio, config::Config};
 
+use std::fmt::Write;
+
 widget_ids! {
     struct Ids {
+        main_canvas,
         back_button,
         button,
         slider,
         textbox,
         toggle,
+        toggle_canvas,
+        toggle_label,
+        list,
     }
 }
 
@@ -34,6 +40,7 @@ pub struct Options {
     glyph_cache: conrod::text::GlyphCache<'static>,
     glyph_cache_texture: opengl_graphics::Texture,
     slider_value: f32,
+    slider_label: String,
     text: String,
     toggle_value: bool,
 }
@@ -44,6 +51,8 @@ impl Options {
         let mut ui = conrod::UiBuilder::new([size.width, size.height]).build();
         ui.handle_event(conrod::event::Input::Motion(conrod::input::Motion::MouseCursor { x: window.mouse_position[0], y: window.mouse_position[1] }));
         ui.theme.font_id = Some(ui.fonts.insert(window.glyph_cache.font.clone()));
+        ui.theme.shape_color = conrod::color::Rgba(1.0, 1.0, 0.0, 0.7).into();
+        ui.theme.border_color = conrod::color::Rgba(1.0, 1.0, 1.0, 1.0).into();
         let ids = Ids::new(ui.widget_id_generator());
         let map = conrod::image::Map::new();
         let glyph_cache = conrod::text::GlyphCache::builder()
@@ -57,10 +66,11 @@ impl Options {
             [1024, 1024],
             &texture::TextureSettings::new(),
         ).expect("failed to create texture");
-        let slider_value = 50.0;
+        let slider_value = 0.0;
+        let slider_label = String::new();
         let text = String::from("test");
         let toggle_value = true;
-        Self { ui, ids, map, glyph_cache, glyph_cache_texture, slider_value, text, toggle_value }
+        Self { ui, ids, map, glyph_cache, glyph_cache_texture, slider_value, slider_label, text, toggle_value }
     }
     pub(super) fn event(
         &mut self,
@@ -75,55 +85,7 @@ impl Options {
         }
         if let Some(_) = e.update_args() {
             // Set the UI
-            let mut ui = self.ui.set_widgets();
-            if conrod::widget::Button::new()
-                .mid_top_with_margin(10.0)
-                .w_h(30.0, 20.0)
-                .label("test")
-                .small_font(&ui)
-                .set(self.ids.button, &mut ui)
-                .was_clicked()
-            {
-                    println!("button clicked!");
-            }
-            let slider_value = &mut self.slider_value;
-            conrod::widget::Slider::new(*slider_value, 0.0, 100.0)
-                .w_h(300.0, 20.0)
-                .align_middle_x()
-                .label("hello")
-                .small_font(&ui)
-                .rgb(1.0, 0.0, 0.0)
-                .border_rgb(0.0, 1.0, 0.0)
-                .set(self.ids.slider, &mut ui)
-                .map(|v| *slider_value = v);
-            let self_text = &mut self.text;
-            conrod::widget::TextBox::new(self_text)
-                .font_size(ui.theme().font_size_small)
-                .w_h(300.0, 20.0)
-                .align_middle_x()
-                .set(self.ids.textbox, &mut ui)
-                .into_iter()
-                .fold(None, |a, e| if let conrod::widget::text_box::Event::Update(s) = e { Some(s) } else { a })
-                .map(|s| *self_text = s);
-            let self_toggle_value = &mut self.toggle_value;
-            conrod::widget::toggle::Toggle::new(*self_toggle_value)
-                .align_middle_x()
-                .label("thingo")
-                .small_font(&ui)
-                .set(self.ids.toggle, &mut ui)
-                .last()
-                .map(|v| *self_toggle_value = v);
-            if conrod::widget::Button::new()
-                .top_left()
-                .w_h(30.0, 20.0)
-                .label("back")
-                .small_font(&ui)
-                .set(self.ids.back_button, &mut ui)
-                .was_clicked()
-            {
-                window_context.change_scene(MainMenu::new());
-            }
-
+            self.set_ui(window_context);
         }
         if let Some(r) = e.render_args() {
             window_context.gl.draw(r.viewport(), |c, gl| {
@@ -142,6 +104,75 @@ impl Options {
                 }
             });
         }
+    }
+    fn set_ui(&mut self, window_context: &mut WindowContext) {
+        let ui = &mut self.ui.set_widgets();
+        // back button
+        if conrod::widget::Button::new()
+            .top_left_of(ui.window)
+                .w_h(30.0, 20.0)
+                .label("back")
+                .small_font(&ui)
+                .set(self.ids.back_button, ui)
+                .was_clicked()
+                {
+                    window_context.change_scene(MainMenu::new());
+                }
+
+        let (list_items_iter, ..) = conrod::widget::List::flow_down(4).set(self.ids.list, ui);
+
+        // test button
+        if conrod::widget::Button::new()
+            .align_middle_x()
+            .mid_top_with_margin_on(ui.window, 20.0)
+            .w_h(30.0, 20.0)
+            .label("test")
+            .small_font(&ui)
+            .set(self.ids.button, ui)
+            .was_clicked()
+        {
+            println!("button clicked!");
+        }
+
+        // slider thing
+        let slider_value = &mut self.slider_value;
+        self.slider_label.clear();
+        write!(self.slider_label, "{:.2}", slider_value).expect("wtf");
+        conrod::widget::Slider::new(*slider_value, -1.0, 1.0)
+            .w_h(300.0, 20.0)
+            .align_middle_x()
+            .label(&self.slider_label)
+            .small_font(&ui)
+            .set(self.ids.slider, ui)
+            .map(|v| *slider_value = v);
+
+        // typey words
+        let self_text = &mut self.text;
+        conrod::widget::TextBox::new(self_text)
+            .font_size(ui.theme().font_size_small)
+            .w_h(300.0, 20.0)
+            .align_middle_x()
+            .set(self.ids.textbox, ui)
+            .into_iter()
+            .fold(None, |a, e| if let conrod::widget::text_box::Event::Update(s) = e { Some(s) } else { a })
+            .map(|s| *self_text = s);
+
+        // togglerino
+        conrod::widget::Canvas::new()
+            .w_h(300.0, 20.0)
+            .align_middle_x()
+            .y_position(ui.theme.y_position)
+            .rgb(1.0, 0.0, 0.0)
+            .set(self.ids.toggle_canvas, ui);
+        let self_toggle_value = &mut self.toggle_value;
+        conrod::widget::toggle::Toggle::new(*self_toggle_value)
+            .w_h(20.0, 20.0)
+            .top_right_of(self.ids.toggle_canvas)
+            .label("thingo")
+            .small_font(&ui)
+            .set(self.ids.toggle, ui)
+            .last()
+            .map(|v| *self_toggle_value = v);
     }
 }
 
