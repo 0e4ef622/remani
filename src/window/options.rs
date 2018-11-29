@@ -14,7 +14,7 @@ use conrod::{
     widget_ids,
 };
 
-use super::{main_menu::MainMenu, Window};
+use super::{main_menu::MainMenu, WindowContext};
 use crate::{audio, config::Config};
 
 widget_ids! {
@@ -39,7 +39,7 @@ pub struct Options {
 }
 
 impl Options {
-    pub(super) fn new(window: &Window) -> Self {
+    pub(super) fn new(window: &WindowContext) -> Self {
         let size = window.window.size();
         let mut ui = conrod::UiBuilder::new([size.width, size.height]).build();
         ui.handle_event(conrod::event::Input::Motion(conrod::input::Motion::MouseCursor { x: window.mouse_position[0], y: window.mouse_position[1] }));

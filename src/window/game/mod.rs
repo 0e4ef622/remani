@@ -11,7 +11,7 @@ mod model;
 mod view;
 
 use self::{model::Model, view::View};
-use super::Window;
+use super::WindowContext;
 
 use crate::{audio, chart::Chart, config::Config, judgement::Judgement, gameskin};
 
@@ -62,7 +62,7 @@ impl GameScene {
         e: piston::input::Event,
         config: &Config,
         audio: &audio::Audio,
-        window: &mut Window,
+        window: &mut WindowContext,
     ) {
         self.music.take()
             .map(|m| audio.play_music(m) || panic!("Failed to play music"));

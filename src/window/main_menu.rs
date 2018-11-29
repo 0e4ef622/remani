@@ -8,7 +8,7 @@ use piston::input::{
 };
 use texture::{ImageSize, TextureSettings};
 
-use super::{options, game, Window};
+use super::{options, game, WindowContext};
 use crate::{audio, chart, config::Config};
 
 pub struct MainMenu {
@@ -40,7 +40,7 @@ impl MainMenu {
         e: piston::input::Event,
         config: &Config,
         audio: &audio::Audio,
-        window: &mut Window,
+        window: &mut WindowContext,
     ) {
         if let Some(i) = e.press_args() {
             if i == Button::Mouse(mouse::MouseButton::Left) && window.mouse_position[1] < self.window_height / 3.0 {

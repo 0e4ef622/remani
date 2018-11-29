@@ -20,9 +20,9 @@ impl Scene {
     pub fn event(
         &mut self,
         e: piston::input::Event,
-        cfg: &Config,
+        cfg: &mut Config,
         audio: &audio::Audio,
-        window: &mut Window,
+        window: &mut WindowContext,
     ) {
         match self {
             Scene::Game(scene) => scene.event(e, cfg, audio, window),
@@ -50,7 +50,7 @@ impl From<game::GameScene> for Scene {
     }
 }
 
-struct Window {
+struct WindowContext {
     gl: GlGraphics,
     glyph_cache: opengl_graphics::GlyphCache<'static>, // one font for now
 
@@ -62,13 +62,13 @@ struct Window {
     window: GlutinWindow,
 }
 
-impl Window {
+impl WindowContext {
     fn change_scene<T: Into<Scene>>(&mut self, next_scene: T) {
         self.next_scene = Some(next_scene.into());
     }
 }
 
-pub fn start(config: Config) {
+pub fn start(mut config: Config) {
     use opengl_graphics::{GlGraphics, OpenGL};
     use piston::{
         event_loop::{EventSettings, Events},
@@ -92,7 +92,7 @@ pub fn start(config: Config) {
         }
     };
 
-    let mut window = Window {
+    let mut window = WindowContext {
         gl,
         next_scene: None,
         glyph_cache: opengl_graphics::GlyphCache::from_bytes(
@@ -110,7 +110,7 @@ pub fn start(config: Config) {
         if let Some(p) = e.mouse_cursor_args() {
             window.mouse_position = p;
         }
-        current_scene.event(e, &config, &audio, &mut window);
+        current_scene.event(e, &mut config, &audio, &mut window);
 
         if window.next_scene.is_some() {
             current_scene = window.next_scene.take().unwrap();
