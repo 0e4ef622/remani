@@ -49,7 +49,7 @@ impl MainMenu {
                     Err(e) => println!("{}", e),
                 }
             } else if i == Button::Mouse(mouse::MouseButton::Left) && window.mouse_position[1] < self.window_height / 3.0 * 2.0 {
-                window.change_scene(options::Options::new(window));
+                window.change_scene(options::Options::new(window, config));
             }
         }
 
