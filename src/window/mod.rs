@@ -80,6 +80,7 @@ pub fn start(mut config: Config) {
     let glutin_window: GlutinWindow = WindowSettings::new("Remani", config.general.resolution)
         .opengl(opengl)
         .srgb(false)
+        .samples(4)
         .build()
         .expect("Could not create window");
     let gl = GlGraphics::new(opengl);
