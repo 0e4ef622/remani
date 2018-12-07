@@ -72,6 +72,8 @@ pub struct Options {
     scroll_speed_input_text: String,
     enable_osu_hit_sounds_toggle_value: bool,
     keybinding_values: [input::Button; 7],
+    /// Button state for flashing the keybinding button when the corresponding button is pressed.
+    buttons_pressed: [bool; 7],
     keybindings_key_capture: Option<usize>,
 }
 
@@ -367,6 +369,7 @@ impl Options {
         let scroll_speed_input_text = config.game.scroll_speed.to_string();
         let enable_osu_hit_sounds_toggle_value = config.game.osu_hitsound_enable;
         let keybinding_values = config.game.key_bindings;
+        let buttons_pressed = [false; 7];
         let keybindings_key_capture = None;
         Self {
             ui,
@@ -381,6 +384,7 @@ impl Options {
             scroll_speed_input_text,
             enable_osu_hit_sounds_toggle_value,
             keybinding_values,
+            buttons_pressed,
             keybindings_key_capture,
         }
     }
@@ -395,8 +399,16 @@ impl Options {
         if let Some(e) = conrod_piston::event::convert(e.clone(), size.width, size.height) {
             self.ui.handle_event(e);
         }
-        // if let Some(e) = e.button_args() {
-        // }
+        if let Some(e) = e.button_args() {
+            self.keybinding_values
+                .iter()
+                .zip(self.buttons_pressed.iter_mut())
+                .filter(|&(&k, _)| k == e.button)
+                .for_each(|(_, b)| *b = match e.state {
+                    input::ButtonState::Press => true,
+                    input::ButtonState::Release => false,
+                });
+        }
         if let (Some(button), Some(key_index)) = (e.press_args(), self.keybindings_key_capture) {
             self.keybinding_values[key_index] = button;
             self.keybindings_key_capture = None;
@@ -427,7 +439,7 @@ impl Options {
         let ui = &mut self.ui.set_widgets();
 
         conrod::widget::Canvas::new()
-            .w(500.0)
+            .w(640.0)
             .border(0.0)
             .pad(50.0)
             .scroll_kids_vertically()
@@ -679,14 +691,21 @@ impl Options {
                 self.ids.key5_button,
                 self.ids.key6_button,
             ];
-            for (i, ((&canvas_id, &button_id), &button)) in canvas_ids.iter().zip(button_ids.iter()).zip(self.keybinding_values.iter()).enumerate() {
+            for (i, (((&canvas_id, &button_id), &button), &key_pressed)) in canvas_ids
+                .iter()
+                    .zip(button_ids.iter())
+                    .zip(self.keybinding_values.iter())
+                    .zip(self.buttons_pressed.iter())
+                    .enumerate() {
                 let mut button = conrod::widget::Button::new()
                     .top_left_of(canvas_id)
                     .kid_area_wh_of(canvas_id)
                     .label(button_name(button))
-                    .small_font(&ui);
+                    .label_font_size(8);
                 if Some(i) == self.keybindings_key_capture {
                     button = button.border(1.0).border_color(conrod::color::WHITE);
+                } else if key_pressed {
+                    button = button.border(2.0).border_color(conrod::color::RED);
                 } else {
                     button = button.border(0.0);
                 }
