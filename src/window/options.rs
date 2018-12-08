@@ -15,7 +15,7 @@ use conrod::{
 };
 
 use super::{main_menu::MainMenu, WindowContext};
-use crate::{audio, config::Config};
+use crate::{audio, config::{self, Config}};
 
 widget_ids! {
     struct Ids {
@@ -435,297 +435,337 @@ impl Options {
             });
         }
     }
-    fn set_ui(&mut self, _config: &mut Config, window_context: &mut WindowContext) {
-        let ui = &mut self.ui.set_widgets();
+    fn set_ui(&mut self, config: &mut Config, window_context: &mut WindowContext) {
+        let back_button;
+        {
+            let ui = &mut self.ui.set_widgets();
 
-        conrod::widget::Canvas::new()
-            .w(640.0)
-            .border(0.0)
-            .pad(50.0)
-            .scroll_kids_vertically()
-            .set(self.ids.main_canvas, ui);
-
-        conrod::widget::Scrollbar::y_axis(self.ids.main_canvas)
-            .auto_hide(true)
-            .set(self.ids.main_scrollbar, ui);
-
-        { // Window resolution setting
-            // Invisible container around the whole setting to simplify positioning
             conrod::widget::Canvas::new()
-                .kid_area_w_of(self.ids.main_canvas)
-                .h(20.0)
-                .top_right_of(self.ids.main_canvas)
+                .w(640.0)
                 .border(0.0)
-                .set(self.ids.win_res_canvas, ui);
+                .pad(50.0)
+                .scroll_kids_vertically()
+                .set(self.ids.main_canvas, ui);
 
-            // Text description
-            conrod::widget::Text::new("Window resolution")
-                .font_size(ui.theme().font_size_small)
-                .top_left_of(self.ids.win_res_canvas)
-                .set(self.ids.win_res_text, ui);
+            conrod::widget::Scrollbar::y_axis(self.ids.main_canvas)
+                .auto_hide(true)
+                .set(self.ids.main_scrollbar, ui);
 
-            // height field
-            let self_win_res_h_text = &mut self.win_res_h_text;
-            // Make the background red if what's inside isn't a number
-            let color = match self_win_res_h_text.parse::<f64>() {
-                Ok(n) if n > 0.0 => ui.theme().shape_color,
-                _ => conrod::color::RED,
-            };
-            conrod::widget::TextBox::new(self_win_res_h_text)
-                .font_size(ui.theme().font_size_small)
-                .w_h(50.0, 20.0)
-                .top_right_of(self.ids.win_res_canvas)
-                .color(color)
-                .border_color(conrod::color::WHITE)
-                .set(self.ids.win_res_h_input, ui)
-                .into_iter()
-                .fold(None, |a, e| if let conrod::widget::text_box::Event::Update(s) = e { Some(s) } else { a })
-                .map(|s| *self_win_res_h_text = s);
+            { // Window resolution setting
+                // Invisible container around the whole setting to simplify positioning
+                conrod::widget::Canvas::new()
+                    .kid_area_w_of(self.ids.main_canvas)
+                    .h(20.0)
+                    .top_right_of(self.ids.main_canvas)
+                    .border(0.0)
+                    .set(self.ids.win_res_canvas, ui);
 
-            // The "x" in between
-            conrod::widget::Text::new("x")
-                .font_size(ui.theme().font_size_small)
-                .left(5.0)
-                .set(self.ids.win_res_x_text, ui);
+                // Text description
+                conrod::widget::Text::new("Window resolution")
+                    .font_size(ui.theme().font_size_small)
+                    .top_left_of(self.ids.win_res_canvas)
+                    .set(self.ids.win_res_text, ui);
 
-            // width field
-            let self_win_res_w_text = &mut self.win_res_w_text;
-            // Make the background red if what's inside isn't a number
-            let color = match self_win_res_w_text.parse::<f64>() {
-                Ok(n) if n > 0.0 => ui.theme().shape_color,
-                _ => conrod::color::RED,
-            };
-            conrod::widget::TextBox::new(self_win_res_w_text)
-                .font_size(ui.theme().font_size_small)
-                .w_h(50.0, 20.0)
-                .left(5.0)
-                .color(color)
-                .border_color(conrod::color::WHITE)
-                .set(self.ids.win_res_w_input, ui)
-                .into_iter()
-                .fold(None, |a, e| if let conrod::widget::text_box::Event::Update(s) = e { Some(s) } else { a })
-                .map(|s| *self_win_res_w_text = s);
-        }
+                // height field
+                let self_win_res_h_text = &mut self.win_res_h_text;
+                // Make the background red if what's inside isn't a number
+                let color = match self_win_res_h_text.parse::<f64>() {
+                    Ok(n) if n > 0.0 => ui.theme().shape_color,
+                    _ => conrod::color::RED,
+                };
+                conrod::widget::TextBox::new(self_win_res_h_text)
+                    .font_size(ui.theme().font_size_small)
+                    .w_h(50.0, 20.0)
+                    .top_right_of(self.ids.win_res_canvas)
+                    .color(color)
+                    .border_color(conrod::color::WHITE)
+                    .set(self.ids.win_res_h_input, ui)
+                    .into_iter()
+                    .fold(None, |a, e| if let conrod::widget::text_box::Event::Update(s) = e { Some(s) } else { a })
+                    .map(|s| *self_win_res_h_text = s);
 
-        { // Audio buffer size setting
-            // Invisible container around the whole setting to simplify positioning
-            conrod::widget::Canvas::new()
-                .kid_area_w_of(self.ids.main_canvas)
-                .h(20.0)
-                .top_right_of(self.ids.main_canvas) // align to inner right side of main canvas (inside the padding)
-                .down(20.0) // 20 pixels down from the previous widget
-                .border(0.0)
-                .set(self.ids.audio_buf_size_canvas, ui);
+                // The "x" in between
+                conrod::widget::Text::new("x")
+                    .font_size(ui.theme().font_size_small)
+                    .left(5.0)
+                    .set(self.ids.win_res_x_text, ui);
 
-            // Text description
-            conrod::widget::Text::new("Audio buffer size")
-                .font_size(ui.theme().font_size_small)
-                .top_left_of(self.ids.audio_buf_size_canvas)
-                .set(self.ids.audio_buf_size_text, ui);
+                // width field
+                let self_win_res_w_text = &mut self.win_res_w_text;
+                // Make the background red if what's inside isn't a number
+                let color = match self_win_res_w_text.parse::<f64>() {
+                    Ok(n) if n > 0.0 => ui.theme().shape_color,
+                    _ => conrod::color::RED,
+                };
+                conrod::widget::TextBox::new(self_win_res_w_text)
+                    .font_size(ui.theme().font_size_small)
+                    .w_h(50.0, 20.0)
+                    .left(5.0)
+                    .color(color)
+                    .border_color(conrod::color::WHITE)
+                    .set(self.ids.win_res_w_input, ui)
+                    .into_iter()
+                    .fold(None, |a, e| if let conrod::widget::text_box::Event::Update(s) = e { Some(s) } else { a })
+                    .map(|s| *self_win_res_w_text = s);
+            }
 
-            // Input field
-            let self_audio_buf_size_input_text = &mut self.audio_buf_size_input_text;
-            let color = match self_audio_buf_size_input_text.parse::<usize>() {
-                Ok(n) if n > 0 => ui.theme().shape_color,
-                _ if self_audio_buf_size_input_text == "default" => ui.theme().shape_color,
-                _ => conrod::color::RED,
-            };
-            conrod::widget::TextBox::new(self_audio_buf_size_input_text)
-                .font_size(ui.theme().font_size_small)
-                .w_h(60.0, 20.0)
-                .top_right_of(self.ids.audio_buf_size_canvas)
-                .color(color)
-                .border_color(conrod::color::WHITE)
-                .set(self.ids.audio_buf_size_input, ui)
-                .into_iter()
-                .fold(None, |a, e| if let conrod::widget::text_box::Event::Update(s) = e { Some(s) } else { a })
-                .map(|s| *self_audio_buf_size_input_text = s);
-        }
+            { // Audio buffer size setting
+                // Invisible container around the whole setting to simplify positioning
+                conrod::widget::Canvas::new()
+                    .kid_area_w_of(self.ids.main_canvas)
+                    .h(20.0)
+                    .top_right_of(self.ids.main_canvas) // align to inner right side of main canvas (inside the padding)
+                    .down(20.0) // 20 pixels down from the previous widget
+                    .border(0.0)
+                    .set(self.ids.audio_buf_size_canvas, ui);
 
-        { // Audio offset setting
-            // Invisible container around the whole setting to simplify positioning
-            conrod::widget::Canvas::new()
-                .kid_area_w_of(self.ids.main_canvas)
-                .h(20.0)
-                .top_right_of(self.ids.main_canvas) // align to inner right side of main canvas (inside the padding)
-                .down(20.0) // 20 pixels down from the previous widget
-                .border(0.0)
-                .set(self.ids.audio_offset_canvas, ui);
+                // Text description
+                conrod::widget::Text::new("Audio buffer size")
+                    .font_size(ui.theme().font_size_small)
+                    .top_left_of(self.ids.audio_buf_size_canvas)
+                    .set(self.ids.audio_buf_size_text, ui);
 
-            // Text description
-            conrod::widget::Text::new("Audio offset (measured in seconds)")
-                .font_size(ui.theme().font_size_small)
-                .top_left_of(self.ids.audio_offset_canvas)
-                .set(self.ids.audio_offset_text, ui);
+                // Input field
+                let self_audio_buf_size_input_text = &mut self.audio_buf_size_input_text;
+                let color = match self_audio_buf_size_input_text.parse::<usize>() {
+                    Ok(n) if n > 0 => ui.theme().shape_color,
+                    _ if self_audio_buf_size_input_text == "default" => ui.theme().shape_color,
+                    _ => conrod::color::RED,
+                };
+                conrod::widget::TextBox::new(self_audio_buf_size_input_text)
+                    .font_size(ui.theme().font_size_small)
+                    .w_h(60.0, 20.0)
+                    .top_right_of(self.ids.audio_buf_size_canvas)
+                    .color(color)
+                    .border_color(conrod::color::WHITE)
+                    .set(self.ids.audio_buf_size_input, ui)
+                    .into_iter()
+                    .fold(None, |a, e| if let conrod::widget::text_box::Event::Update(s) = e { Some(s) } else { a })
+                    .map(|s| *self_audio_buf_size_input_text = s);
+            }
 
-            // Input field
-            let self_audio_offset_input_text = &mut self.audio_offset_input_text;
-            let color = match self_audio_offset_input_text.parse::<f64>() {
-                Ok(n) if n.is_finite() => ui.theme().shape_color,
-                _ => conrod::color::RED,
-            };
-            conrod::widget::TextBox::new(self_audio_offset_input_text)
-                .font_size(ui.theme().font_size_small)
-                .w_h(50.0, 20.0)
-                .top_right_of(self.ids.audio_offset_canvas)
-                .color(color)
-                .border_color(conrod::color::WHITE)
-                .set(self.ids.audio_offset_input, ui)
-                .into_iter()
-                .fold(None, |a, e| if let conrod::widget::text_box::Event::Update(s) = e { Some(s) } else { a })
-                .map(|s| *self_audio_offset_input_text = s);
-        }
+            { // Audio offset setting
+                // Invisible container around the whole setting to simplify positioning
+                conrod::widget::Canvas::new()
+                    .kid_area_w_of(self.ids.main_canvas)
+                    .h(20.0)
+                    .top_right_of(self.ids.main_canvas) // align to inner right side of main canvas (inside the padding)
+                    .down(20.0) // 20 pixels down from the previous widget
+                    .border(0.0)
+                    .set(self.ids.audio_offset_canvas, ui);
 
-        { // Scroll speed setting
-            // Invisible container around the whole setting to simplify positioning
-            conrod::widget::Canvas::new()
-                .kid_area_w_of(self.ids.main_canvas)
-                .h(20.0)
-                .top_right_of(self.ids.main_canvas) // align to inner right side of main canvas (inside the padding)
-                .down(20.0) // 20 pixels down from the previous widget
-                .border(0.0)
-                .set(self.ids.scroll_speed_canvas, ui);
+                // Text description
+                conrod::widget::Text::new("Audio offset (measured in seconds)")
+                    .font_size(ui.theme().font_size_small)
+                    .top_left_of(self.ids.audio_offset_canvas)
+                    .set(self.ids.audio_offset_text, ui);
 
-            // Text description
-            conrod::widget::Text::new("Audio offset (measured in seconds)")
-                .font_size(ui.theme().font_size_small)
-                .top_left_of(self.ids.scroll_speed_canvas)
-                .set(self.ids.scroll_speed_text, ui);
+                // Input field
+                let self_audio_offset_input_text = &mut self.audio_offset_input_text;
+                let color = match self_audio_offset_input_text.parse::<f64>() {
+                    Ok(n) if n.is_finite() => ui.theme().shape_color,
+                    _ => conrod::color::RED,
+                };
+                conrod::widget::TextBox::new(self_audio_offset_input_text)
+                    .font_size(ui.theme().font_size_small)
+                    .w_h(50.0, 20.0)
+                    .top_right_of(self.ids.audio_offset_canvas)
+                    .color(color)
+                    .border_color(conrod::color::WHITE)
+                    .set(self.ids.audio_offset_input, ui)
+                    .into_iter()
+                    .fold(None, |a, e| if let conrod::widget::text_box::Event::Update(s) = e { Some(s) } else { a })
+                    .map(|s| *self_audio_offset_input_text = s);
+            }
 
-            // Input field
-            let self_scroll_speed_input_text = &mut self.scroll_speed_input_text;
-            let color = match self_scroll_speed_input_text.parse::<f64>() {
-                Ok(n) if n.is_finite() => ui.theme().shape_color,
-                _ => conrod::color::RED,
-            };
-            conrod::widget::TextBox::new(self_scroll_speed_input_text)
-                .font_size(ui.theme().font_size_small)
-                .w_h(50.0, 20.0)
-                .top_right_of(self.ids.scroll_speed_canvas)
-                .color(color)
-                .border_color(conrod::color::WHITE)
-                .set(self.ids.scroll_speed_input, ui)
-                .into_iter()
-                .fold(None, |a, e| if let conrod::widget::text_box::Event::Update(s) = e { Some(s) } else { a })
-                .map(|s| *self_scroll_speed_input_text = s);
-        }
+            { // Scroll speed setting
+                // Invisible container around the whole setting to simplify positioning
+                conrod::widget::Canvas::new()
+                    .kid_area_w_of(self.ids.main_canvas)
+                    .h(20.0)
+                    .top_right_of(self.ids.main_canvas) // align to inner right side of main canvas (inside the padding)
+                    .down(20.0) // 20 pixels down from the previous widget
+                    .border(0.0)
+                    .set(self.ids.scroll_speed_canvas, ui);
 
-        { // Enable osu hitsounds setting
-            // Invisible container around the whole setting to simplify positioning
-            conrod::widget::Canvas::new()
-                .kid_area_w_of(self.ids.main_canvas)
-                .h(20.0)
-                .top_right_of(self.ids.main_canvas) // align to inner right side of main canvas (inside the padding)
-                .down(20.0) // 20 pixels down from the previous widget
-                .border(0.0)
-                .set(self.ids.enable_osu_hit_sounds_canvas, ui);
+                // Text description
+                conrod::widget::Text::new("Scroll speed (measured in lane heights per second)")
+                    .font_size(ui.theme().font_size_small)
+                    .top_left_of(self.ids.scroll_speed_canvas)
+                    .set(self.ids.scroll_speed_text, ui);
 
-            // Text description
-            conrod::widget::Text::new("Enable osu hitsounds")
-                .font_size(ui.theme().font_size_small)
-                .top_left_of(self.ids.enable_osu_hit_sounds_canvas)
-                .set(self.ids.enable_osu_hit_sounds_text, ui);
+                // Input field
+                let self_scroll_speed_input_text = &mut self.scroll_speed_input_text;
+                let color = match self_scroll_speed_input_text.parse::<f64>() {
+                    Ok(n) if n.is_finite() => ui.theme().shape_color,
+                    _ => conrod::color::RED,
+                };
+                conrod::widget::TextBox::new(self_scroll_speed_input_text)
+                    .font_size(ui.theme().font_size_small)
+                    .w_h(50.0, 20.0)
+                    .top_right_of(self.ids.scroll_speed_canvas)
+                    .color(color)
+                    .border_color(conrod::color::WHITE)
+                    .set(self.ids.scroll_speed_input, ui)
+                    .into_iter()
+                    .fold(None, |a, e| if let conrod::widget::text_box::Event::Update(s) = e { Some(s) } else { a })
+                    .map(|s| *self_scroll_speed_input_text = s);
+            }
 
-            // Input field
-            let self_enable_osu_hit_sounds_toggle_value = &mut self.enable_osu_hit_sounds_toggle_value;
-            conrod::widget::Toggle::new(*self_enable_osu_hit_sounds_toggle_value)
-                .w_h(20.0, 20.0)
-                .top_right_of(self.ids.enable_osu_hit_sounds_canvas)
-                .border_color(conrod::color::WHITE)
-                .color(conrod::color::WHITE)
-                .set(self.ids.enable_osu_hit_sounds_toggle, ui)
-                .last()
-                .map(|v| *self_enable_osu_hit_sounds_toggle_value = v);
-        }
+            { // Enable osu hitsounds setting
+                // Invisible container around the whole setting to simplify positioning
+                conrod::widget::Canvas::new()
+                    .kid_area_w_of(self.ids.main_canvas)
+                    .h(20.0)
+                    .top_right_of(self.ids.main_canvas) // align to inner right side of main canvas (inside the padding)
+                    .down(20.0) // 20 pixels down from the previous widget
+                    .border(0.0)
+                    .set(self.ids.enable_osu_hit_sounds_canvas, ui);
 
-        { // Keybindings
-            // Invisible container around the whole setting to simplify positioning
-            conrod::widget::Canvas::new()
-                .kid_area_w_of(self.ids.main_canvas)
-                .h(50.0)
-                .top_right_of(self.ids.main_canvas) // align to inner right side of main canvas (inside the padding)
-                .down(20.0) // 20 pixels down from the previous widget
-                .border(0.0)
-                // .border_color(conrod::color::WHITE)
-                .set(self.ids.keybindings_canvas, ui);
+                // Text description
+                conrod::widget::Text::new("Enable osu hitsounds")
+                    .font_size(ui.theme().font_size_small)
+                    .top_left_of(self.ids.enable_osu_hit_sounds_canvas)
+                    .set(self.ids.enable_osu_hit_sounds_text, ui);
 
-            // Text description
-            conrod::widget::Text::new("Keybindings")
-                .font_size(ui.theme().font_size_small)
-                .mid_top_of(self.ids.keybindings_canvas)
-                .set(self.ids.keybindings_text, ui);
+                // Input field
+                let self_enable_osu_hit_sounds_toggle_value = &mut self.enable_osu_hit_sounds_toggle_value;
+                conrod::widget::Toggle::new(*self_enable_osu_hit_sounds_toggle_value)
+                    .w_h(20.0, 20.0)
+                    .top_right_of(self.ids.enable_osu_hit_sounds_canvas)
+                    .border_color(conrod::color::WHITE)
+                    .color(conrod::color::WHITE)
+                    .set(self.ids.enable_osu_hit_sounds_toggle, ui)
+                    .last()
+                    .map(|v| *self_enable_osu_hit_sounds_toggle_value = v);
+            }
 
-            // Container containing the button to click to bind controls
-            conrod::widget::Canvas::new()
-                .kid_area_w_of(self.ids.keybindings_canvas)
-                .h(20.0)
-                .mid_bottom_of(self.ids.keybindings_canvas)
-                .border(0.0)
-                // .border_color(conrod::color::WHITE)
-                .flow_right(&[
-                    (self.ids.key0_canvas, conrod::widget::Canvas::new().h(20.0).pad_left(1.0).pad_right(1.0)),
-                    (self.ids.key1_canvas, conrod::widget::Canvas::new().h(20.0).pad_left(1.0).pad_right(1.0)),
-                    (self.ids.key2_canvas, conrod::widget::Canvas::new().h(20.0).pad_left(1.0).pad_right(1.0)),
-                    (self.ids.key3_canvas, conrod::widget::Canvas::new().h(20.0).pad_left(1.0).pad_right(1.0)),
-                    (self.ids.key4_canvas, conrod::widget::Canvas::new().h(20.0).pad_left(1.0).pad_right(1.0)),
-                    (self.ids.key5_canvas, conrod::widget::Canvas::new().h(20.0).pad_left(1.0).pad_right(1.0)),
-                    (self.ids.key6_canvas, conrod::widget::Canvas::new().h(20.0).pad_left(1.0).pad_right(1.0)),
-                ])
-                .set(self.ids.keybindings_buttons_canvas, ui);
+            { // Keybindings
+                // Invisible container around the whole setting to simplify positioning
+                conrod::widget::Canvas::new()
+                    .kid_area_w_of(self.ids.main_canvas)
+                    .h(50.0)
+                    .top_right_of(self.ids.main_canvas) // align to inner right side of main canvas (inside the padding)
+                    .down(20.0) // 20 pixels down from the previous widget
+                    .border(0.0)
+                    .set(self.ids.keybindings_canvas, ui);
 
-            let canvas_ids = [
-                self.ids.key0_canvas,
-                self.ids.key1_canvas,
-                self.ids.key2_canvas,
-                self.ids.key3_canvas,
-                self.ids.key4_canvas,
-                self.ids.key5_canvas,
-                self.ids.key6_canvas,
-            ];
-            let button_ids = [
-                self.ids.key0_button,
-                self.ids.key1_button,
-                self.ids.key2_button,
-                self.ids.key3_button,
-                self.ids.key4_button,
-                self.ids.key5_button,
-                self.ids.key6_button,
-            ];
-            for (i, (((&canvas_id, &button_id), &button), &key_pressed)) in canvas_ids
-                .iter()
-                    .zip(button_ids.iter())
-                    .zip(self.keybinding_values.iter())
-                    .zip(self.buttons_pressed.iter())
-                    .enumerate() {
-                let mut button = conrod::widget::Button::new()
-                    .top_left_of(canvas_id)
-                    .kid_area_wh_of(canvas_id)
-                    .label(button_name(button))
-                    .label_font_size(8);
-                if Some(i) == self.keybindings_key_capture {
-                    button = button.border(1.0).border_color(conrod::color::WHITE);
-                } else if key_pressed {
-                    button = button.border(2.0).border_color(conrod::color::RED);
-                } else {
-                    button = button.border(0.0);
-                }
-                if button.set(button_id, ui).was_clicked() {
-                    self.keybindings_key_capture = Some(i);
+                // Text description
+                conrod::widget::Text::new("Keybindings")
+                    .font_size(ui.theme().font_size_small)
+                    .mid_top_of(self.ids.keybindings_canvas)
+                    .set(self.ids.keybindings_text, ui);
+
+                // Container containing the button to click to bind controls
+                conrod::widget::Canvas::new()
+                    .kid_area_w_of(self.ids.keybindings_canvas)
+                    .h(20.0)
+                    .mid_bottom_of(self.ids.keybindings_canvas)
+                    .border(0.0)
+                    .flow_right(&[
+                        (self.ids.key0_canvas, conrod::widget::Canvas::new().h(20.0).pad_left(1.0).pad_right(1.0)),
+                        (self.ids.key1_canvas, conrod::widget::Canvas::new().h(20.0).pad_left(1.0).pad_right(1.0)),
+                        (self.ids.key2_canvas, conrod::widget::Canvas::new().h(20.0).pad_left(1.0).pad_right(1.0)),
+                        (self.ids.key3_canvas, conrod::widget::Canvas::new().h(20.0).pad_left(1.0).pad_right(1.0)),
+                        (self.ids.key4_canvas, conrod::widget::Canvas::new().h(20.0).pad_left(1.0).pad_right(1.0)),
+                        (self.ids.key5_canvas, conrod::widget::Canvas::new().h(20.0).pad_left(1.0).pad_right(1.0)),
+                        (self.ids.key6_canvas, conrod::widget::Canvas::new().h(20.0).pad_left(1.0).pad_right(1.0)),
+                    ])
+                    .set(self.ids.keybindings_buttons_canvas, ui);
+
+                let canvas_ids = [
+                    self.ids.key0_canvas,
+                    self.ids.key1_canvas,
+                    self.ids.key2_canvas,
+                    self.ids.key3_canvas,
+                    self.ids.key4_canvas,
+                    self.ids.key5_canvas,
+                    self.ids.key6_canvas,
+                ];
+                let button_ids = [
+                    self.ids.key0_button,
+                    self.ids.key1_button,
+                    self.ids.key2_button,
+                    self.ids.key3_button,
+                    self.ids.key4_button,
+                    self.ids.key5_button,
+                    self.ids.key6_button,
+                ];
+                for (i, (((&canvas_id, &button_id), &button), &key_pressed)) in canvas_ids
+                    .iter()
+                        .zip(button_ids.iter())
+                        .zip(self.keybinding_values.iter())
+                        .zip(self.buttons_pressed.iter())
+                        .enumerate() {
+                    let mut button = conrod::widget::Button::new()
+                        .top_left_of(canvas_id)
+                        .kid_area_wh_of(canvas_id)
+                        .label(button_name(button))
+                        .label_font_size(8);
+                    if Some(i) == self.keybindings_key_capture {
+                        // white border if waiting for a button press to bind to
+                        button = button.border(1.0).border_color(conrod::color::WHITE);
+                    } else if key_pressed {
+                        // red border if currently bound button is being pressed
+                        button = button.border(2.0).border_color(conrod::color::RED);
+                    } else {
+                        // otherwise noborder
+                        button = button.border(0.0);
+                    }
+                    if button.set(button_id, ui).was_clicked() {
+                        self.keybindings_key_capture = Some(i);
+                    }
                 }
             }
+
+            // back button
+            back_button = conrod::widget::Button::new()
+                .top_left_of(ui.window)
+                .w_h(35.0, 25.0)
+                .label("back")
+                .small_font(&ui)
+                .set(self.ids.back_button, ui);
         }
 
-        // back button
-        if conrod::widget::Button::new()
-            .top_left_of(ui.window)
-            .w_h(35.0, 25.0)
-            .label("back")
-            .small_font(&ui)
-            .set(self.ids.back_button, ui)
-            .was_clicked()
-        {
+        if back_button.was_clicked() {
+            self.update_config(config);
+            let config_path = config::config_path();
+            match config::write_config_to_path(config.clone(), &config_path) {
+                Err(e) => remani_warn!("Error writing config to {}: {}", config_path.display(), e),
+                Ok(()) => (),
+            }
             window_context.change_scene(MainMenu::new());
         }
+    }
+    fn update_config(&self, config: &mut Config) {
+        match self.win_res_w_text
+            .parse()
+            .and_then(|w| self.win_res_h_text.parse().map(|h| [w, h]))
+        {
+            Ok(res) => config.general.resolution = res,
+            Err(_) => remani_warn!("Failed to parse resolution, ignoring..."),
+        }
+        // TODO trigger audio device reload
+        match self.audio_buf_size_input_text.parse() {
+            Ok(n) if n > 0 => config.general.audio_buffer_size = cpal::BufferSize::Fixed(n),
+            _ if self.audio_buf_size_input_text == "default" => config.general.audio_buffer_size = cpal::BufferSize::Default,
+
+            Ok(_) => remani_warn!("Invalid audio buffer size, ignoring..."),
+            _ => remani_warn!("Failed to parse audio buffer size, ignoring..."),
+        }
+
+        match self.audio_offset_input_text.parse() {
+            Ok(n) => config.game.offset = n,
+            Err(_) => remani_warn!("Failed to parse audio offset, ignoring..."),
+        }
+
+        match self.scroll_speed_input_text.parse() {
+            Ok(n) => config.game.scroll_speed = n,
+            Err(_) => remani_warn!("Failed to parse scroll speed, ignoring..."),
+        }
+
+        config.game.osu_hitsound_enable = self.enable_osu_hit_sounds_toggle_value;
+        config.game.key_bindings = self.keybinding_values;
     }
 }
 

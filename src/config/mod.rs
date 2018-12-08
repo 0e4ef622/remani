@@ -2,7 +2,7 @@
 
 use piston::input;
 use serde_derive::{Deserialize, Serialize};
-use std::{collections::BTreeMap, fmt, fs, io, path};
+use std::{collections::BTreeMap, env, fmt, fs, io, path};
 
 mod serde_buffer_size;
 mod serde_key_bindings;
@@ -95,6 +95,22 @@ impl UnverifiedGameConfig {
     }
 }
 
+impl From<GameConfig> for UnverifiedGameConfig {
+    fn from(game_config: GameConfig) -> Self {
+        UnverifiedGameConfig {
+            current_skin: game_config.current_skin().0.clone(),
+            current_judge: game_config.current_judge().0.clone(),
+            offset: game_config.offset,
+            scroll_speed: game_config.scroll_speed,
+            default_osu_skin_path: game_config.default_osu_skin_path,
+            osu_hitsound_enable: game_config.osu_hitsound_enable,
+            skins: game_config.skins.into_iter().collect(),
+            judges: game_config.judges.into_iter().collect(),
+            key_bindings: game_config.key_bindings,
+        }
+    }
+}
+
 impl GameConfig {
     /// The string is the name of the skin
     pub fn current_skin(&self) -> &(String, SkinEntry) {
@@ -148,6 +164,15 @@ pub struct Config {
     pub game: GameConfig,
 }
 
+impl From<Config> for UnverifiedConfig {
+    fn from(c: Config) -> Self {
+        UnverifiedConfig {
+            general: c.general,
+            game: c.game.into(),
+        }
+    }
+}
+
 #[derive(Debug)]
 pub enum ConfigReadError {
     /// An error in the toml formatting
@@ -186,14 +211,8 @@ impl fmt::Display for ConfigReadError {
     }
 }
 
-/// Load configuration from a file except that part isn't implemented yet. TODO
-fn try_read_config(config_file_path: &path::Path) -> Result<Config, ConfigReadError> {
-    // let config_dir_path = {
-    //     let mut c = config_file_path.components();
-    //     c.next_back(); // remove the last component
-    //     c
-    // };
-    // fs::create_dir_all(config_dir_path)?;
+/// Load configuration from a file except that part isn't implemented yet.
+fn read_config_from_path<P: AsRef<path::Path>>(config_file_path: P) -> Result<Config, ConfigReadError> {
     let file_data = fs::read(config_file_path)?;
     let config = toml::from_slice::<UnverifiedConfig>(&file_data)?;
 
@@ -203,15 +222,58 @@ fn try_read_config(config_file_path: &path::Path) -> Result<Config, ConfigReadEr
     })
 }
 
-pub fn get_config(config_file_path: &path::Path) -> Config {
-    match try_read_config(config_file_path) {
+pub fn get_config<P: AsRef<path::Path>>(config_file_path: P) -> Config {
+    match read_config_from_path(config_file_path.as_ref()) {
         Ok(c) => c,
         Err(e) => {
-            remani_warn!("Error reading from {}: {}", config_file_path.display(), e);
+            remani_warn!("Error reading from {}: {}", config_file_path.as_ref().display(), e);
             remani_warn!("Using default config");
             default_config()
         }
     }
+}
+
+#[derive(Debug)]
+pub enum ConfigWriteError {
+    Io(io::Error),
+    Toml(toml::ser::Error),
+}
+
+impl fmt::Display for ConfigWriteError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
+        match self {
+            ConfigWriteError::Io(e) => write!(f, "{}", e),
+            ConfigWriteError::Toml(e) => write!(f, "{}", e),
+        }
+    }
+}
+
+impl std::error::Error for ConfigWriteError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            ConfigWriteError::Io(e) => Some(e),
+            ConfigWriteError::Toml(e) => Some(e),
+        }
+    }
+}
+
+impl From<toml::ser::Error> for ConfigWriteError {
+    fn from(t: toml::ser::Error) -> Self {
+        ConfigWriteError::Toml(t)
+    }
+}
+
+impl From<io::Error> for ConfigWriteError {
+    fn from(t: io::Error) -> Self {
+        ConfigWriteError::Io(t)
+    }
+}
+
+pub fn write_config_to_path<P: AsRef<path::Path>>(config: Config, path: P) -> Result<(), ConfigWriteError> {
+    use std::io::Write;
+    let mut file = fs::File::create(path)?;
+    file.write(toml::ser::to_string(&UnverifiedConfig::from(config))?.as_bytes())?;
+    Ok(())
 }
 
 /// Create the default configuration
@@ -265,4 +327,14 @@ fn default_config() -> Config {
             offset: -0.1,
         }.verify().unwrap(),
     }
+}
+
+pub fn config_path() -> path::PathBuf {
+    env::var_os("REMANI_CONF")
+        .map(|s| s.into())
+        .unwrap_or(directories::ProjectDirs::from("", "0e4ef622", "Remani")
+            .unwrap()
+            .config_dir()
+            .join("config.toml")
+        )
 }
