@@ -440,6 +440,7 @@ impl Options {
         {
             let ui = &mut self.ui.set_widgets();
 
+            // Container for all the options
             conrod::widget::Canvas::new()
                 .w(640.0)
                 .border(0.0)
@@ -447,6 +448,7 @@ impl Options {
                 .scroll_kids_vertically()
                 .set(self.ids.main_canvas, ui);
 
+            // Scrollbar
             conrod::widget::Scrollbar::y_axis(self.ids.main_canvas)
                 .auto_hide(true)
                 .set(self.ids.main_scrollbar, ui);

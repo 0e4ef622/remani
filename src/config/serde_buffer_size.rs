@@ -26,7 +26,7 @@ struct BufferSizeVisitor;
 impl<'de> Visitor<'de> for BufferSizeVisitor {
     type Value = cpal::BufferSize;
 
-    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(
             formatter,
             "the string \"default\" or a positive nonzero integer"

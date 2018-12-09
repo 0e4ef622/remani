@@ -202,7 +202,7 @@ impl From<GameConfigVerifyError> for ConfigReadError {
 }
 
 impl fmt::Display for ConfigReadError {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             ConfigReadError::Toml(e) => write!(f, "Formatting error: {}", e),
             ConfigReadError::Io(e) => write!(f, "IO error: {}", e),

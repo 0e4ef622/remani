@@ -79,7 +79,7 @@ struct KeyBindingsVisitor;
 impl<'de> Visitor<'de> for KeyBindingsVisitor {
     type Value = [input::Button; 7];
 
-    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+    fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(formatter, "an array of 7 button descriptors")
     }
 

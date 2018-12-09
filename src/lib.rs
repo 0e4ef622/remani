@@ -1,3 +1,5 @@
+#![deny(rust_2018_idioms)]
+
 macro_rules! remani_warn {
     ($fmt:expr) => (eprintln!(concat!("WARNING: ", $fmt)));
     ($fmt:expr, $($arg:tt)*) => {
