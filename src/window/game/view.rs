@@ -8,7 +8,7 @@ use crate::{chart, config::Config, judgement::Judgement, gameskin::GameSkin};
 
 /// Holds values and resources needed by the window to do drawing stuff
 pub struct View<G: Graphics> {
-    skin: Box<dyn GameSkin<G>>,
+    pub skin: Box<dyn GameSkin<G>>,
 
     /// Index of the next note that isn't on the screen yet
     next_note_index: usize,
@@ -97,18 +97,13 @@ impl<G: Graphics> View<G> {
             let note = &chart.notes()[note_index];
             if let Some(end_time) = note.end_time {
                 if note.time - time < 0.0 && !self.long_notes_held[note.column] {
-                    self.skin.long_note_hit_anim_start(note.column);
                     self.long_notes_held[note.column] = true;
                 } else if end_time - time < 0.0 {
-                    // TODO only display hit animation if the player successfully hits the note
-                    self.skin.long_note_hit_anim_stop(note.column);
                     self.notes_below_screen_indices.push(index);
                     self.long_notes_held[note.column] = false;
                     continue;
                 }
             } else if note.time - time < 0.0 {
-                // TODO only display hit animation if the player successfully hits the note
-                self.skin.single_note_hit_anim(note.column);
                 self.notes_below_screen_indices.push(index);
                 continue;
             }
@@ -153,8 +148,14 @@ impl<G: Graphics> View<G> {
         );
     }
 
-    pub fn draw_judgement(&mut self, column: usize, judgement: Judgement) {
+    pub fn draw_judgement(&mut self, column: usize, judgement: Judgement, is_long_note: bool) {
         self.skin.draw_judgement(column, judgement);
+        if judgement != Judgement::Miss {
+            match is_long_note {
+                true => self.skin.long_note_hit_anim_start(column),
+                false => self.skin.single_note_hit_anim(column),
+            }
+        }
     }
 
     pub fn key_down(&mut self, column: usize) {
@@ -163,6 +164,7 @@ impl<G: Graphics> View<G> {
 
     pub fn key_up(&mut self, column: usize) {
         self.skin.key_up(column);
+        self.skin.long_note_hit_anim_stop(column);
     }
 }
 

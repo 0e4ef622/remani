@@ -97,7 +97,7 @@ impl GameScene {
         if let Some(u) = e.update_args() {
             let view = &mut self.view;
             self.model.update(u, config, &*self.chart, self.time, |k| {
-                view.draw_judgement(k, Judgement::Miss)
+                view.draw_judgement(k, Judgement::Miss, false)
             });
             if let Some(autoplay_sound) = self.chart.autoplay_sounds().get(self.current_autoplay_sound_index) {
                 // Unapply the offset to make sure the autoplay sound lines up with the music
@@ -117,9 +117,9 @@ impl GameScene {
             let view = &mut self.view;
             let chart = &*self.chart;
             self.model
-                .press(&i, config, chart, self.time, |k, j, note_index| {
+                .press(&i, config, chart, self.time, |k, j, note_index, is_long_note| {
                     if let Some(j) = j {
-                        view.draw_judgement(k, j);
+                        view.draw_judgement(k, j, is_long_note);
                     }
                     note_index
                         .and_then(|i| chart.notes()[i].sound_index)

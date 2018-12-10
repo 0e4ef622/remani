@@ -219,7 +219,7 @@ impl<G: Graphics> GameSkin<G> for OsuSkin<G> {
     fn long_note_hit_anim_stop(&mut self, column: usize) {
         match self.anim_states.hit_anim[column] {
             HitAnimState::LongNote(time) => self.anim_states.hit_anim[column] = HitAnimState::LongNoteFinal(time, time::Instant::now()),
-            _ => self.anim_states.hit_anim[column] = HitAnimState::None,
+            _ => (),
         }
     }
 }

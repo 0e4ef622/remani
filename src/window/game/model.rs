@@ -61,7 +61,8 @@ impl Model {
         time: f64,
         mut miss_callback: F,
     ) {
-        // how many notes should be removed from the front of each vecdeque
+        // how many notes should be removed from the front of each vecdeque since we can't modify
+        // the vecdeque while we are iterating over it
         let mut to_be_removed = [0; 7];
 
         for (column, note_vec) in self.next_notes.iter().enumerate() {
@@ -100,10 +101,16 @@ impl Model {
 
     /// Called by `GameScene` when a press event occurs
     ///
-    /// `callback` is a function that takes a number representing the note index and a judgement
-    /// if there was one along with its corresponding note index or the index of whichever note's
-    /// hitsound is going to be played
-    pub fn press<F: FnMut(usize, Option<Judgement>, Option<usize>)>(
+    /// `callback` args in order:
+    ///
+    /// `column`: Which column was pressed.
+    ///
+    /// `judgement`: If a note was hit, this contains the `Judgement`.
+    ///
+    /// `hitsound_index`: Index into `chart.get_sound(i)` for which sound should be played.
+    ///
+    /// `is_long_note`: True if the player pressed a long note, false otherwise.
+    pub fn press<F: FnMut(usize, Option<Judgement>, Option<usize>, bool)>(
         &mut self,
         args: &Button,
         config: &Config,
@@ -121,6 +128,7 @@ impl Model {
             .zip(self.keys_down.iter_mut())
             .for_each(|((key_index, key_binding), key_down)| {
                 if *args == *key_binding && !*key_down {
+                    let mut is_long_note = false;
                     let judgement = if let Some(&note_index) = next_notes[key_index].get(0) {
                         let note = &chart.notes()[note_index];
                         next_notes[key_index].pop_front();
@@ -129,6 +137,7 @@ impl Model {
                         if note.end_time.is_some() {
                             debug_assert_eq!(long_notes_held[key_index], None);
                             long_notes_held[key_index] = Some(note_index);
+                            is_long_note = true;
                         }
 
                         // TODO dont hardcode timing windows
@@ -143,15 +152,16 @@ impl Model {
 
                     *key_down = true;
 
-                    callback(key_index, judgement, notes_for_hitsound[key_index]);
+                    callback(key_index, judgement, notes_for_hitsound[key_index], is_long_note);
                 }
             });
     }
 
     /// Called by `GameScene` when a release event occurs
     ///
-    /// `callback` is a function that takes a number representing the column and a judgement
-    /// if there was one
+    /// `callback` args in order:
+    ///
+    /// `column`: Which column was pressed.
     pub fn release<F: FnMut(usize)>(
         &mut self,
         args: &Button,
@@ -167,12 +177,12 @@ impl Model {
             .zip(self.keys_down.iter_mut())
             .for_each(|((key_index, key_binding), key_down)| {
                 if *args == *key_binding {
-                    callback(key_index);
                     *key_down = false;
                     if let Some(note_index) = long_notes_held[key_index] {
                         let _timing = chart.notes()[note_index].end_time.unwrap() - time;
                         long_notes_held[key_index] = None;
                     }
+                    callback(key_index);
                 }
             });
     }
