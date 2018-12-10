@@ -752,7 +752,6 @@ impl Chart for OsuChart {
         audio::music_from_path(&self.chart_path.join(&self.music_path), format)
     }
     fn load_sounds(&mut self, format: &cpal::Format, config: &Config) {
-        println!("loading sounds");
         let mut cache = HashMap::new();
         // Take ownership of the Vec of hitsounds
         let self_sounds = std::mem::replace(&mut self.sounds, MaybeLoadedSounds::NotLoaded(vec![]));
