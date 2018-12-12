@@ -82,7 +82,7 @@ pub trait GameSkin<G: Graphics> {
         transform: math::Matrix2d,
         graphics: &mut G,
         stage_height: f64,
-        keys_down: &[bool],
+        keys_down: &[bool; 7],
         // column index, start pos, end pos
         notes: &[(usize, f64, Option<f64>)],
     );

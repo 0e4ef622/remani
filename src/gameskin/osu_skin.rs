@@ -106,8 +106,8 @@ struct OsuSkinConfig {
     column_start: u16,
     column_width: [u16; 7],
     column_spacing: [u16; 6],
-    column_line_width: [u16; 8], // TODO implement
-    colour_column_line: [u8; 8], // TODO implement
+    column_line_width: [u16; 8],
+    colour_column_line: [u8; 4],
     hit_position: u16,
     score_position: u16,
     light_position: u16,
@@ -146,7 +146,7 @@ impl<G: Graphics> GameSkin<G> for OsuSkin<G> {
         transform: math::Matrix2d,
         g: &mut G,
         stage_height: f64,
-        keys_down: &[bool],
+        keys_down: &[bool; 7],
         // column index, start pos, end pos
         notes: &[(usize, f64, Option<f64>)],
     ) {
@@ -475,10 +475,12 @@ impl<G: Graphics> OsuSkin<G> {
         transform: math::Matrix2d,
         g: &mut G,
         stage_h: f64,
-        pressed: &[bool],
+        pressed: &[bool; 7],
     ) {
         let scale = stage_h / 480.0;
         let scale2 = stage_h / 768.0;
+
+        let hit_position = self.config.hit_position as f64 * scale;
 
         for (i, key_pressed) in pressed.iter().enumerate() {
             let key_texture = if *key_pressed {
@@ -501,6 +503,33 @@ impl<G: Graphics> OsuSkin<G> {
                 self.config.colour_light[i][2] as f32 / 255.0,
                 1.0,
             ];
+
+            let column_line_width1 = self.config.column_line_width[i] as f64 * stage_h / 1024.0; // wtaf theres a 3rd scale???
+            let column_line_width2 = self.config.column_line_width[i+1] as f64 * stage_h / 1024.0;
+            let alpha = (self.config.colour_column_line[3] as f32 / 255.0).powf(2.0); // wtf???
+            let column_line_color = [
+                self.config.colour_column_line[0] as f32 / 255.0 * alpha,
+                self.config.colour_column_line[1] as f32 / 255.0 * alpha,
+                self.config.colour_column_line[2] as f32 / 255.0 * alpha,
+                self.config.colour_column_line[3] as f32 / 255.0,
+            ];
+            let column_line_rect1 = [
+                key_x,
+                0.0,
+                column_line_width1,
+                hit_position,
+            ];
+            let column_line_rect2 = [
+                key_x + key_width,
+                0.0,
+                column_line_width2,
+                hit_position,
+            ];
+            let column_line_rect = graphics::Rectangle::new(column_line_color);
+            let ds = draw_state.blend(draw_state::Blend::Add);
+            column_line_rect.draw(column_line_rect1, &ds, transform, g);
+            column_line_rect.draw(column_line_rect2, &ds, transform, g);
+
             let sl_size = self.textures.stage_light.len();
             let stage_light_height =
                 self.textures.stage_light[sl_size - 1].get_height() as f64 * scale2;
@@ -959,7 +988,7 @@ where
     let mut column_start = 136;
     let mut column_width = [30; 7];
     let mut column_line_width = [2; 8];
-    let mut colour_column_line = [255; 8];
+    let mut colour_column_line = [255; 4];
     let mut column_spacing = [0; 6];
     let mut colour_light = [[255, 255, 255]; 7];
     let mut hit_position = 402;
