@@ -9,11 +9,13 @@ use crate::{audio, config::Config};
 mod game;
 mod main_menu;
 mod options;
+mod song_select;
 
 enum Scene {
     MainMenu(main_menu::MainMenu),
     Options(options::Options),
     Game(game::GameScene),
+    SongSelect(song_select::SongSelect),
 }
 
 impl Scene {
@@ -28,6 +30,7 @@ impl Scene {
             Scene::Game(scene) => scene.event(e, cfg, audio, window),
             Scene::MainMenu(scene) => scene.event(e, cfg, audio, window),
             Scene::Options(scene) => scene.event(e, cfg, audio, window),
+            Scene::SongSelect(scene) => scene.event(e, cfg, audio, window),
         }
     }
 }
@@ -47,6 +50,12 @@ impl From<options::Options> for Scene {
 impl From<game::GameScene> for Scene {
     fn from(t: game::GameScene) -> Self {
         Scene::Game(t)
+    }
+}
+
+impl From<song_select::SongSelect> for Scene {
+    fn from(t: song_select::SongSelect) -> Self {
+        Scene::SongSelect(t)
     }
 }
 
