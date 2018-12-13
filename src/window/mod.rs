@@ -2,7 +2,7 @@
 
 use glutin_window::GlutinWindow;
 use opengl_graphics::GlGraphics;
-use piston::input::MouseCursorEvent;
+use piston::{input::MouseCursorEvent, event_loop::EventLoop};
 
 use crate::{audio, config::Config};
 
@@ -103,7 +103,8 @@ pub fn start(mut config: Config) {
     };
     let mut current_scene = Scene::MainMenu(main_menu::MainMenu::new());
 
-    let mut events = Events::new(EventSettings::new());
+    // the UI scenes need to be able to manually swap buffers to allow lazy redrawing
+    let mut events = Events::new(EventSettings::new().swap_buffers(false));
     while let Some(e) = events.next(&mut window.window) {
         if let Some(p) = e.mouse_cursor_args() {
             window.mouse_position = p;

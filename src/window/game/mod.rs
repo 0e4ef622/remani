@@ -5,6 +5,7 @@ use std::time;
 use piston::{
     self,
     input::{PressEvent, ReleaseEvent, RenderEvent, UpdateEvent},
+    window::Window,
 };
 
 mod model;
@@ -140,6 +141,7 @@ impl GameScene {
                 self.view
                     .render(c, &mut gl, &r, config, &*self.chart, &self.model, self.time);
             });
+            window.window.swap_buffers();
         }
     }
 }

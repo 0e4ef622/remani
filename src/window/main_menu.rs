@@ -1,10 +1,8 @@
 use graphics::{draw_state::DrawState, image::Image};
 use opengl_graphics::Texture;
-use piston::input::{
-    mouse,
-    Button,
-    PressEvent,
-    RenderEvent,
+use piston::{
+    input::{mouse, Button, PressEvent, RenderEvent},
+    window::Window,
 };
 use texture::{ImageSize, TextureSettings};
 
@@ -87,6 +85,7 @@ impl MainMenu {
                 exit_image.draw(exit_texture, &draw_state, c.transform, gl);
                 play_image.draw(play_texture, &draw_state, c.transform, gl);
             });
+            window.window.swap_buffers();
         }
     }
 }

@@ -1,6 +1,6 @@
 use piston::{
     input::{self, ButtonEvent, PressEvent, RenderEvent, UpdateEvent},
-    window::Window as __,
+    window::Window,
 };
 use texture::CreateTexture;
 use conrod::{
@@ -434,6 +434,7 @@ impl Options {
                         |t| t,
                     );
                 });
+                window_context.window.swap_buffers();
             }
         }
     }
