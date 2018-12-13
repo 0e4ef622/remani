@@ -342,10 +342,9 @@ impl Options {
         let size = window.window.size();
         let mut ui = conrod::UiBuilder::new([size.width, size.height]).build();
         ui.handle_event(conrod::event::Input::Motion(conrod::input::Motion::MouseCursor { x: window.mouse_position[0], y: window.mouse_position[1] }));
-        ui.theme.font_id = Some(ui.fonts.insert(window.glyph_cache.font.clone()));
+        ui.theme.font_id = Some(ui.fonts.insert(window.font.clone()));
         ui.theme.shape_color = conrod::color::CHARCOAL;
         ui.theme.label_color = conrod::color::WHITE;
-        ui.set_num_redraw_frames(10); // just to be safe
         let ids = Ids::new(ui.widget_id_generator());
         let map = conrod::image::Map::new();
         let glyph_cache = conrod::text::GlyphCache::builder()
@@ -359,6 +358,7 @@ impl Options {
             [1024, 1024],
             &texture::TextureSettings::new(),
         ).expect("failed to create texture");
+
         let win_res_w_text = config.general.resolution[0].to_string();
         let win_res_h_text = config.general.resolution[1].to_string();
         let audio_buf_size_input_text = match config.general.audio_buffer_size {
@@ -414,25 +414,27 @@ impl Options {
             self.keybindings_key_capture = None;
         }
         if let Some(_) = e.update_args() {
-            // Set the UI
             self.set_ui(config, window_context);
         }
         if let Some(r) = e.render_args() {
-            window_context.gl.draw(r.viewport(), |c, gl| {
-                if let Some(primitives) = self.ui.draw_if_changed() {
+            if let Some(primitives) = self.ui.draw_if_changed() {
+                let self_glyph_cache_texture = &mut self.glyph_cache_texture;
+                let self_glyph_cache = &mut self.glyph_cache;
+                let self_map = &self.map;
+                window_context.gl.draw(r.viewport(), |c, gl| {
                     graphics::clear([0.0, 0.0, 0.0, 1.0], gl);
                     conrod_piston::draw::primitives(
                         primitives,
                         c,
                         gl,
-                        &mut self.glyph_cache_texture,
-                        &mut self.glyph_cache,
-                        &self.map,
-                        cache_glyphs,
+                        self_glyph_cache_texture,
+                        self_glyph_cache,
+                        self_map,
+                        super::cache_glyphs,
                         |t| t,
                     );
-                }
-            });
+                });
+            }
         }
     }
     fn set_ui(&mut self, config: &mut Config, window_context: &mut WindowContext) {
@@ -769,27 +771,4 @@ impl Options {
         config.game.osu_hitsound_enable = self.enable_osu_hit_sounds_toggle_value;
         config.game.key_bindings = self.keybinding_values;
     }
-}
-
-fn cache_glyphs(
-    _graphics: &mut opengl_graphics::GlGraphics,
-    texture: &mut opengl_graphics::Texture,
-    rect: conrod::text::rt::Rect<u32>,
-    data: &[u8]
-) {
-    let mut new_data = Vec::with_capacity((rect.width() * rect.height() * 4) as usize);
-    for &a in data {
-        new_data.push(255);
-        new_data.push(255);
-        new_data.push(255);
-        new_data.push(a);
-    }
-    opengl_graphics::UpdateTexture::update(
-        texture,
-        &mut (),
-        texture::Format::Rgba8,
-        &new_data,
-        [rect.min.x, rect.min.y],
-        [rect.width(), rect.height()],
-    ).expect("Error updating glyph cache texture");
 }

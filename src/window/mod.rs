@@ -52,7 +52,7 @@ impl From<game::GameScene> for Scene {
 
 struct WindowContext {
     gl: GlGraphics,
-    glyph_cache: opengl_graphics::GlyphCache<'static>, // one font for now
+    font: conrod::text::Font, // one font for now
 
     /// Kept track of here so that mouse coordinates don't get messed up when changing scenes.
     mouse_position: [f64; 2],
@@ -96,11 +96,8 @@ pub fn start(mut config: Config) {
     let mut window = WindowContext {
         gl,
         next_scene: None,
-        glyph_cache: opengl_graphics::GlyphCache::from_bytes(
-            include_bytes!("../../rsc/fonts/wqy/WenQuanYiMicroHei.ttf"),
-            (),
-            texture::TextureSettings::new(),
-        ).expect("Failed to load Wen Quan Yi Micro Hei font"),
+        font: conrod::text::Font::from_bytes(include_bytes!("../../rsc/fonts/wqy/WenQuanYiMicroHei.ttf") as &[u8])
+            .expect("Failed to load Wen Quan Yi Micro Hei font"),
         mouse_position: [-1.0, -1.0],
         window: glutin_window,
     };
@@ -117,4 +114,28 @@ pub fn start(mut config: Config) {
             current_scene = window.next_scene.take().unwrap();
         }
     }
+}
+
+// used by conrod
+fn cache_glyphs(
+    _graphics: &mut opengl_graphics::GlGraphics,
+    texture: &mut opengl_graphics::Texture,
+    rect: conrod::text::rt::Rect<u32>,
+    data: &[u8]
+) {
+    let mut new_data = Vec::with_capacity((rect.width() * rect.height() * 4) as usize);
+    for &a in data {
+        new_data.push(255);
+        new_data.push(255);
+        new_data.push(255);
+        new_data.push(a);
+    }
+    texture::UpdateTexture::update(
+        texture,
+        &mut (),
+        texture::Format::Rgba8,
+        &new_data,
+        [rect.min.x, rect.min.y],
+        [rect.width(), rect.height()],
+    ).expect("Error updating glyph cache texture");
 }
