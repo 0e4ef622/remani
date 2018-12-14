@@ -30,10 +30,11 @@ either = "1.5"
 lewton = { optional = true, version = "0.9" }
 nom = "4.0"
 conrod = { version = "0.62.0", features = ["piston"] }
+fnv = "*"
 
 [patch.crates-io]
 cpal = { git = "https://github.com/0e4ef622/cpal", rev = "buffer-size-request" }
-conrod = { git = "https://github.com/0e4ef622/conrod", rev = "rebase" } # my piston dpi patch rebased on a pull request to update conrod's dependencies
+conrod = { git = "https://github.com/0e4ef622/conrod", rev = "merge" } # my piston dpi patch, my redraw on focus patch, and a pull request to update conrod's dependencies merged together
 
 [features]
 default = ["mp3", "wav", "ogg"]
