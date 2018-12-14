@@ -635,12 +635,15 @@ impl Options {
 
                 // Input field
                 let self_enable_osu_hit_sounds_toggle_value = &mut self.enable_osu_hit_sounds_toggle_value;
-                conrod::widget::Toggle::new(*self_enable_osu_hit_sounds_toggle_value)
+                let toggle = conrod::widget::Toggle::new(*self_enable_osu_hit_sounds_toggle_value)
                     .w_h(20.0, 20.0)
                     .top_right_of(self.ids.enable_osu_hit_sounds_canvas)
-                    .border_color(conrod::color::WHITE)
-                    .color(conrod::color::WHITE)
-                    .set(self.ids.enable_osu_hit_sounds_toggle, ui)
+                    .border_color(conrod::color::WHITE);
+                if *self_enable_osu_hit_sounds_toggle_value {
+                    toggle.color(conrod::color::WHITE)
+                } else {
+                    toggle
+                }.set(self.ids.enable_osu_hit_sounds_toggle, ui)
                     .last()
                     .map(|v| *self_enable_osu_hit_sounds_toggle_value = v);
             }
@@ -678,30 +681,21 @@ impl Options {
                     ])
                     .set(self.ids.keybindings_buttons_canvas, ui);
 
-                let canvas_ids = [
-                    self.ids.key0_canvas,
-                    self.ids.key1_canvas,
-                    self.ids.key2_canvas,
-                    self.ids.key3_canvas,
-                    self.ids.key4_canvas,
-                    self.ids.key5_canvas,
-                    self.ids.key6_canvas,
+                let canvas_buttons_ids = [
+                    (self.ids.key0_canvas, self.ids.key0_button),
+                    (self.ids.key1_canvas, self.ids.key1_button),
+                    (self.ids.key2_canvas, self.ids.key2_button),
+                    (self.ids.key3_canvas, self.ids.key3_button),
+                    (self.ids.key4_canvas, self.ids.key4_button),
+                    (self.ids.key5_canvas, self.ids.key5_button),
+                    (self.ids.key6_canvas, self.ids.key6_button),
                 ];
-                let button_ids = [
-                    self.ids.key0_button,
-                    self.ids.key1_button,
-                    self.ids.key2_button,
-                    self.ids.key3_button,
-                    self.ids.key4_button,
-                    self.ids.key5_button,
-                    self.ids.key6_button,
-                ];
-                for (i, (((&canvas_id, &button_id), &button), &key_pressed)) in canvas_ids
+                for (i, ((&(canvas_id, button_id), &button), &key_pressed)) in canvas_buttons_ids
                     .iter()
-                        .zip(button_ids.iter())
-                        .zip(self.keybinding_values.iter())
-                        .zip(self.buttons_pressed.iter())
-                        .enumerate() {
+                    .zip(self.keybinding_values.iter())
+                    .zip(self.buttons_pressed.iter())
+                    .enumerate()
+                {
                     let mut button = conrod::widget::Button::new()
                         .top_left_of(canvas_id)
                         .kid_area_wh_of(canvas_id)
@@ -714,7 +708,7 @@ impl Options {
                         // red border if currently bound button is being pressed
                         button = button.border(2.0).border_color(conrod::color::RED);
                     } else {
-                        // otherwise noborder
+                        // otherwise no border
                         button = button.border(0.0);
                     }
                     if button.set(button_id, ui).was_clicked() {
