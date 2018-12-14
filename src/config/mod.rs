@@ -271,6 +271,11 @@ impl From<io::Error> for ConfigWriteError {
 
 pub fn write_config_to_path<P: AsRef<path::Path>>(config: Config, path: P) -> Result<(), ConfigWriteError> {
     use std::io::Write;
+    let path = path.as_ref();
+    match path.parent() {
+        Some(p) => std::fs::create_dir_all(p)?,
+        None => (),
+    }
     let mut file = fs::File::create(path)?;
     file.write(toml::ser::to_string(&UnverifiedConfig::from(config))?.as_bytes())?;
     Ok(())
