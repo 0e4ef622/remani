@@ -24,6 +24,10 @@ use crate::{audio, chart, config::Config};
 widget_ids! {
     struct Ids {
         list,
+        name_text,
+        diff_name_text,
+        artist_text,
+        creator_text,
     }
 }
 
@@ -50,7 +54,6 @@ impl SongSelect {
         ui.theme.font_id = Some(ui.fonts.insert(window_context.font.clone()));
         ui.theme.shape_color = conrod::color::CHARCOAL;
         ui.theme.label_color = conrod::color::WHITE;
-        // ui.set_num_redraw_frames(10); // just to be safe
         let ids = Ids::new(ui.widget_id_generator());
         let map = conrod::image::Map::new();
         let glyph_cache = conrod::text::GlyphCache::builder()
@@ -79,6 +82,10 @@ impl SongSelect {
         _audio: &audio::Audio,
         window_context: &mut WindowContext,
     ) {
+        let size = window_context.window.size();
+        if let Some(e) = conrod_piston::event::convert(e.clone(), size.width, size.height) {
+            self.ui.handle_event(e);
+        }
         if let Some(_) = e.update_args() {
             self.set_ui(config, window_context);
         }
@@ -89,7 +96,7 @@ impl SongSelect {
                 let self_glyph_cache = &mut self.glyph_cache;
                 let self_map = &self.map;
                 window_context.gl.draw(r.viewport(), |c, gl| {
-                    graphics::clear([1.0, 0.0, 0.0, 1.0], gl);
+                    graphics::clear([0.0, 0.0, 0.0, 1.0], gl);
                     conrod_piston::draw::primitives(
                         primitives,
                         c,
@@ -108,13 +115,49 @@ impl SongSelect {
     fn set_ui(&mut self, config: &Config, window_context: &mut WindowContext) {
         let ui = &mut self.ui.set_widgets();
 
-        let (mut list_items_iter, scrollbar) = conrod::widget::List::flow_down(5)
+        let (mut list_items_iter, scrollbar) = conrod::widget::List::flow_down(20)
+            .middle_of(ui.window)
             .align_right_of(ui.window)
-            .item_size(50.0)
-            .w(500.0)
+            .item_size(40.0)
+            .w(ui.win_w/2.0)
             .kid_area_h_of(ui.window)
             .scrollbar_next_to()
             .set(self.ids.list, ui);
+
         scrollbar.map(|s| s.set(ui));
+        while let Some(item) = list_items_iter.next(ui) {
+            item.set(
+                conrod::widget::Button::new()
+                    // .label(&s)
+                    .border(1.0)
+                    .border_color(conrod::color::WHITE)
+                    .small_font(ui),
+                ui
+            );
+        }
+
+        conrod::widget::Text::new("Song name")
+            .font_size(ui.theme().font_size_small)
+            .top_left_with_margins_on(ui.window, 70.0, 30.0)
+            .font_size(18)
+            .set(self.ids.name_text, ui);
+
+        conrod::widget::Text::new("Difficulty name")
+            .font_size(ui.theme().font_size_small)
+            .down(30.0)
+            .font_size(18)
+            .set(self.ids.diff_name_text, ui);
+
+        conrod::widget::Text::new("Song artist")
+            .font_size(ui.theme().font_size_small)
+            .down(30.0)
+            .font_size(18)
+            .set(self.ids.artist_text, ui);
+
+        conrod::widget::Text::new("Chart creator")
+            .font_size(ui.theme().font_size_small)
+            .down(30.0)
+            .font_size(18)
+            .set(self.ids.creator_text, ui);
     }
 }
