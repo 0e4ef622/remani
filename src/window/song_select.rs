@@ -37,10 +37,12 @@ pub struct SongSelect {
     map: conrod::image::Map<opengl_graphics::Texture>,
     glyph_cache: conrod::text::GlyphCache<'static>,
     glyph_cache_texture: opengl_graphics::Texture,
+    song_list: Vec<chart::ChartSet>,
 }
 
 impl SongSelect {
     pub(super) fn new(window_context: &WindowContext, config: &Config) -> Self {
+        let song_list = chart::osu::gen_song_list("test").unwrap();
         let size = window_context.window.size();
         let mut ui = conrod::UiBuilder::new([size.width, size.height]).build();
         ui.handle_event(
@@ -73,6 +75,7 @@ impl SongSelect {
             map,
             glyph_cache,
             glyph_cache_texture,
+            song_list,
         }
     }
     pub(super) fn event(
@@ -91,7 +94,6 @@ impl SongSelect {
         }
         if let Some(r) = e.render_args() {
             if let Some(primitives) = self.ui.draw_if_changed() {
-                println!("ui redraw");
                 let self_glyph_cache_texture = &mut self.glyph_cache_texture;
                 let self_glyph_cache = &mut self.glyph_cache;
                 let self_map = &self.map;
@@ -115,7 +117,7 @@ impl SongSelect {
     fn set_ui(&mut self, config: &Config, window_context: &mut WindowContext) {
         let ui = &mut self.ui.set_widgets();
 
-        let (mut list_items_iter, scrollbar) = conrod::widget::List::flow_down(20)
+        let (mut list_items_iter, scrollbar) = conrod::widget::List::flow_down(self.song_list.len())
             .middle_of(ui.window)
             .align_right_of(ui.window)
             .item_size(40.0)
@@ -128,10 +130,10 @@ impl SongSelect {
         while let Some(item) = list_items_iter.next(ui) {
             item.set(
                 conrod::widget::Button::new()
-                    // .label(&s)
+                    .label(self.song_list[item.i].song_name.as_ref().map(|s| &**s).unwrap_or("UNNAMED"))
                     .border(1.0)
-                    .border_color(conrod::color::WHITE)
-                    .small_font(ui),
+                    .border_color(conrod::color::WHITE),
+                    // .small_font(ui),
                 ui
             );
         }

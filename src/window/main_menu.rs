@@ -6,8 +6,8 @@ use piston::{
 };
 use texture::{ImageSize, TextureSettings};
 
-use super::{options, game, WindowContext};
-// use super::{options, song_select, WindowContext};
+// use super::{options, game, WindowContext};
+use super::{options, song_select, WindowContext};
 use crate::{audio, chart, config::Config};
 
 pub struct MainMenu {
@@ -43,11 +43,11 @@ impl MainMenu {
     ) {
         if let Some(i) = e.press_args() {
             if i == Button::Mouse(mouse::MouseButton::Left) && window.mouse_position[1] < self.window_height / 3.0 {
-                match chart::osu::from_path("test/test_chart/test.osu") {
-                    Ok(x) => window.change_scene(game::GameScene::new(Box::new(x), config, audio)),
-                    Err(e) => println!("{}", e),
-                }
-                // window.change_scene(song_select::SongSelect::new(window, config));
+                // match chart::osu::from_path("test/test_chart/test.osu") {
+                //     Ok(x) => window.change_scene(game::GameScene::new(Box::new(x), config, audio)),
+                //     Err(e) => println!("{}", e),
+                // }
+                window.change_scene(song_select::SongSelect::new(window, config));
             } else if i == Button::Mouse(mouse::MouseButton::Left) && window.mouse_position[1] < self.window_height / 3.0 * 2.0 {
                 window.change_scene(options::Options::new(window, config));
             }

@@ -516,7 +516,7 @@ pub fn music_from_path<P: AsRef<Path>>(
         .as_ref()
         .extension()
         .and_then(ffi::OsStr::to_str)
-        .map(str::to_lowercase);
+        .map(str::to_ascii_lowercase);
 
     let stream = match extension.as_ref().map(String::as_str) {
         #[cfg(feature = "mp3")]

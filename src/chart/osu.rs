@@ -727,24 +727,24 @@ impl Chart for OsuChart {
     fn primary_bpm(&self) -> f64 {
         self.primary_bpm
     }
-    fn creator(&self) -> Option<&str> {
-        self.creator.as_ref().map(|s| &**s)
-    }
-    fn artist(&self) -> Option<&str> {
-        self.artist.as_ref().map(|s| &**s)
-    }
-    fn artist_unicode(&self) -> Option<&str> {
-        self.artist_unicode.as_ref().map(|s| &**s)
-    }
-    fn song_name(&self) -> Option<&str> {
-        self.song_name.as_ref().map(|s| &**s)
-    }
-    fn song_name_unicode(&self) -> Option<&str> {
-        self.song_name_unicode.as_ref().map(|s| &**s)
-    }
-    fn difficulty_name(&self) -> &str {
-        &self.difficulty_name
-    }
+    // fn creator(&self) -> Option<&str> {
+    //     self.creator.as_ref().map(|s| &**s)
+    // }
+    // fn artist(&self) -> Option<&str> {
+    //     self.artist.as_ref().map(|s| &**s)
+    // }
+    // fn artist_unicode(&self) -> Option<&str> {
+    //     self.artist_unicode.as_ref().map(|s| &**s)
+    // }
+    // fn song_name(&self) -> Option<&str> {
+    //     self.song_name.as_ref().map(|s| &**s)
+    // }
+    // fn song_name_unicode(&self) -> Option<&str> {
+    //     self.song_name_unicode.as_ref().map(|s| &**s)
+    // }
+    // fn difficulty_name(&self) -> &str {
+    //     &self.difficulty_name
+    // }
     fn autoplay_sounds(&self) -> &[AutoplaySound] {
         &self.autoplay_sounds
     }
@@ -964,8 +964,7 @@ impl OsuParser {
     }
 }
 
-/// Takes a path to the .osu file
-pub fn from_path<P: AsRef<Path>>(path: P) -> Result<impl Chart, ParseError> {
+fn from_path_impl<P: AsRef<Path>>(path: P) -> Result<OsuChart, ParseError> {
     let file = match File::open(&path) {
         Ok(f) => f,
         Err(e) => {
@@ -989,8 +988,7 @@ pub fn from_path<P: AsRef<Path>>(path: P) -> Result<impl Chart, ParseError> {
         None => return Err(ParseError::InvalidFile),
     };
 
-    let version = verify(line.as_str())?;
-    println!("File Format Version {}", version);
+    verify(line.as_str())?;
 
     for (line_num, line) in lines.enumerate() {
         match line {
@@ -1002,10 +1000,51 @@ pub fn from_path<P: AsRef<Path>>(path: P) -> Result<impl Chart, ParseError> {
             Err(e) => return read_error!(e),
         }
     }
-    // this unwrap shouldn't ever panic since an error would've been returned from trying to open
-    // the file earlier
-    println!("{}", path.as_ref().parent().unwrap().display());
     Ok(parser.chart.finalize(path.as_ref().parent().unwrap())?)
+}
+
+/// Takes a path to the .osu file
+pub fn from_path<P: AsRef<Path>>(path: P) -> Result<impl Chart, ParseError> {
+    from_path_impl(path)
+}
+
+/// Generate a listing of all the osu beatmaps in a particular directory
+pub fn gen_song_list<P: AsRef<Path>>(path: P) -> Result<Vec<super::ChartSet>, io::Error> {
+    let mut index = Vec::new();
+    for dir_entry in std::fs::read_dir(path)? {
+        let path = dir_entry?.path();
+        if !path.is_dir() {
+            continue;
+        }
+        let mut chart_set = super::ChartSet::default();
+        for entry in std::fs::read_dir(path)? {
+            let path = entry?.path();
+            if !(path.extension()
+                .unwrap_or("".as_ref())
+                .to_string_lossy()
+                .to_ascii_lowercase() == "osu") {
+                continue;
+            }
+            match from_path_impl(&path) {
+                Ok(c) => {
+                    chart_set.difficulties.push(super::Difficulty {
+                        name: c.difficulty_name,
+                        path,
+                    });
+                    chart_set.creator = c.creator;
+                    chart_set.artist = c.artist;
+                    chart_set.artist_unicode = c.artist_unicode;
+                    chart_set.song_name = c.song_name;
+                    chart_set.song_name_unicode = c.song_name_unicode;
+                }
+                Err(e) => remani_warn!("Error parsing osu file `{}': {}", path.display(), e),
+            }
+        }
+        if chart_set != super::ChartSet::default() {
+            index.push(chart_set);
+        }
+    }
+    Ok(index)
 }
 
 #[cfg(test)]

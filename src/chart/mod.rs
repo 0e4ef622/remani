@@ -2,7 +2,7 @@
 
 use crate::{audio, config::Config};
 
-use std::{error, fmt, io};
+use std::{error, fmt, io, path};
 
 pub mod osu;
 pub mod ojn;
@@ -130,23 +130,6 @@ pub trait Chart {
     /// The bpm for most of the song
     fn primary_bpm(&self) -> f64;
 
-    /// The creator of the chart
-    fn creator(&self) -> Option<&str> { None }
-
-    /// The song's artist in ASCII
-    fn artist(&self) -> Option<&str> { None }
-
-    /// The song's artist in Unicode
-    fn artist_unicode(&self) -> Option<&str> { None }
-
-    /// The name of the song in ASCII
-    fn song_name(&self) -> Option<&str> { None }
-
-    /// The name of the song in Unicode
-    fn song_name_unicode(&self) -> Option<&str> { None }
-
-    fn difficulty_name(&self) -> &str;
-
     /// Loads and returns the music
     fn music(&mut self, format: &cpal::Format) -> Result<audio::MusicStream, audio::AudioLoadError>;
 
@@ -159,4 +142,31 @@ pub trait Chart {
     /// Should always returns None until `load_sounds` has been called, in which case it might return
     /// `None` or an empty `EffectStream`.
     fn get_sound(&self, i: usize) -> Option<audio::EffectStream>;
+}
+
+/// Chart metadata used by the song select scene
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct ChartSet {
+    /// The creator of the chart
+    pub creator: Option<String>,
+
+    /// The song's artist in ASCII
+    pub artist: Option<String>,
+
+    /// The song's artist in Unicode
+    pub artist_unicode: Option<String>,
+
+    /// The name of the song in ASCII
+    pub song_name: Option<String>,
+
+    /// The name of the song in Unicode
+    pub song_name_unicode: Option<String>,
+
+    pub difficulties: Vec<Difficulty>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Difficulty {
+    name: String,
+    path: path::PathBuf,
 }
