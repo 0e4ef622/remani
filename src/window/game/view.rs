@@ -166,6 +166,12 @@ impl<G: Graphics> View<G> {
         self.skin.key_up(column);
         self.skin.long_note_hit_anim_stop(column);
     }
+
+    pub fn chart_ended(&self, chart: &dyn chart::Chart) -> bool {
+        self.next_note_index >= chart.notes().len()
+            && self.notes_on_screen_indices.len() == 0
+            && self.notes_below_screen_indices.len() == 0
+    }
 }
 
 /// Given the time in seconds from the start of the song, calculate the position, taking into

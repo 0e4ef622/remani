@@ -4,7 +4,7 @@ use glutin_window::GlutinWindow;
 use opengl_graphics::GlGraphics;
 use piston::{input::MouseCursorEvent, event_loop::EventLoop};
 
-use crate::{audio, config::Config};
+use crate::{audio, chart, config::Config};
 
 mod game;
 mod main_menu;
@@ -59,21 +59,83 @@ impl From<song_select::SongSelect> for Scene {
     }
 }
 
+impl From<Scene> for Option<main_menu::MainMenu> {
+    fn from(t: Scene) -> Self {
+        match t {
+            Scene::MainMenu(s) => Some(s),
+            _ => None,
+        }
+    }
+}
+
+impl From<Scene> for Option<options::Options> {
+    fn from(t: Scene) -> Self {
+        match t {
+            Scene::Options(s) => Some(s),
+            _ => None,
+        }
+    }
+}
+
+impl From<Scene> for Option<game::GameScene> {
+    fn from(t: Scene) -> Self {
+        match t {
+            Scene::Game(s) => Some(s),
+            _ => None,
+        }
+    }
+}
+
+impl From<Scene> for Option<song_select::SongSelect> {
+    fn from(t: Scene) -> Self {
+        match t {
+            Scene::SongSelect(s) => Some(s),
+            _ => None,
+        }
+    }
+}
+
+/// A struct for caching things scenes use so e.g. the song list scene doesn't have to regenerate
+/// the song list everytime it's viewed.
+#[derive(Default)]
+struct SceneResources {
+    song_list: Option<Vec<chart::ChartSet>>,
+    last_selected_song_index: usize,
+}
+
+enum NextScene {
+    Plain(Scene),
+    Function(Box<dyn std::boxed::FnBox(Scene, &mut WindowContext) -> Scene>),
+}
+
 struct WindowContext {
     gl: GlGraphics,
     font: conrod::text::Font, // one font for now
 
     /// Kept track of here so that mouse coordinates don't get messed up when changing scenes.
     mouse_position: [f64; 2],
-    next_scene: Option<Scene>,
+    next_scene: Option<NextScene>,
 
     /// The underlying window
     window: GlutinWindow,
+
+    resources: SceneResources,
 }
 
 impl WindowContext {
     fn change_scene<T: Into<Scene>>(&mut self, next_scene: T) {
-        self.next_scene = Some(next_scene.into());
+        self.next_scene = Some(NextScene::Plain(next_scene.into()));
+    }
+    fn change_scene_with<S, T, F>(&mut self, next_scene: F)
+    where
+        Option<S>: From<Scene>,
+        T: Into<Scene>,
+        for<'a> F: FnOnce(S, &'a mut WindowContext) -> T + 'static,
+    {
+        self.next_scene = Some(NextScene::Function(Box::new(move |scene: Scene, wc: &mut WindowContext| {
+            let scene = Option::from(scene).expect("Wrong scene type");
+            next_scene(scene, wc).into()
+        })));
     }
 }
 
@@ -109,8 +171,9 @@ pub fn start(mut config: Config) {
             .expect("Failed to load Wen Quan Yi Micro Hei font"),
         mouse_position: [-1.0, -1.0],
         window: glutin_window,
+        resources: SceneResources::default(),
     };
-    let mut current_scene = Scene::MainMenu(main_menu::MainMenu::new());
+    let mut current_scene = Some(Scene::MainMenu(main_menu::MainMenu::new()));
 
     // the UI scenes need to be able to manually swap buffers to allow lazy redrawing
     let mut events = Events::new(EventSettings::new().swap_buffers(false));
@@ -118,10 +181,14 @@ pub fn start(mut config: Config) {
         if let Some(p) = e.mouse_cursor_args() {
             window.mouse_position = p;
         }
-        current_scene.event(e, &mut config, &audio, &mut window);
+        current_scene.as_mut().unwrap().event(e, &mut config, &audio, &mut window);
 
         if window.next_scene.is_some() {
-            current_scene = window.next_scene.take().unwrap();
+            current_scene = Some(match window.next_scene.take() {
+                Some(NextScene::Plain(s)) => s,
+                Some(NextScene::Function(f)) => f.call_box((current_scene.take().unwrap(), &mut window)),
+                None => unreachable!(),
+            });
         }
     }
 }

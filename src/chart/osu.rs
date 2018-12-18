@@ -1037,7 +1037,8 @@ pub fn gen_song_list<P: AsRef<Path>>(path: P) -> Result<Vec<super::ChartSet>, io
                     chart_set.song_name = c.song_name;
                     chart_set.song_name_unicode = c.song_name_unicode;
                 }
-                Err(e) => remani_warn!("Error parsing osu file `{}': {}", path.display(), e),
+                // Err(e) => remani_warn!("Error parsing osu file `{}': {}", path.display(), e),
+                Err(_) => (), // ignore for now since they're annoying
             }
         }
         if chart_set != super::ChartSet::default() {

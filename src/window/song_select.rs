@@ -18,16 +18,20 @@ use conrod::{
     widget_ids,
 };
 
-use super::WindowContext;
+use super::{game, main_menu::MainMenu, WindowContext};
 use crate::{audio, chart, config::Config};
 
 widget_ids! {
     struct Ids {
         list,
         name_text,
-        diff_name_text,
+        by_text,
         artist_text,
+        chart_by_text,
         creator_text,
+        diff_list_canvas,
+        diff_list,
+        back_button,
     }
 }
 
@@ -38,11 +42,17 @@ pub struct SongSelect {
     glyph_cache: conrod::text::GlyphCache<'static>,
     glyph_cache_texture: opengl_graphics::Texture,
     song_list: Vec<chart::ChartSet>,
+    /// Index into song_list
+    selected_song_index: usize,
 }
 
 impl SongSelect {
-    pub(super) fn new(window_context: &WindowContext, config: &Config) -> Self {
-        let song_list = chart::osu::gen_song_list("test").unwrap();
+    pub(super) fn new(window_context: &mut WindowContext, config: &Config) -> Self {
+        let song_list = window_context.resources.song_list
+            .take()
+            .unwrap_or_else(||
+                chart::osu::gen_song_list("test")
+                .expect("Failed to generate song list"));
         let size = window_context.window.size();
         let mut ui = conrod::UiBuilder::new([size.width, size.height]).build();
         ui.handle_event(
@@ -76,13 +86,14 @@ impl SongSelect {
             glyph_cache,
             glyph_cache_texture,
             song_list,
+            selected_song_index: 0,
         }
     }
     pub(super) fn event(
         &mut self,
         e: piston::input::Event,
         config: &Config,
-        _audio: &audio::Audio,
+        audio: &audio::Audio,
         window_context: &mut WindowContext,
     ) {
         let size = window_context.window.size();
@@ -90,7 +101,7 @@ impl SongSelect {
             self.ui.handle_event(e);
         }
         if let Some(_) = e.update_args() {
-            self.set_ui(config, window_context);
+            self.set_ui(config, audio, window_context);
         }
         if let Some(r) = e.render_args() {
             if let Some(primitives) = self.ui.draw_if_changed() {
@@ -114,52 +125,127 @@ impl SongSelect {
             }
         }
     }
-    fn set_ui(&mut self, config: &Config, window_context: &mut WindowContext) {
+    fn set_ui(&mut self, config: &Config, audio: &audio::Audio, window_context: &mut WindowContext) {
         let ui = &mut self.ui.set_widgets();
 
-        let (mut list_items_iter, scrollbar) = conrod::widget::List::flow_down(self.song_list.len())
-            .middle_of(ui.window)
-            .align_right_of(ui.window)
-            .item_size(40.0)
-            .w(ui.win_w/2.0)
-            .kid_area_h_of(ui.window)
-            .scrollbar_next_to()
-            .set(self.ids.list, ui);
+        { // Song list
+            let (mut list_items_iter, scrollbar) = conrod::widget::List::flow_down(self.song_list.len())
+                .middle_of(ui.window)
+                .align_right_of(ui.window)
+                .item_size(45.0)
+                .w(ui.win_w/2.0)
+                .kid_area_h_of(ui.window)
+                .scrollbar_next_to()
+                .set(self.ids.list, ui);
 
-        scrollbar.map(|s| s.set(ui));
-        while let Some(item) = list_items_iter.next(ui) {
-            item.set(
-                conrod::widget::Button::new()
-                    .label(self.song_list[item.i].song_name.as_ref().map(|s| &**s).unwrap_or("UNNAMED"))
+            scrollbar.map(|s| s.set(ui));
+            while let Some(item) = list_items_iter.next(ui) {
+                let mut button = conrod::widget::Button::new()
+                    .label(self.song_list[item.i].song_name_unicode
+                        .deref()
+                        .or(self.song_list[item.i].song_name.deref())
+                        .unwrap_or("<UNKNOWN>"))
                     .border(1.0)
-                    .border_color(conrod::color::WHITE),
-                    // .small_font(ui),
-                ui
-            );
+                    .border_color(conrod::color::WHITE)
+                    .label_font_size(15);
+                if item.i == self.selected_song_index {
+                    button = button.border(2.0).border_color(conrod::color::RED);
+                }
+                if item.set(button, ui).was_clicked() {
+                    self.selected_song_index = item.i;
+                }
+            }
         }
 
-        conrod::widget::Text::new("Song name")
-            .font_size(ui.theme().font_size_small)
-            .top_left_with_margins_on(ui.window, 70.0, 30.0)
-            .font_size(18)
-            .set(self.ids.name_text, ui);
+        { // Selected song info
+            let selected_song = &self.song_list[self.selected_song_index];
+            let song_name = selected_song.song_name_unicode
+                .deref()
+                .or(selected_song.song_name.deref())
+                .unwrap_or("<UNKNOWN>");
+            let song_artist = selected_song.artist_unicode
+                .deref()
+                .or(selected_song.artist.deref())
+                .unwrap_or("<UNKNOWN>");
 
-        conrod::widget::Text::new("Difficulty name")
-            .font_size(ui.theme().font_size_small)
-            .down(30.0)
-            .font_size(18)
-            .set(self.ids.diff_name_text, ui);
+            let chart_creator = selected_song.creator
+                .deref()
+                .unwrap_or("<UNKNOWN>");
 
-        conrod::widget::Text::new("Song artist")
-            .font_size(ui.theme().font_size_small)
-            .down(30.0)
-            .font_size(18)
-            .set(self.ids.artist_text, ui);
+            conrod::widget::Text::new(song_name)
+                .w(ui.win_w/2.0-50.0)
+                .top_left_with_margins_on(ui.window, 50.0, 30.0)
+                .font_size(20)
+                .set(self.ids.name_text, ui);
 
-        conrod::widget::Text::new("Chart creator")
-            .font_size(ui.theme().font_size_small)
-            .down(30.0)
-            .font_size(18)
-            .set(self.ids.creator_text, ui);
+            conrod::widget::Text::new("Artist: ")
+                .down(5.0)
+                .font_size(15)
+                .set(self.ids.by_text, ui);
+
+            conrod::widget::Text::new(song_artist)
+                .w(ui.win_w/2.0-50.0-ui.w_of(self.ids.by_text).unwrap_or(0.0))
+                .right(0.0)
+                .font_size(15)
+                .set(self.ids.artist_text, ui);
+
+            conrod::widget::Text::new("Chart by: ")
+                .top_left_with_margins_on(ui.window, 50.0, 30.0)
+                .down(5.0)
+                .font_size(15)
+                .set(self.ids.chart_by_text, ui);
+
+            conrod::widget::Text::new(chart_creator)
+                .w(ui.win_w/2.0-50.0-ui.w_of(self.ids.by_text).unwrap_or(0.0))
+                .right(0.0)
+                .font_size(15)
+                .set(self.ids.creator_text, ui);
+        }
+
+        { // Current song difficulty list
+            let selected_song = &self.song_list[self.selected_song_index];
+            let (mut list_items_iter, scrollbar) = conrod::widget::List::flow_down(selected_song.difficulties.len())
+                .top_left_with_margins_on(ui.window, ui.win_h/2.0, 30.0)
+                .item_size(35.0)
+                .h(ui.win_h/2.0-30.0)
+                .w(ui.win_w/2.0-60.0)
+                .scrollbar_on_top()
+                .set(self.ids.diff_list, ui);
+
+            scrollbar.map(|s| s.set(ui));
+            while let Some(item) = list_items_iter.next(ui) {
+                let difficulty = &selected_song.difficulties[item.i];
+                let button = conrod::widget::Button::new()
+                    .label(&difficulty.name)
+                    .border(1.0)
+                    .border_color(conrod::color::WHITE)
+                    .label_font_size(15);
+                if item.set(button, ui).was_clicked() {
+                    match chart::osu::from_path(difficulty.path.clone()) {
+                        Ok(x) => Self::change_scene(game::GameScene::new(Box::new(x), config, audio), window_context),
+                        Err(e) => println!("{}", e),
+                    }
+                };
+            }
+        }
+
+        // back button
+        if conrod::widget::Button::new()
+            .top_left_of(ui.window)
+            .w_h(35.0, 25.0)
+            .label("back")
+            .small_font(&ui)
+            .set(self.ids.back_button, ui)
+            .was_clicked()
+        {
+            Self::change_scene(MainMenu::new(), window_context);
+        }
+    }
+    fn change_scene<S: Into<super::Scene> + 'static>(scene: S, window_context: &mut WindowContext) {
+        window_context.change_scene_with(move |this: Self, window_context| {
+            window_context.resources.song_list = Some(this.song_list);
+            window_context.resources.last_selected_song_index = this.selected_song_index;
+            scene
+        });
     }
 }

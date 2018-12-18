@@ -167,6 +167,6 @@ pub struct ChartSet {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Difficulty {
-    name: String,
-    path: path::PathBuf,
+    pub name: String,
+    pub path: path::PathBuf,
 }

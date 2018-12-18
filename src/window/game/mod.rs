@@ -12,7 +12,7 @@ mod model;
 mod view;
 
 use self::{model::Model, view::View};
-use super::WindowContext;
+use super::{song_select::SongSelect, WindowContext};
 
 use crate::{audio, chart::Chart, config::Config, judgement::Judgement, gameskin};
 
@@ -26,6 +26,7 @@ pub struct GameScene {
     first_playhead_received: bool,
     first_playhead_request: bool,
     current_autoplay_sound_index: usize,
+    chart_end_time: Option<f64>,
 }
 
 impl GameScene {
@@ -54,6 +55,7 @@ impl GameScene {
             first_playhead_received: false,
             first_playhead_request: false,
             current_autoplay_sound_index: 0,
+            chart_end_time: None,
         }
     }
 
@@ -97,9 +99,11 @@ impl GameScene {
 
         if let Some(u) = e.update_args() {
             let view = &mut self.view;
+            // Update notes in model, draw any misses that occurred
             self.model.update(u, config, &*self.chart, self.time, |k| {
                 view.draw_judgement(k, Judgement::Miss, false)
             });
+            // Play the autoplay sounds if one needs to be played
             if let Some(autoplay_sound) = self.chart.autoplay_sounds().get(self.current_autoplay_sound_index) {
                 // Unapply the offset to make sure the autoplay sound lines up with the music
                 if self.time - config.game.offset >= autoplay_sound.time {
@@ -110,6 +114,16 @@ impl GameScene {
                             audio.play_effect(s.with_volume(autoplay_sound.volume))
                             || panic!("Failed to play effect")
                         );
+                }
+            }
+            if view.chart_ended(&*self.chart) && self.chart_end_time.is_none() {
+                self.chart_end_time = Some(self.time);
+            }
+
+            if let Some(chart_end_time) = self.chart_end_time {
+                if self.time - 10.0 > chart_end_time {
+                    let song_select_scene = SongSelect::new(window, config);
+                    window.change_scene(song_select_scene);
                 }
             }
         }

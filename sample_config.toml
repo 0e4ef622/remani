@@ -24,11 +24,11 @@ osu_hitsound_enable = false
 
 [game.skins.o2jamu]
 type = "osu"
-path = "test/test_skin"
+path = "test/o2jamuskin"
 
 [game.skins.jhlee]
 type = "osu"
-path = "jhlee"
+path = "test/jhlee"
 
 [game.skins.o2jamdefault]
 type = "o2jam"
