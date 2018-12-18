@@ -28,9 +28,8 @@ directories = "1.0"
 hound = { optional = true, version = "3.4" }
 either = "1.5"
 lewton = { optional = true, version = "0.9" }
-nom = "4.0"
+nom = "4.1"
 conrod = { version = "0.62.0", features = ["piston"] }
-fnv = "*"
 
 [patch.crates-io]
 cpal = { git = "https://github.com/0e4ef622/cpal", rev = "buffer-size-request" }
