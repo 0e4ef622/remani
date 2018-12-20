@@ -86,7 +86,7 @@ impl SongSelect {
             glyph_cache,
             glyph_cache_texture,
             song_list,
-            selected_song_index: 0,
+            selected_song_index: window_context.resources.last_selected_song_index, // default is 0
         }
     }
     pub(super) fn event(

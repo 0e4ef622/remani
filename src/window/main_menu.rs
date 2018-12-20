@@ -37,7 +37,7 @@ impl MainMenu {
         &mut self,
         e: piston::input::Event,
         config: &Config,
-        audio: &audio::Audio,
+        _audio: &audio::Audio,
         window: &mut WindowContext,
     ) {
         if let Some(i) = e.press_args() {

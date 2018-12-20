@@ -130,7 +130,7 @@ impl WindowContext {
     where
         Option<S>: From<Scene>,
         T: Into<Scene>,
-        for<'a> F: FnOnce(S, &'a mut WindowContext) -> T + 'static,
+        F: FnOnce(S, &mut WindowContext) -> T + 'static,
     {
         self.next_scene = Some(NextScene::Function(Box::new(move |scene: Scene, wc: &mut WindowContext| {
             let scene = Option::from(scene).expect("Wrong scene type");

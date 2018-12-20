@@ -121,7 +121,7 @@ impl GameScene {
             }
 
             if let Some(chart_end_time) = self.chart_end_time {
-                if self.time - 10.0 > chart_end_time {
+                if self.time - 4.0 > chart_end_time {
                     let song_select_scene = SongSelect::new(window, config);
                     window.change_scene(song_select_scene);
                 }
