@@ -39,6 +39,7 @@ impl GameScene {
                 Some(audio::MusicStream::zero())
             }
         };
+        audio.get_playhead(); // clear the channel
         chart.load_sounds(audio.format(), config);
         let the_skin = gameskin::from_path(&mut (), &config.game.current_skin().1, config).unwrap();
 
