@@ -110,7 +110,7 @@ enum NextScene {
 
 struct WindowContext {
     gl: GlGraphics,
-    font: conrod::text::Font, // one font for now
+    font: conrod_core::text::Font, // one font for now
 
     /// Kept track of here so that mouse coordinates don't get messed up when changing scenes.
     mouse_position: [f64; 2],
@@ -167,7 +167,7 @@ pub fn start(mut config: Config) {
     let mut window = WindowContext {
         gl,
         next_scene: None,
-        font: conrod::text::Font::from_bytes(include_bytes!("../../rsc/fonts/wqy/WenQuanYiMicroHei.ttf") as &[u8])
+        font: conrod_core::text::Font::from_bytes(include_bytes!("../../rsc/fonts/wqy/WenQuanYiMicroHei.ttf") as &[u8])
             .expect("Failed to load Wen Quan Yi Micro Hei font"),
         mouse_position: [-1.0, -1.0],
         window: glutin_window,
@@ -197,7 +197,7 @@ pub fn start(mut config: Config) {
 fn cache_glyphs(
     _graphics: &mut opengl_graphics::GlGraphics,
     texture: &mut opengl_graphics::Texture,
-    rect: conrod::text::rt::Rect<u32>,
+    rect: conrod_core::text::rt::Rect<u32>,
     data: &[u8]
 ) {
     let mut new_data = Vec::with_capacity((rect.width() * rect.height() * 4) as usize);

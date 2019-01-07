@@ -18,22 +18,23 @@ piston-texture = "0.6"
 pistoncore-glutin_window = "0.51"
 piston2d-graphics = "0.28"
 piston2d-opengl_graphics = "0.57"
-image = "0.20.0"
+image = "0.20"
 cpal = "0.8"
-simplemad = { optional = true, version = "0.9" }
 toml = "0.4"
 serde = "1.0"
 serde_derive = "1.0"
 directories = "1.0"
-hound = { optional = true, version = "3.4" }
 either = "1.5"
-lewton = { optional = true, version = "0.9" }
 nom = "4.1"
-conrod = { version = "0.62.0", features = ["piston"] }
+conrod_core = "0.62.0"
+conrod_piston = "0.62.0"
+
+simplemad = { optional = true, version = "0.9" }
+hound = { optional = true, version = "3.4" }
+lewton = { optional = true, version = "0.9" }
 
 [patch.crates-io]
 cpal = { git = "https://github.com/0e4ef622/cpal", rev = "buffer-size-request" }
-conrod = { git = "https://github.com/0e4ef622/conrod", rev = "merge" } # my piston dpi patch, my redraw on focus patch, and a pull request to update conrod's dependencies merged together
 
 [features]
 default = ["mp3", "wav", "ogg"]

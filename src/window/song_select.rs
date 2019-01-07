@@ -7,8 +7,7 @@ use piston::{
     window::Window,
 };
 use texture::CreateTexture;
-use conrod::{
-    backend::piston as conrod_piston,
+use conrod_core::{
     Borderable,
     Colorable,
     Labelable,
@@ -36,10 +35,10 @@ widget_ids! {
 }
 
 pub struct SongSelect {
-    ui: conrod::Ui,
+    ui: conrod_core::Ui,
     ids: Ids,
-    map: conrod::image::Map<opengl_graphics::Texture>,
-    glyph_cache: conrod::text::GlyphCache<'static>,
+    map: conrod_core::image::Map<opengl_graphics::Texture>,
+    glyph_cache: conrod_core::text::GlyphCache<'static>,
     glyph_cache_texture: opengl_graphics::Texture,
     song_list: Vec<chart::ChartSet>,
     /// Index into song_list
@@ -54,21 +53,21 @@ impl SongSelect {
                 chart::osu::gen_song_list("test")
                 .expect("Failed to generate song list"));
         let size = window_context.window.size();
-        let mut ui = conrod::UiBuilder::new([size.width, size.height]).build();
+        let mut ui = conrod_core::UiBuilder::new([size.width, size.height]).build();
         ui.handle_event(
-            conrod::event::Input::Motion(
-                conrod::input::Motion::MouseCursor {
+            conrod_core::event::Input::Motion(
+                conrod_core::input::Motion::MouseCursor {
                     x: window_context.mouse_position[0],
                     y: window_context.mouse_position[1],
                 }
             )
         );
         ui.theme.font_id = Some(ui.fonts.insert(window_context.font.clone()));
-        ui.theme.shape_color = conrod::color::CHARCOAL;
-        ui.theme.label_color = conrod::color::WHITE;
+        ui.theme.shape_color = conrod_core::color::CHARCOAL;
+        ui.theme.label_color = conrod_core::color::WHITE;
         let ids = Ids::new(ui.widget_id_generator());
-        let map = conrod::image::Map::new();
-        let glyph_cache = conrod::text::GlyphCache::builder()
+        let map = conrod_core::image::Map::new();
+        let glyph_cache = conrod_core::text::GlyphCache::builder()
             .dimensions(1024, 1024)
             .build();
         let vec = vec![0; 1024*1024*4];
@@ -129,7 +128,7 @@ impl SongSelect {
         let ui = &mut self.ui.set_widgets();
 
         { // Song list
-            let (mut list_items_iter, scrollbar) = conrod::widget::List::flow_down(self.song_list.len())
+            let (mut list_items_iter, scrollbar) = conrod_core::widget::List::flow_down(self.song_list.len())
                 .middle_of(ui.window)
                 .align_right_of(ui.window)
                 .item_size(45.0)
@@ -140,16 +139,16 @@ impl SongSelect {
 
             scrollbar.map(|s| s.set(ui));
             while let Some(item) = list_items_iter.next(ui) {
-                let mut button = conrod::widget::Button::new()
+                let mut button = conrod_core::widget::Button::new()
                     .label(self.song_list[item.i].song_name_unicode
                         .deref()
                         .or(self.song_list[item.i].song_name.deref())
                         .unwrap_or("<UNKNOWN>"))
                     .border(1.0)
-                    .border_color(conrod::color::WHITE)
+                    .border_color(conrod_core::color::WHITE)
                     .label_font_size(15);
                 if item.i == self.selected_song_index {
-                    button = button.border(2.0).border_color(conrod::color::RED);
+                    button = button.border(2.0).border_color(conrod_core::color::RED);
                 }
                 if item.set(button, ui).was_clicked() {
                     self.selected_song_index = item.i;
@@ -172,30 +171,30 @@ impl SongSelect {
                 .deref()
                 .unwrap_or("<UNKNOWN>");
 
-            conrod::widget::Text::new(song_name)
+            conrod_core::widget::Text::new(song_name)
                 .w(ui.win_w/2.0-50.0)
                 .top_left_with_margins_on(ui.window, 50.0, 30.0)
                 .font_size(20)
                 .set(self.ids.name_text, ui);
 
-            conrod::widget::Text::new("Artist: ")
+            conrod_core::widget::Text::new("Artist: ")
                 .down(5.0)
                 .font_size(15)
                 .set(self.ids.by_text, ui);
 
-            conrod::widget::Text::new(song_artist)
+            conrod_core::widget::Text::new(song_artist)
                 .w(ui.win_w/2.0-50.0-ui.w_of(self.ids.by_text).unwrap_or(0.0))
                 .right(0.0)
                 .font_size(15)
                 .set(self.ids.artist_text, ui);
 
-            conrod::widget::Text::new("Chart by: ")
+            conrod_core::widget::Text::new("Chart by: ")
                 .top_left_with_margins_on(ui.window, 50.0, 30.0)
                 .down(5.0)
                 .font_size(15)
                 .set(self.ids.chart_by_text, ui);
 
-            conrod::widget::Text::new(chart_creator)
+            conrod_core::widget::Text::new(chart_creator)
                 .w(ui.win_w/2.0-50.0-ui.w_of(self.ids.by_text).unwrap_or(0.0))
                 .right(0.0)
                 .font_size(15)
@@ -204,7 +203,7 @@ impl SongSelect {
 
         { // Current song difficulty list
             let selected_song = &self.song_list[self.selected_song_index];
-            let (mut list_items_iter, scrollbar) = conrod::widget::List::flow_down(selected_song.difficulties.len())
+            let (mut list_items_iter, scrollbar) = conrod_core::widget::List::flow_down(selected_song.difficulties.len())
                 .top_left_with_margins_on(ui.window, ui.win_h/2.0, 30.0)
                 .item_size(35.0)
                 .h(ui.win_h/2.0-30.0)
@@ -215,10 +214,10 @@ impl SongSelect {
             scrollbar.map(|s| s.set(ui));
             while let Some(item) = list_items_iter.next(ui) {
                 let difficulty = &selected_song.difficulties[item.i];
-                let button = conrod::widget::Button::new()
+                let button = conrod_core::widget::Button::new()
                     .label(&difficulty.name)
                     .border(1.0)
-                    .border_color(conrod::color::WHITE)
+                    .border_color(conrod_core::color::WHITE)
                     .label_font_size(15);
                 if item.set(button, ui).was_clicked() {
                     match chart::osu::from_path(difficulty.path.clone()) {
@@ -230,7 +229,7 @@ impl SongSelect {
         }
 
         // back button
-        if conrod::widget::Button::new()
+        if conrod_core::widget::Button::new()
             .top_left_of(ui.window)
             .w_h(35.0, 25.0)
             .label("back")
