@@ -364,6 +364,7 @@ pub fn dump_data<P: AsRef<Path>>(path: P) {
             println!("OGG sounds:");
             i = 0;
             for sound in &ogg_sounds {
+                std::fs::write(format!("sound{}.ogg", i), &sound.ogg_data);
                 if i >= 4 {
                     break;
                 }
@@ -377,17 +378,18 @@ pub fn dump_data<P: AsRef<Path>>(path: P) {
             let mut buffer = vec![];
             file.seek(SeekFrom::Start(h.samples_offset as u64)).unwrap();
             file.read_to_end(&mut buffer).unwrap();
-            let sounds = m30_sounds(&buffer, &h).unwrap().1;
+            let sounds: Vec<M30Sound> = m30_sounds(&buffer, &h).unwrap().1;
             println!("Sounds:");
-            let mut i = 0;
-            for sound in &sounds {
-                if i >= 4 {
-                    break;
-                }
+            // let mut i = 0;
+            for (i, sound) in sounds.iter().enumerate() {
+                // if i >= 4 {
+                //     break;
+                // }
+                std::fs::write(format!("sound{}.ogg", i), &sound.ogg_data);
                 println!("{}", sound.sound_name);
-                i += 1;
+                // i += 1;
             }
-            if sounds.len() > 5 { println!("And {} others...", sounds.len() - i - 1); }
+            // if sounds.len() > 5 { println!("And {} others...", sounds.len() - i - 1); }
         }
     }
 }
