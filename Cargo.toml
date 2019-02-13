@@ -13,21 +13,21 @@ exclude = ["test/*"]
 default-run = "remani"
 
 [dependencies]
-piston = "0.39"
+piston = "0.42"
 piston-texture = "0.6"
-pistoncore-glutin_window = "0.51"
-piston2d-graphics = "0.28"
-piston2d-opengl_graphics = "0.57"
-image = "0.20"
+pistoncore-glutin_window = "0.54"
+piston2d-graphics = "0.30"
+piston2d-opengl_graphics = "0.59"
+image = "0.21"
 cpal = "0.8"
 toml = "0.4"
 serde = "1.0"
 serde_derive = "1.0"
 directories = "1.0"
 either = "1.5"
-nom = "4.1"
-conrod_core = "0.62.0"
-conrod_piston = "0.62.0"
+nom = "4.2"
+conrod_core = "0.63.0"
+conrod_piston = "0.63.0"
 
 simplemad = { optional = true, version = "0.9" }
 hound = { optional = true, version = "3.4" }

@@ -105,7 +105,6 @@ pub(super) fn decode<R: io::Read + Send + 'static>(reader: R) -> Result<GenericM
         sample_rate = frame.sample_rate;
         channel_count = frame.samples.len();
     }
-
     Ok(GenericMusicStream {
         samples: MP3Samples::new(decoder),
         channel_count: channel_count as u8,
