@@ -1,15 +1,10 @@
-#![allow(dead_code)]
-#![allow(unused_imports)]
-#![allow(unused_variables)]
-
 use piston::{
-    input::{self, ButtonEvent, PressEvent, RenderEvent, UpdateEvent},
+    input::{RenderEvent, UpdateEvent},
     window::Window,
 };
 use texture::CreateTexture;
 use conrod_core::{
     Borderable,
-    Colorable,
     Labelable,
     Positionable,
     Sizeable,
@@ -46,7 +41,7 @@ pub struct SongSelect {
 }
 
 impl SongSelect {
-    pub(super) fn new(window_context: &mut WindowContext, config: &Config) -> Self {
+    pub(super) fn new(window_context: &mut WindowContext, _config: &Config) -> Self {
         let song_list = window_context.resources.song_list
             .take()
             .unwrap_or_else(||
