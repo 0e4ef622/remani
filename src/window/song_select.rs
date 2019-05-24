@@ -219,7 +219,7 @@ impl SongSelect {
                         Ok(x) => Self::change_scene(game::GameScene::new(Box::new(x), config, audio), window_context),
                         Err(e) => println!("{}", e),
                     }
-                };
+                }
             }
         }
 

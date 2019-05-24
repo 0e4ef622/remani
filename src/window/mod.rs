@@ -140,7 +140,7 @@ impl WindowContext {
 }
 
 pub fn start(mut config: Config) {
-    use opengl_graphics::{GlGraphics, OpenGL};
+    use opengl_graphics::OpenGL;
     use piston::{
         event_loop::{EventSettings, Events},
         window::WindowSettings,
