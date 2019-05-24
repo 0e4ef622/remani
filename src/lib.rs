@@ -1,5 +1,4 @@
 #![deny(rust_2018_idioms)]
-#![feature(fnbox)]
 #![feature(inner_deref)]
 
 macro_rules! remani_warn {

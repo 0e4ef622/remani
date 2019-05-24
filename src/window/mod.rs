@@ -105,7 +105,7 @@ struct SceneResources {
 
 enum NextScene {
     Plain(Scene),
-    Function(Box<dyn std::boxed::FnBox(Scene, &mut WindowContext) -> Scene>),
+    Function(Box<dyn FnOnce(Scene, &mut WindowContext) -> Scene>),
 }
 
 struct WindowContext {
@@ -186,7 +186,7 @@ pub fn start(mut config: Config) {
         if window.next_scene.is_some() {
             current_scene = Some(match window.next_scene.take() {
                 Some(NextScene::Plain(s)) => s,
-                Some(NextScene::Function(f)) => f.call_box((current_scene.take().unwrap(), &mut window)),
+                Some(NextScene::Function(f)) => f(current_scene.take().unwrap(), &mut window),
                 None => unreachable!(),
             });
         }
