@@ -45,12 +45,11 @@ impl error::Error for ParseError {
         }
     }
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
-        use std::ops::Deref;
         match *self {
             ParseError::Io(_, ref e) => Some(e),
-            ParseError::Parse(_, Some(ref e)) => Some(e.deref()),
+            ParseError::Parse(_, Some(ref e)) => Some(&**e),
+            ParseError::Parse(_, None) => None,
             ParseError::ImageError(_, ref e) => Some(e),
-            _ => None,
         }
     }
 }

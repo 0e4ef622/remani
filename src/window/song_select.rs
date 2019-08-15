@@ -136,8 +136,8 @@ impl SongSelect {
             while let Some(item) = list_items_iter.next(ui) {
                 let mut button = conrod_core::widget::Button::new()
                     .label(self.song_list[item.i].song_name_unicode
-                        .deref()
-                        .or(self.song_list[item.i].song_name.deref())
+                        .as_deref()
+                        .or(self.song_list[item.i].song_name.as_deref())
                         .unwrap_or("<UNKNOWN>"))
                     .border(1.0)
                     .border_color(conrod_core::color::WHITE)
@@ -154,16 +154,16 @@ impl SongSelect {
         { // Selected song info
             let selected_song = &self.song_list[self.selected_song_index];
             let song_name = selected_song.song_name_unicode
-                .deref()
-                .or(selected_song.song_name.deref())
+                .as_deref()
+                .or(selected_song.song_name.as_deref())
                 .unwrap_or("<UNKNOWN>");
             let song_artist = selected_song.artist_unicode
-                .deref()
-                .or(selected_song.artist.deref())
+                .as_deref()
+                .or(selected_song.artist.as_deref())
                 .unwrap_or("<UNKNOWN>");
 
             let chart_creator = selected_song.creator
-                .deref()
+                .as_deref()
                 .unwrap_or("<UNKNOWN>");
 
             conrod_core::widget::Text::new(song_name)
