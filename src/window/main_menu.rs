@@ -64,19 +64,19 @@ impl MainMenu {
                 let play_w = play_texture.get_width() as f64;
                 let play_h = play_texture.get_height() as f64;
                 let play_x = r.width as f64 / 2.0 - play_w / 2.0;
-                let play_y = r.height as f64 / 4.0 - play_h / 2.0;;
+                let play_y = r.height as f64 / 4.0 - play_h / 2.0;
                 let play_image = Image::new().rect([play_x, play_y, play_w, play_h]);
 
                 let options_w = options_texture.get_width() as f64;
                 let options_h = options_texture.get_height() as f64;
                 let options_x = r.width as f64 / 2.0 - options_w / 2.0;
-                let options_y = r.height as f64 / 2.0 - options_h / 2.0;;
+                let options_y = r.height as f64 / 2.0 - options_h / 2.0;
                 let options_image = Image::new().rect([options_x, options_y, options_w, options_h]);
 
                 let exit_w = exit_texture.get_width() as f64;
                 let exit_h = exit_texture.get_height() as f64;
                 let exit_x = r.width as f64 / 2.0 - exit_w / 2.0;
-                let exit_y = 3.0 * r.height as f64 / 4.0 - exit_h / 2.0;;
+                let exit_y = 3.0 * r.height as f64 / 4.0 - exit_h / 2.0;
                 let exit_image = Image::new().rect([exit_x, exit_y, exit_w, exit_h]);
 
                 options_image.draw(options_texture, &draw_state, c.transform, gl);
