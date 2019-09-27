@@ -17,18 +17,16 @@ piston-texture = "0.6"
 pistoncore-glutin_window = "0.54"
 piston2d-graphics = "0.30"
 piston2d-opengl_graphics = "0.60"
-image = "0.21"
+image = "0.22"
 cpal = "0.8"
-toml = "0.4"
+toml = "0.5"
 serde = "1.0"
 serde_derive = "1.0"
 directories = "1.0"
 either = "1.5"
 nom = "4.2"
-# conrod_core = "0.63.0"
-# conrod_piston = "0.63.0"
-conrod_core = { path = "../conrod/conrod_core" }
-conrod_piston = { path = "../conrod/backends/conrod_piston" }
+conrod_core = "0.67.0"
+conrod_piston = "0.67.0"
 
 simplemad = { optional = true, version = "0.9" }
 hound = { optional = true, version = "3.4" }

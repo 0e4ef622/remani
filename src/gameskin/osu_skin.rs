@@ -756,7 +756,7 @@ fn fix_alpha(img: &mut image::RgbaImage) {
     for pixel in img.pixels_mut() {
         const U8_MAX: f32 = u8::MAX as f32;
 
-        let mut v = pixel.data[3] as f32 / U8_MAX;
+        let mut v = pixel.0[3] as f32 / U8_MAX;
 
         if v <= 0.04045 {
             v /= 12.92
@@ -764,7 +764,7 @@ fn fix_alpha(img: &mut image::RgbaImage) {
             v = ((v + 0.055) / 1.055).powf(2.4)
         }
 
-        pixel.data[3] = (v * U8_MAX).round() as u8;
+        pixel.0[3] = (v * U8_MAX).round() as u8;
     }
 }
 
