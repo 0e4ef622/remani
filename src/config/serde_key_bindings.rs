@@ -16,11 +16,11 @@ enum InputButton {
         value: u32,
     },
     Controller {
-        id: i32,
+        id: u32,
         button: u8,
     },
     Hat {
-        id: i32,
+        id: u32,
         state: input::HatState,
         which: u8,
     },

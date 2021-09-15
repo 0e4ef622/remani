@@ -12,25 +12,25 @@ exclude = ["test/*"]
 default-run = "remani"
 
 [dependencies]
-piston = "0.42"
-piston-texture = "0.6"
-pistoncore-glutin_window = "0.54"
-piston2d-graphics = "0.30"
-piston2d-opengl_graphics = "0.60"
-image = "0.22"
+piston = "0.53"
+piston-texture = "0.8"
+pistoncore-glutin_window = "0.69"
+piston2d-graphics = "0.40"
+piston2d-opengl_graphics = "0.78"
+image = "0.23"
 cpal = "0.8"
 toml = "0.5"
 serde = "1.0"
 serde_derive = "1.0"
-directories = "1.0"
-either = "1.5"
-nom = "4.2"
-conrod_core = "0.67.0"
-conrod_piston = "0.67.0"
+directories = "3.0"
+either = "1.6"
+nom = "4.0"
+conrod_core = "0.74.0"
+conrod_piston = "0.74.0"
 
 simplemad = { optional = true, version = "0.9" }
 hound = { optional = true, version = "3.4" }
-lewton = { optional = true, version = "0.9" }
+lewton = { optional = true, version = "0.10" }
 
 [patch.crates-io]
 cpal = { git = "https://github.com/0e4ef622/cpal", rev = "buffer-size-request" }

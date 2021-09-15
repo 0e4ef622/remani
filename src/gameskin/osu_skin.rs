@@ -8,7 +8,7 @@ use graphics::{
     image::Image,
     math, Graphics,
 };
-use texture::{CreateTexture, Format, ImageSize, TextureSettings};
+use texture::{CreateTexture, Format, ImageSize, TextureSettings, TextureOp};
 
 use std::{
     collections::HashMap, error, fmt, fs::File, io::BufRead, io::BufReader, path, rc::Rc, str, time,
@@ -780,7 +780,7 @@ where
 {
     let path_string = path.as_ref().to_string_lossy().into_owned();
     let mut image = match image::open(&path) {
-        Ok(t) => t.to_rgba(),
+        Ok(t) => t.to_rgba8(),
         Err(e) => return Err(ParseError::ImageError(path_string, e)),
     };
     fix_alpha(&mut image); // ???
@@ -792,10 +792,10 @@ where
         [dimensions.0, dimensions.1],
         texture_settings,
     ).map_err(|e: T::Error| {
-        ParseError::ImageError(
-            path_string,
-            image::ImageError::UnsupportedError(e.to_string()),
-        )
+        ParseError::TextureError {
+            path: path.as_ref().to_owned(),
+            error: e.to_string(),
+        }
     })
 }
 
@@ -911,7 +911,7 @@ pub fn from_path<F, G>(
 where
     G: Graphics + 'static,
     G::Texture: CreateTexture<F>,
-    <G::Texture as CreateTexture<F>>::Error: ToString,
+    <G::Texture as TextureOp<F>>::Error: ToString,
 {
     let config_path = dir.join(path::Path::new("skin.ini"));
 

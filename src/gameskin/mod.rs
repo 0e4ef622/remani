@@ -1,9 +1,9 @@
 //! A module for reading skins.
 
 use graphics::{math, Graphics};
-use texture::CreateTexture;
+use texture::{CreateTexture, TextureOp};
 
-use std::{error, fmt, io};
+use std::{error, fmt, io, path::PathBuf};
 
 use crate::{config, judgement::Judgement};
 
@@ -17,6 +17,10 @@ pub enum ParseError {
     /// Parsing error
     Parse(String, Option<Box<dyn error::Error>>),
     ImageError(String, image::ImageError),
+    TextureError {
+        path: PathBuf,
+        error: String,
+    },
 }
 
 impl fmt::Display for ParseError {
@@ -26,6 +30,7 @@ impl fmt::Display for ParseError {
             ParseError::Parse(ref s, Some(ref e)) => write!(f, "{}: {}", s, e),
             ParseError::Parse(ref s, None) => write!(f, "{}", s),
             ParseError::ImageError(ref s, _) => write!(f, "Error reading image {}", s),
+            ParseError::TextureError { ref path, ref error } => write!(f, "Error creating texture for {}: {}", path.display(), error),
         }
     }
 }
@@ -42,6 +47,7 @@ impl error::Error for ParseError {
             ParseError::Io(_, _) => "IO error",
             ParseError::Parse(_, _) => "Parse error",
             ParseError::ImageError(_, _) => "Error reading image",
+            ParseError::TextureError { .. } => "Error creating texture",
         }
     }
     fn source(&self) -> Option<&(dyn error::Error + 'static)> {
@@ -50,6 +56,7 @@ impl error::Error for ParseError {
             ParseError::Parse(_, Some(ref e)) => Some(&**e),
             ParseError::Parse(_, None) => None,
             ParseError::ImageError(_, ref e) => Some(e),
+            ParseError::TextureError { .. } => None,
         }
     }
 }
@@ -65,7 +72,7 @@ pub fn from_path<G, F>(
 where
     G: Graphics + 'static,
     G::Texture: CreateTexture<F>,
-    <G::Texture as CreateTexture<F>>::Error: ToString,
+    <G::Texture as TextureOp<F>>::Error: ToString,
 {
     match skin_entry {
         config::SkinEntry::Osu(p) =>

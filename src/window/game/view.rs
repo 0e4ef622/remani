@@ -142,7 +142,7 @@ impl<G: Graphics> View<G> {
         self.skin.draw_play_scene(
             c.transform,
             g,
-            args.height as f64,
+            args.window_size[1],
             &model.keys_down,
             &*self.notes_pos,
         );
